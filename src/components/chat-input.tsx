@@ -17,16 +17,31 @@ import {
 	SelectValue,
 } from './ui/select';
 
-export function ChatInput() {
-	const [model, setModel] = useState('gemini-2.5-flash');
-	const [message, setMessage] = useState('');
-
+export function ChatInput({
+	message,
+	model,
+	handleMessageChange,
+	handleModelChange,
+	handleSendMessage,
+}: {
+	message: string;
+	model: string;
+	handleMessageChange: (message: string) => void;
+	handleModelChange: (model: string) => void;
+	handleSendMessage: () => void;
+}) {
 	return (
 		<div className="w-full absolute bottom-2">
 			<PromptInput>
 				<PromptInputTextarea
 					value={message}
-					onChange={(e) => setMessage(e.target.value)}
+					className="text-lg"
+					onChange={(e) => handleMessageChange(e.target.value)}
+					onKeyDown={(e) => {
+						if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+							handleSendMessage();
+						}
+					}}
 				/>
 				<PromptInputActions className="w-full flex items-center justify-between pt-2">
 					<PromptInputAction
@@ -34,13 +49,19 @@ export function ChatInput() {
 						tooltip="Model">
 						<Select
 							value={model}
-							onValueChange={(value) => setModel(value)}>
+							onValueChange={(value) => handleModelChange(value)}>
 							<SelectTrigger className="border-none not-hover:dark:bg-transparent">
 								<SelectValue placeholder="Select a model" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="gemini-2.5-flash">
+								<SelectItem value="google/gemini-2.0-flash-001">
+									Gemini 2.0 Flash
+								</SelectItem>
+								<SelectItem value="google/gemini-2.5-flash-preview-05-20">
 									Gemini 2.5 Flash
+								</SelectItem>
+								<SelectItem value="openai/gpt-4.1-nano">
+									GPT-4.1 Nano
 								</SelectItem>
 							</SelectContent>
 						</Select>
@@ -49,9 +70,10 @@ export function ChatInput() {
 						delayDuration={300}
 						tooltip="Send">
 						<Button
+							onClick={handleSendMessage}
 							variant="ghost"
 							size="icon"
-							className="rounded-lg justify-end ">
+							className="rounded-lg">
 							<SendIcon className="size-4" />
 						</Button>
 					</PromptInputAction>

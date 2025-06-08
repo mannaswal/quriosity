@@ -13,7 +13,10 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
-import type * as users_index from "../users/index.js";
+import type * as llm from "../llm.js";
+import type * as messages from "../messages.js";
+import type * as threads from "../threads.js";
+import type * as users from "../users.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -24,7 +27,10 @@ import type * as users_index from "../users/index.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  "users/index": typeof users_index;
+  llm: typeof llm;
+  messages: typeof messages;
+  threads: typeof threads;
+  users: typeof users;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

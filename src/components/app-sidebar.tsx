@@ -4,6 +4,8 @@ import {
 	SidebarContent,
 	SidebarFooter,
 	SidebarGroup,
+	SidebarGroupLabel,
+	SidebarGroupContent,
 	SidebarHeader,
 } from '@/components/ui/sidebar';
 import { Button } from './ui/button';
@@ -20,8 +22,10 @@ export function AppSidebar() {
 				<h1 className="text-2xl font-bold">M3 Chat</h1>
 			</SidebarHeader>
 			<SidebarContent>
-				<SidebarGroup />
-				<SidebarGroup />
+				<SidebarGroup>
+					<SidebarGroupLabel>Threads</SidebarGroupLabel>
+					<SidebarGroupContent></SidebarGroupContent>
+				</SidebarGroup>
 			</SidebarContent>
 			<SidebarFooter>
 				{isAuthenticated && <>hi</>}
