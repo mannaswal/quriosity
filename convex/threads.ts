@@ -21,6 +21,42 @@ export const getUserThreads = query({
 	},
 });
 
+export const getThread = query({
+	args: { threadId: v.id('threads') },
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.threadId);
+	},
+});
+
+export const updateThreadModel = mutation({
+	args: {
+		threadId: v.id('threads'),
+		model: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) throw new Error('Not authenticated');
+
+		// Verify the user owns this thread
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread) throw new Error('Thread not found');
+
+		const user = await ctx.db
+			.query('users')
+			.withIndex('by_auth_id', (q) => q.eq('authId', identity.subject))
+			.unique();
+
+		if (!user || thread.userId !== user._id) {
+			throw new Error('Unauthorized');
+		}
+
+		// Update the thread's current model
+		await ctx.db.patch(args.threadId, {
+			currentModel: args.model,
+		});
+	},
+});
+
 export const listByThread = query({
 	args: { threadId: v.id('threads') },
 	handler: async (ctx, args) => {
@@ -57,11 +93,12 @@ export const createThreadAndPrepareForStream = mutation({
 				authId: identity.subject,
 			}));
 
-		// 1. Create the new thread
+		// 1. Create the new thread with the initial model
 		const threadId = await ctx.db.insert('threads', {
 			userId: userId,
 			title: 'New Chat',
 			isPublic: false,
+			currentModel: args.model,
 		});
 
 		// 2. Create the user message and assistant placeholder

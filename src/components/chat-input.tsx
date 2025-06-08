@@ -18,28 +18,33 @@ import {
 } from './ui/select';
 
 export function ChatInput({
-	message,
 	model,
-	handleMessageChange,
 	handleModelChange,
 	handleSendMessage,
 }: {
-	message: string;
 	model: string;
-	handleMessageChange: (message: string) => void;
 	handleModelChange: (model: string) => void;
-	handleSendMessage: () => void;
+	handleSendMessage: (message: string) => void;
 }) {
+	const [message, setMessage] = useState('');
+
+	const onSendMessage = () => {
+		if (!message.trim()) return;
+
+		handleSendMessage(message);
+		setMessage(''); // Clear input after sending
+	};
+
 	return (
 		<div className="w-full absolute bottom-2 left-1/2 -translate-x-1/2 max-w-3xl">
 			<PromptInput>
 				<PromptInputTextarea
 					value={message}
 					className="md:text-base"
-					onChange={(e) => handleMessageChange(e.target.value)}
+					onChange={(e) => setMessage(e.target.value)}
 					onKeyDown={(e) => {
 						if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-							handleSendMessage();
+							onSendMessage();
 						}
 					}}
 				/>
@@ -70,7 +75,7 @@ export function ChatInput({
 						delayDuration={300}
 						tooltip="Send">
 						<Button
-							onClick={handleSendMessage}
+							onClick={onSendMessage}
 							variant="ghost"
 							size="icon"
 							className="rounded-lg">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
 	Message,
@@ -13,21 +13,45 @@ import {
 } from '@/components/ui/chat-container';
 import { Markdown } from '@/components/ui/markdown';
 import { cn } from '@/lib/utils';
+import { ChatMessage, OptimisticMessage } from '@/lib/types';
 
 interface ChatContainerProps {
-	messages: any[];
-	optimisticMessage?: {
-		role: 'assistant';
-		content: string;
-	} | null;
+	messages: ChatMessage[];
+	optimisticMessage?: OptimisticMessage | null;
 }
 
-export default function ChatContainer({
+// Memoized message item component to prevent unnecessary re-renders
+const MessageItem = memo(function MessageItem({
+	message,
+	index,
+}: {
+	message: ChatMessage | (OptimisticMessage & { _id?: string });
+	index: number;
+}) {
+	return (
+		<Message
+			key={message._id || `message-${index}`}
+			className={cn(
+				'py-1.5 px-3 rounded-lg leading-loose',
+				message.role === 'user' && 'bg-neutral-800 self-end max-w-xl',
+				message.role === 'assistant' && 'text-neutral-100 self-start'
+			)}>
+			<Markdown
+				id={message._id || `markdown-${index}`}
+				className="prose dark:prose-invert">
+				{message.content}
+			</Markdown>
+		</Message>
+	);
+});
+
+const ChatContainer = memo(function ChatContainer({
 	messages,
 	optimisticMessage,
 }: ChatContainerProps) {
 	// Create the final list of messages to render
-	let messagesToRender = [...messages];
+	type RenderableMessage = ChatMessage | (OptimisticMessage & { _id?: string });
+	let messagesToRender: RenderableMessage[] = [...messages];
 
 	if (optimisticMessage) {
 		// Check if there's an in-progress message at the end
@@ -35,6 +59,7 @@ export default function ChatContainer({
 		if (
 			lastMessage &&
 			lastMessage.role === 'assistant' &&
+			'status' in lastMessage &&
 			lastMessage.status === 'in_progress'
 		) {
 			// Replace the in-progress message with the optimistic one
@@ -43,10 +68,10 @@ export default function ChatContainer({
 				content: optimisticMessage.content,
 			};
 		} else {
-			// Append the optimistic message
+			// Append the optimistic message with a temporary ID
 			messagesToRender.push({
-				role: 'assistant',
-				content: optimisticMessage.content,
+				...optimisticMessage,
+				_id: `optimistic-${Date.now()}`,
 			});
 		}
 	}
@@ -55,23 +80,17 @@ export default function ChatContainer({
 		<div className="flex h-screen pb-28 w-full flex-col overflow-hidden">
 			<ChatContainerRoot className="flex-1">
 				<ChatContainerContent className="space-y-4 p-4 max-w-3xl mx-auto">
-					{messagesToRender.map((message) => (
-						<Message
-							key={message._id}
-							className={cn(
-								'py-1.5 px-3 rounded-lg leading-loose',
-								message.role === 'user' && 'bg-neutral-800 self-end',
-								message.role === 'assistant' && 'text-foreground/80 self-start'
-							)}>
-							<Markdown
-								id={message._id}
-								className="prose dark:prose-invert">
-								{message.content}
-							</Markdown>
-						</Message>
+					{messagesToRender.map((message, index) => (
+						<MessageItem
+							key={message._id || `message-${index}`}
+							message={message}
+							index={index}
+						/>
 					))}
 				</ChatContainerContent>
 			</ChatContainerRoot>
 		</div>
 	);
-}
+});
+
+export default ChatContainer;
