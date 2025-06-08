@@ -2,17 +2,39 @@ import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 import { api } from './_generated/api';
 
-export const listByThread = query({
-	args: { threadId: v.id('threads') },
-	handler: async (ctx, args) => {
+export const getUserThreads = query({
+	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) throw new Error('Not authenticated');
+
+		const user = await ctx.db
+			.query('users')
+			.withIndex('by_auth_id', (q) => q.eq('authId', identity.subject))
+			.unique();
+
+		if (!user) throw new Error('User not found');
+
 		return await ctx.db
-			.query('messages')
-			.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
+			.query('threads')
+			.withIndex('by_user', (q) => q.eq('userId', user._id))
 			.collect();
 	},
 });
 
-export const createThreadAndSendMessage = mutation({
+export const listByThread = query({
+	args: { threadId: v.id('threads') },
+	handler: async (ctx, args) => {
+		console.time('listByThread');
+		const messages = await ctx.db
+			.query('messages')
+			.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
+			.collect();
+		console.timeEnd('listByThread');
+		return messages;
+	},
+});
+
+export const createThreadAndPrepareForStream = mutation({
 	args: {
 		messageContent: v.string(),
 		model: v.string(),
@@ -42,7 +64,7 @@ export const createThreadAndSendMessage = mutation({
 			isPublic: false,
 		});
 
-		// 2. Create the user's message
+		// 2. Create the user message and assistant placeholder
 		await ctx.db.insert('messages', {
 			threadId: threadId,
 			role: 'user',
@@ -50,7 +72,6 @@ export const createThreadAndSendMessage = mutation({
 			modelUsed: args.model,
 		});
 
-		// 3. Create the assistant's placeholder message
 		const assistantMessageId = await ctx.db.insert('messages', {
 			threadId: threadId,
 			role: 'assistant',
@@ -59,14 +80,7 @@ export const createThreadAndSendMessage = mutation({
 			modelUsed: args.model,
 		});
 
-		// 4. Schedule the AI action to fill in the placeholder
-		await ctx.scheduler.runAfter(0, api.llm.generateResponse, {
-			threadId: threadId,
-			assistantMessageId: assistantMessageId,
-			model: args.model,
-		});
-
-		// 5. Return the new thread's ID to the client
-		return threadId;
+		// 3. Return the new thread's and assistant message's ID to the client
+		return { threadId, assistantMessageId };
 	},
 });

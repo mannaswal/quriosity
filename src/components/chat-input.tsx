@@ -31,11 +31,11 @@ export function ChatInput({
 	handleSendMessage: () => void;
 }) {
 	return (
-		<div className="w-full absolute bottom-2">
+		<div className="w-full absolute bottom-2 left-1/2 -translate-x-1/2 max-w-3xl">
 			<PromptInput>
 				<PromptInputTextarea
 					value={message}
-					className="text-lg"
+					className="md:text-base"
 					onChange={(e) => handleMessageChange(e.target.value)}
 					onKeyDown={(e) => {
 						if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {

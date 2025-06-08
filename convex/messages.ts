@@ -14,7 +14,7 @@ export const listByThread = query({
 	},
 });
 
-export const createAndStream = mutation({
+export const prepareForStream = mutation({
 	args: {
 		threadId: v.id('threads'),
 		messageContent: v.string(),
@@ -41,13 +41,8 @@ export const createAndStream = mutation({
 			modelUsed: args.model,
 		});
 
-		// 3. Schedule the AI action to run immediately.
-		// This is better than the client calling the action directly.
-		await ctx.scheduler.runAfter(0, api.llm.generateResponse, {
-			threadId: args.threadId,
-			assistantMessageId: assistantMessageId,
-			model: args.model,
-		});
+		// 3. Return the ID of the placeholder
+		return assistantMessageId;
 	},
 });
 
