@@ -1,6 +1,64 @@
-import { mutation, query } from './_generated/server';
+import {
+	internalAction,
+	internalMutation,
+	mutation,
+	query,
+} from './_generated/server';
 import { v } from 'convex/values';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const openrouter = createOpenRouter({
+	apiKey: process.env.OPENROUTER_API_KEY,
+});
+
+/**
+ * Internal action to generate a title for a thread based on the first message
+ * Uses the Gemini lite model for fast, cost-effective title generation
+ */
+export const generateThreadTitle = internalAction({
+	args: {
+		threadId: v.id('threads'),
+		firstMessage: v.string(),
+	},
+	handler: async (ctx, args) => {
+		try {
+			const { text } = await generateText({
+				model: openrouter.chat('google/gemini-2.0-flash-lite-001'),
+				system:
+					'Generate a concise, descriptive title (max 60 characters) for a chat conversation based on the first user message. Return only the title, no quotes or additional text.',
+				prompt: `Title the chat conversation based on the first user message: ${args.firstMessage}`,
+				maxTokens: 20,
+				temperature: 0,
+			});
+
+			// Update the thread title with the generated title
+			await ctx.runMutation(internal.threads.updateThreadTitle, {
+				threadId: args.threadId,
+				title: text.trim(),
+			});
+		} catch (error) {
+			console.error('Failed to generate thread title:', error);
+			// If title generation fails, we'll just keep the default "New Chat" title
+		}
+	},
+});
+
+/**
+ * Internal mutation to update a thread's title
+ */
+export const updateThreadTitle = internalMutation({
+	args: {
+		threadId: v.id('threads'),
+		title: v.string(),
+	},
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.threadId, {
+			title: args.title,
+		});
+	},
+});
 
 export const getUserThreads = query({
 	handler: async (ctx) => {
@@ -117,7 +175,13 @@ export const createThreadAndPrepareForStream = mutation({
 			modelUsed: args.model,
 		});
 
-		// 3. Return the new thread's and assistant message's ID to the client
+		// 3. Schedule title generation to run concurrently (non-blocking)
+		await ctx.scheduler.runAfter(0, internal.threads.generateThreadTitle, {
+			threadId: threadId,
+			firstMessage: args.messageContent,
+		});
+
+		// 4. Return the new thread's and assistant message's ID to the client
 		return { threadId, assistantMessageId };
 	},
 });
