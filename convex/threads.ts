@@ -75,6 +75,7 @@ export const getUserThreads = query({
 		return await ctx.db
 			.query('threads')
 			.withIndex('by_user', (q) => q.eq('userId', user._id))
+			.order('desc')
 			.collect();
 	},
 });
