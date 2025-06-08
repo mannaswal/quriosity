@@ -9,9 +9,10 @@ import {
 import { Button } from './ui/button';
 import { Authenticated, Unauthenticated, useConvexAuth } from 'convex/react';
 import { SignInButton, UserButton } from '@clerk/nextjs';
+import { useStoreUserEffect } from '@/hooks/use-store-user';
 
 export function AppSidebar() {
-	const { isAuthenticated } = useConvexAuth();
+	const { isAuthenticated } = useStoreUserEffect();
 
 	return (
 		<Sidebar>
@@ -23,6 +24,7 @@ export function AppSidebar() {
 				<SidebarGroup />
 			</SidebarContent>
 			<SidebarFooter>
+				{isAuthenticated && <>hi</>}
 				<Authenticated>
 					<UserButton />
 				</Authenticated>

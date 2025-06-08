@@ -92,9 +92,7 @@ export default function ChatContainer() {
 	return (
 		<div className="flex h-screen pb-28 w-full flex-col overflow-hidden">
 			<ChatContainerRoot className="flex-1">
-				<ChatContainerContent className="space-y-4 p-4">
-					hi
-				</ChatContainerContent>
+				<ChatContainerContent className="space-y-4 p-4"> </ChatContainerContent>
 			</ChatContainerRoot>
 		</div>
 	);

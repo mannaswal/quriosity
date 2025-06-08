@@ -1,9 +1,8 @@
-import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
-import { ConvexClientProvider } from './convex-client-provider';
+import { ConvexClientProvider } from '@/auth/convex-client-provider';
 import { ClerkProvider } from '@clerk/nextjs';
 
 const geistSans = Geist({
@@ -16,7 +15,7 @@ const geistMono = Geist_Mono({
 	subsets: ['latin'],
 });
 
-export const metadata: Metadata = {
+export const metadata = {
 	title: 'M3 Chat',
 	description: 'Made for the T3 Chat Cloneathon',
 };

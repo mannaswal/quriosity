@@ -6,7 +6,11 @@
 		"dev": "next dev --turbopack",
 		"build": "next build",
 		"start": "next start",
-		"lint": "next lint"
+		"lint": "next lint",
+		"convex": "convex",
+		"convex:dev": "convex dev",
+		"convex:deploy": "convex deploy",
+		"convex:dashboard": "convex dashboard"
 	},
 	"dependencies": {
 		"@clerk/nextjs": "^6.21.0",
@@ -24,7 +28,6 @@
 		"ai": "^4.3.16",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
-		"convex": "^1.24.8",
 		"lucide-react": "^0.513.0",
 		"marked": "^15.0.12",
 		"next": "15.3.3",
@@ -39,11 +42,13 @@
 		"sonner": "^2.0.5",
 		"tailwind-merge": "^3.3.0",
 		"use-stick-to-bottom": "^1.1.1",
-		"zod": "^3.25.56"
+		"zod": "^3.25.56",
+		"convex": "^1.24.8"
 	},
 	"devDependencies": {
 		"@eslint/eslintrc": "^3",
 		"@tailwindcss/postcss": "^4",
+		"@types/next": "^9.0.0",
 		"@types/node": "^20",
 		"@types/react": "^19",
 		"@types/react-dom": "^19",
