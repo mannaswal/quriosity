@@ -1,6 +1,5 @@
 import ChatContainer from '@/components/chat-container';
 import { ChatInput } from '@/components/chat-input';
-import { auth0 } from '@/lib/auth0';
 
 export default async function Home() {
 	return (

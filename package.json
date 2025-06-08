@@ -9,8 +9,7 @@
 		"lint": "next lint"
 	},
 	"dependencies": {
-		"@auth0/auth0-react": "^2.3.0",
-		"@auth0/nextjs-auth0": "^4.6.1",
+		"@clerk/nextjs": "^6.21.0",
 		"@hookform/resolvers": "^5.1.0",
 		"@openrouter/ai-sdk-provider": "^0.7.1",
 		"@radix-ui/react-alert-dialog": "^1.1.14",

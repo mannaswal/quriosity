@@ -7,12 +7,12 @@ import {
 	SidebarHeader,
 } from '@/components/ui/sidebar';
 import { Button } from './ui/button';
-import { useConvexAuth } from 'convex/react';
-import { useAuth0 } from '@auth0/auth0-react';
+import { Authenticated, Unauthenticated, useConvexAuth } from 'convex/react';
+import { SignInButton, UserButton } from '@clerk/nextjs';
 
 export function AppSidebar() {
 	const { isAuthenticated } = useConvexAuth();
-	const { user, loginWithRedirect, logout } = useAuth0();
+
 	return (
 		<Sidebar>
 			<SidebarHeader>
@@ -23,12 +23,12 @@ export function AppSidebar() {
 				<SidebarGroup />
 			</SidebarContent>
 			<SidebarFooter>
-				{user?.name}
-				{isAuthenticated ? (
-					<Button onClick={() => logout()}>Log out</Button>
-				) : (
-					<Button onClick={() => loginWithRedirect()}>Log in</Button>
-				)}
+				<Authenticated>
+					<UserButton />
+				</Authenticated>
+				<Unauthenticated>
+					<SignInButton />
+				</Unauthenticated>
 			</SidebarFooter>
 		</Sidebar>
 	);
