@@ -8,6 +8,7 @@ import { v } from 'convex/values';
 import { api, internal } from './_generated/api';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { generateText } from 'ai';
+import { getMe } from './users';
 
 const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY,
@@ -192,40 +193,45 @@ export const createThreadAndPrepareForStream = mutation({
  * Only the thread owner can delete their threads
  */
 export const deleteThread = mutation({
-	args: {
-		threadId: v.id('threads'),
-	},
-	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) throw new Error('Not authenticated');
-
-		// Verify the thread exists and get the thread data
-		const thread = await ctx.db.get(args.threadId);
-		if (!thread) throw new Error('Thread not found');
-
-		// Verify the user owns this thread
-		const user = await ctx.db
-			.query('users')
-			.withIndex('by_auth_id', (q) => q.eq('authId', identity.subject))
-			.unique();
-
-		if (!user || thread.userId !== user._id) {
-			throw new Error('Unauthorized: You can only delete your own threads');
+	args: { threadId: v.id('threads') },
+	handler: async (ctx, { threadId }) => {
+		const user = await getMe(ctx);
+		if (!user) {
+			throw new Error('User not authenticated.');
 		}
 
-		// Delete all messages associated with this thread
+		const thread = await ctx.db.get(threadId);
+		if (!thread || thread.userId !== user._id) {
+			throw new Error('Thread not found or user not authorized.');
+		}
+
+		// First, find all messages in the thread to be deleted
 		const messages = await ctx.db
 			.query('messages')
-			.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
+			.withIndex('by_thread', (q) => q.eq('threadId', threadId))
 			.collect();
 
-		// Delete all messages in parallel
-		await Promise.all(messages.map((message) => ctx.db.delete(message._id)));
+		// For each message, find and orphan any threads that branch from it
+		for (const message of messages) {
+			const childBranches = await ctx.db
+				.query('threads')
+				.withIndex('by_branch_source', (q) =>
+					q.eq('branchedFromMessageId', message._id)
+				)
+				.collect();
 
-		// Delete the thread itself
-		await ctx.db.delete(args.threadId);
+			for (const branch of childBranches) {
+				await ctx.db.patch(branch._id, { branchedFromMessageId: undefined });
+			}
+		}
 
-		return { success: true };
+		// Now, delete all messages in the thread
+		for (const message of messages) {
+			await ctx.db.delete(message._id);
+		}
+
+		// Finally, delete the thread itself
+		await ctx.db.delete(threadId);
 	},
 });
 
@@ -307,5 +313,59 @@ export const renameThread = mutation({
 		});
 
 		return { success: true, newTitle: args.newTitle.trim() };
+	},
+});
+
+export const branchFromMessage = mutation({
+	args: { messageId: v.id('messages') },
+	handler: async (ctx, { messageId }) => {
+		const user = await getMe(ctx);
+		if (!user) {
+			throw new Error('User not authenticated.');
+		}
+
+		const sourceMessage = await ctx.db.get(messageId);
+		if (!sourceMessage) {
+			throw new Error('Source message not found.');
+		}
+
+		const sourceThread = await ctx.db.get(sourceMessage.threadId);
+		if (!sourceThread || sourceThread.userId !== user._id) {
+			throw new Error('User not authorized to branch from this thread.');
+		}
+
+		// 1. Get all messages up to the branch point
+		const messagesToCopy = await ctx.db
+			.query('messages')
+			.withIndex('by_thread', (q) => q.eq('threadId', sourceThread._id))
+			.filter((q) =>
+				q.lte(q.field('_creationTime'), sourceMessage._creationTime)
+			)
+			.order('asc')
+			.collect();
+
+		// 2. Create the new thread
+		const newThreadId = await ctx.db.insert('threads', {
+			userId: user._id,
+			title: sourceThread.title, // Copy title from parent
+			isPublic: false,
+			currentModel: sourceThread.currentModel, // Copy model from parent
+			branchedFromMessageId: messageId,
+		});
+
+		// 3. Copy messages to the new thread
+		for (const message of messagesToCopy) {
+			// We intentionally don't copy the _id and _creationTime
+			await ctx.db.insert('messages', {
+				threadId: newThreadId,
+				parentId: message.parentId,
+				role: message.role,
+				content: message.content,
+				status: message.status,
+				modelUsed: message.modelUsed,
+			});
+		}
+
+		return newThreadId;
 	},
 });

@@ -17,9 +17,11 @@ export default defineSchema({
 		shareId: v.optional(v.string()),
 		currentModel: v.optional(v.string()),
 		pinned: v.optional(v.boolean()),
+		branchedFromMessageId: v.optional(v.id('messages')),
 	})
 		.index('by_user', ['userId'])
-		.index('by_share_id', ['shareId']),
+		.index('by_share_id', ['shareId'])
+		.index('by_branch_source', ['branchedFromMessageId']),
 
 	messages: defineTable({
 		threadId: v.id('threads'),

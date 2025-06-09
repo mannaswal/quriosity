@@ -29,6 +29,7 @@ import {
 	EllipsisVerticalIcon,
 	PinIcon,
 	PinOffIcon,
+	SplitIcon,
 	TextCursorIcon,
 	TrashIcon,
 	XIcon,
@@ -363,14 +364,19 @@ const ThreadItem = ({
 										}}
 									/>
 								) : (
-									<span
-										onDoubleClick={(e) => {
-											startEditing(thread._id, thread.title);
-											e.preventDefault();
-											e.stopPropagation();
-										}}>
-										{thread.title}
-									</span>
+									<>
+										{thread.branchedFromMessageId && (
+											<SplitIcon className="size-4 shrink-0 text-muted-foreground mr-1" />
+										)}
+										<span
+											onDoubleClick={(e) => {
+												startEditing(thread._id, thread.title);
+												e.preventDefault();
+												e.stopPropagation();
+											}}>
+											{thread.title}
+										</span>
+									</>
 								)}
 							</Link>
 						</SidebarMenuButton>

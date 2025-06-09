@@ -39,7 +39,7 @@ export interface ChatMessage {
 	// }>;
 }
 
-export interface Thread {
+export type Thread = {
 	_id: Id<'threads'>;
 	_creationTime: number;
 	userId: Id<'users'>;
@@ -48,7 +48,8 @@ export interface Thread {
 	shareId?: string;
 	currentModel?: string;
 	pinned?: boolean;
-}
+	branchedFromMessageId?: Id<'messages'>;
+};
 
 export interface User {
 	_id: Id<'users'>;

@@ -11,6 +11,7 @@ import { Id } from '../../convex/_generated/dataModel';
 import { Thread } from '@/lib/types';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 /**
  * Query key factory for thread-related queries
@@ -232,6 +233,33 @@ export function useRenameThread() {
 		},
 		onSettled: () => {
 			queryClient.invalidateQueries({ queryKey: threadKeys.lists() });
+		},
+	});
+}
+
+/**
+ * Hook for branching a thread from a specific message.
+ */
+export function useBranchThread() {
+	const queryClient = useQueryClient();
+	const router = useRouter();
+	const branchMutation = useConvexMutation(api.threads.branchFromMessage);
+
+	return useMutation({
+		mutationFn: async ({ messageId }: { messageId: Id<'messages'> }) => {
+			return await branchMutation({ messageId });
+		},
+
+		onSuccess: (newThreadId) => {
+			toast.success('Thread branched successfully!');
+			// Invalidate queries to refetch the thread list
+			queryClient.invalidateQueries({ queryKey: threadKeys.lists() });
+			// Redirect to the new branched thread
+			router.push(`/chat/${newThreadId}`);
+		},
+		onError: (error) => {
+			toast.error(error.message || 'Failed to branch thread.');
+			console.error('Branching error:', error);
 		},
 	});
 }

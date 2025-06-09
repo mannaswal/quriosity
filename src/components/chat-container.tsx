@@ -27,11 +27,13 @@ import {
 	EditIcon,
 	RefreshCcwIcon,
 	PencilIcon,
+	SplitIcon,
 } from 'lucide-react';
 import { ProgressiveBlur } from './ui/progressive-blur';
 import { Textarea } from './ui/textarea';
 import { ScrollButton } from './ui/scroll-button';
 import { Magnetic } from './ui/magnetic';
+import { useBranchThread } from '@/hooks/use-threads';
 
 interface ChatContainerProps {
 	threadId?: Id<'threads'>;
@@ -53,8 +55,9 @@ const MessageItem = memo(function MessageItem({
 		useEditAndResubmit({
 			onSuccess: () => setIsEditing(false),
 		});
+	const { mutate: branch, isPending: isBranching } = useBranchThread();
 
-	const isPending = isRegenerating || isEditingAndResubmitting;
+	const isPending = isRegenerating || isEditingAndResubmitting || isBranching;
 
 	// If the edited content is the same as the original content, regenerate the message
 	// If the edited content is different, edit and resubmit the message
@@ -86,6 +89,12 @@ const MessageItem = memo(function MessageItem({
 		}
 	};
 
+	const handleBranch = () => {
+		if (message.role === 'assistant') {
+			branch({ messageId: message._id });
+		}
+	};
+
 	return (
 		<div
 			className={cn(
@@ -105,16 +114,16 @@ const MessageItem = memo(function MessageItem({
 							setIsEditing(false);
 						}
 					}}
-					className="md:text-base bg-neutral-800 max-w-xl w-fit self-end py-2.5 px-4 rounded-2xl rounded-br-md prose dark:prose-invert min-h-0 focus-visible:ring-0 focus-visible:ring-offset-0 leading-7 -my-px"
+					className="md:text-base bg-neutral-800 max-w-xl w-full self-end py-2.5 px-4 rounded-2xl rounded-br-md prose dark:prose-invert min-h-0 focus-visible:ring-0 focus-visible:ring-offset-0 leading-7 -my-px"
 					autoFocus
 				/>
 			) : (
 				<Message
 					key={message._id}
 					className={cn(
-						'peer/message flex flex-col w-fit',
+						'peer/message flex flex-col w-full',
 						message.role === 'user' &&
-							'bg-neutral-800 max-w-xl self-end py-2.5 px-4 rounded-2xl rounded-br-md',
+							'bg-neutral-800 max-w-xl w-fit self-end py-2.5 px-4 rounded-2xl rounded-br-md',
 						message.role === 'assistant' && 'text-neutral-100'
 					)}>
 					<Markdown
@@ -149,6 +158,13 @@ const MessageItem = memo(function MessageItem({
 							) : (
 								<CopyIcon className="w-4 h-4" />
 							)}
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-8"
+							onClick={handleBranch}>
+							<SplitIcon className="size-4 rotate-180" />
 						</Button>
 						<div className="text-xs text-neutral-500 ml-2">
 							<div>{models.find((m) => m.id === message.modelUsed)?.name}</div>
