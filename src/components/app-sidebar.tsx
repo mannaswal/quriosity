@@ -13,16 +13,15 @@ import {
 	SidebarMenuAction,
 } from '@/components/ui/sidebar';
 import { Button } from './ui/button';
-import {
-	Authenticated,
-	Unauthenticated,
-	useConvexAuth,
-	useQuery,
-	useMutation,
-} from 'convex/react';
+import { Authenticated, Unauthenticated, useConvexAuth } from 'convex/react';
 import { SignInButton, UserButton } from '@clerk/nextjs';
 import { useStoreUserEffect } from '@/hooks/use-store-user';
-import { api } from '../../convex/_generated/api';
+import {
+	useThreads,
+	usePinThread,
+	useDeleteThread,
+	useRenameThread,
+} from '@/hooks/use-threads';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -118,10 +117,7 @@ export function AppSidebar() {
 
 	useStoreUserEffect();
 
-	const threads = useQuery(
-		api.threads.getUserThreads,
-		isAuthenticated ? {} : 'skip'
-	);
+	const threads = useThreads();
 
 	const groupedThreads = useMemo(() => {
 		return groupThreadsByRecency(threads);
@@ -156,7 +152,7 @@ export function AppSidebar() {
 		<Sidebar>
 			<SidebarHeader>
 				<Link href="/">
-					<h1 className="text-2xl font-bold p-2">M3 Chat</h1>
+					<h1 className="text-2xl font-medium p-2 tracking-tight">M3 Chat</h1>
 				</Link>
 			</SidebarHeader>
 			<SidebarContent>
@@ -242,10 +238,10 @@ const ThreadItem = ({
 	const [editingTitle, setEditingTitle] = useState<string>('');
 	const [originalTitle, setOriginalTitle] = useState<string>('');
 
-	// Convex mutations
-	const pinThread = useMutation(api.threads.pinThread);
-	const deleteThread = useMutation(api.threads.deleteThread);
-	const renameThread = useMutation(api.threads.renameThread);
+	// React Query mutations with optimistic updates
+	const pinThreadMutation = usePinThread();
+	const deleteThreadMutation = useDeleteThread();
+	const renameThreadMutation = useRenameThread();
 
 	/**
 	 * Handle pinning/unpinning a thread
@@ -254,37 +250,22 @@ const ThreadItem = ({
 		threadId: string,
 		currentPinned: boolean | undefined
 	) => {
-		try {
-			await pinThread({
-				threadId: threadId as any,
-				pinned: !currentPinned,
-			});
-			toast.success(!currentPinned ? 'Thread pinned' : 'Thread unpinned');
-		} catch (error) {
-			console.error('Failed to pin thread:', error);
-			toast.error('Failed to update thread');
-		}
+		pinThreadMutation.mutate({
+			threadId: threadId as any,
+			pinned: !currentPinned,
+		});
 	};
 
 	/**
 	 * Handle deleting a thread
 	 */
 	const handleDeleteThread = async (threadIdToDelete: string) => {
-		try {
-			await deleteThread({
-				threadId: threadIdToDelete as any,
-			});
-
-			// If the currently viewed thread is being deleted, redirect to home
-			if (currentThreadId === threadIdToDelete) {
-				router.push('/');
-			}
-
-			toast.success('Thread deleted');
-		} catch (error) {
-			console.error('Failed to delete thread:', error);
-			toast.error('Failed to delete thread');
+		// If the currently viewed thread is being deleted, redirect to home
+		if (currentThreadId === threadIdToDelete) {
+			router.push('/');
 		}
+
+		deleteThreadMutation.mutate(threadIdToDelete as any);
 	};
 
 	/**
@@ -325,19 +306,21 @@ const ThreadItem = ({
 			return;
 		}
 
-		try {
-			await renameThread({
+		renameThreadMutation.mutate(
+			{
 				threadId: editingThreadId as any,
 				newTitle: trimmedTitle,
-			});
-			toast.success('Thread renamed');
-			cancelEditing();
-		} catch (error) {
-			console.error('Failed to rename thread:', error);
-			toast.error('Failed to rename thread');
-			// Revert to original title on error
-			cancelEditing();
-		}
+			},
+			{
+				onSuccess: () => {
+					cancelEditing();
+				},
+				onError: () => {
+					// Revert to original title on error
+					cancelEditing();
+				},
+			}
+		);
 	};
 
 	/**

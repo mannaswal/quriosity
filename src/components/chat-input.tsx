@@ -46,6 +46,7 @@ export function ChatInput({
 		<div className="w-full absolute bottom-2 left-1/2 -translate-x-1/2 max-w-3xl">
 			<PromptInput>
 				<PromptInputTextarea
+					autoFocus
 					value={message}
 					placeholder="Type here..."
 					className="md:text-base"

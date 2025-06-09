@@ -79,7 +79,7 @@ const ChatContainer = memo(function ChatContainer({
 	return (
 		<div className="flex h-screen w-full flex-col overflow-hidden justify-end pb-2">
 			<ChatContainerRoot className="flex-1 justify-end">
-				<ChatContainerContent className="space-y-4 p-2 max-w-3xl mx-auto pt-10 pb-28">
+				<ChatContainerContent className="space-y-4 p-2 max-w-3xl mx-auto pt-10 pb-32">
 					{messagesToRender.map((message, index) => (
 						<MessageItem
 							key={message._id || `message-${index}`}

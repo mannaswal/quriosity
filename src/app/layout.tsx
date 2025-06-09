@@ -4,6 +4,9 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { ConvexClientProvider } from '@/auth/convex-client-provider';
 import { ClerkProvider } from '@clerk/nextjs';
+import { TRPCProvider } from '@/lib/trpc/provider';
+import { Toaster } from '@/components/ui/sonner';
+import { cookies } from 'next/headers';
 
 const geistSans = Geist({
 	variable: '--font-geist-sans',
@@ -20,11 +23,14 @@ export const metadata = {
 	description: 'Made for the T3 Chat Cloneathon',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
+	const cookieStore = await cookies();
+	const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
+
 	return (
 		<html lang="en">
 			<head>
@@ -37,10 +43,13 @@ export default function RootLayout({
 				className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased dark`}>
 				<ClerkProvider>
 					<ConvexClientProvider>
-						<SidebarProvider>
-							<AppSidebar />
-							<main className="flex-1">{children}</main>
-						</SidebarProvider>
+						<TRPCProvider>
+							<SidebarProvider defaultOpen={defaultOpen}>
+								<AppSidebar />
+								<main className="flex-1">{children}</main>
+							</SidebarProvider>
+							<Toaster />
+						</TRPCProvider>
 					</ConvexClientProvider>
 				</ClerkProvider>
 			</body>

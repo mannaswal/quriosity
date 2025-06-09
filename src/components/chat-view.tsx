@@ -1,16 +1,21 @@
 'use client';
 
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '../../convex/_generated/api';
-import { Id } from '../../convex/_generated/dataModel';
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ChatContainer from '@/components/chat-container';
 import { ChatInput } from '@/components/chat-input';
-import { useAuth } from '@clerk/nextjs';
 import { OptimisticMessage } from '@/lib/types';
 import { toast } from 'sonner';
 import { ModelId } from '@/lib/models';
+import { trpc } from '@/lib/trpc/client';
+import {
+	useMessages,
+	usePrepareForStream,
+	useCreateThreadAndPrepareForStream,
+	useUpdateThreadModel,
+} from '@/hooks/use-messages';
+import { useThread } from '@/hooks/use-threads';
+import { Id } from '../../convex/_generated/dataModel';
 
 interface ChatViewProps {
 	threadId?: Id<'threads'>;
@@ -18,26 +23,25 @@ interface ChatViewProps {
 
 export function ChatView({ threadId }: ChatViewProps) {
 	const router = useRouter();
-	const { getToken } = useAuth();
-	const [model, setModel] = useState<ModelId>('google/gemini-2.0-flash-001');
 	const [optimisticMessage, setOptimisticMessage] =
 		useState<OptimisticMessage | null>(null);
 	const [isThreadDeleted, setIsThreadDeleted] = useState(false);
 
-	const messages =
-		useQuery(api.messages.listByThread, threadId ? { threadId } : 'skip') ?? [];
+	// Back to pure Convex (working with auth!)
+	const messages = useMessages(threadId) ?? [];
+	const thread = useThread(threadId);
 
-	// Get thread data to load the current model
-	const thread = useQuery(
-		api.threads.getThread,
-		threadId ? { threadId } : 'skip'
+	const [model, setModel] = useState<ModelId>(
+		(thread?.currentModel as ModelId) ?? 'google/gemini-2.0-flash-001'
 	);
 
-	const prepareForStream = useMutation(api.messages.prepareForStream);
-	const createThreadAndPrepareForStream = useMutation(
-		api.threads.createThreadAndPrepareForStream
-	);
-	const updateThreadModel = useMutation(api.threads.updateThreadModel);
+	const prepareForStreamMutation = usePrepareForStream();
+	const createThreadAndPrepareForStreamMutation =
+		useCreateThreadAndPrepareForStream();
+	const updateThreadModelMutation = useUpdateThreadModel();
+
+	// tRPC mutation for streaming configuration
+	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
 
 	// Handle thread deletion detection
 	useEffect(() => {
@@ -67,17 +71,13 @@ export function ChatView({ threadId }: ChatViewProps) {
 
 			// Update the thread's model if we have a threadId
 			if (threadId) {
-				try {
-					await updateThreadModel({
-						threadId,
-						model: newModel,
-					});
-				} catch (error) {
-					console.error('Failed to update thread model:', error);
-				}
+				updateThreadModelMutation.mutate({
+					threadId,
+					model: newModel,
+				});
 			}
 		},
-		[threadId, updateThreadModel, isThreadDeleted, thread]
+		[threadId, updateThreadModelMutation, isThreadDeleted, thread]
 	);
 
 	const handleSendMessage = useCallback(
@@ -99,40 +99,38 @@ export function ChatView({ threadId }: ChatViewProps) {
 
 				if (threadId) {
 					targetThreadId = threadId;
-					assistantMessageId = await prepareForStream({
+					assistantMessageId = await prepareForStreamMutation.mutateAsync({
 						threadId: threadId,
 						messageContent: messageToSend,
 						model: model,
 					});
 				} else {
-					const result = await createThreadAndPrepareForStream({
-						messageContent: messageToSend,
-						model: model,
-					});
+					const result =
+						await createThreadAndPrepareForStreamMutation.mutateAsync({
+							messageContent: messageToSend,
+							model: model,
+						});
 					assistantMessageId = result.assistantMessageId;
 					targetThreadId = result.threadId;
 					router.push(`/chat/${targetThreadId}`);
 				}
 
-				// Get the authentication token
-				const token = await getToken({ template: 'convex' });
+				// Get stream configuration with type safety via tRPC
+				const streamConfig = await getStreamConfig.mutateAsync({
+					threadId: targetThreadId,
+					assistantMessageId,
+					model,
+				});
 
-				// Make a POST request to the /stream HTTP endpoint
-				const response = await fetch(
-					`${process.env.NEXT_PUBLIC_CONVEX_SITE_URL}/stream`,
-					{
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							...(token && { Authorization: `Bearer ${token}` }),
-						},
-						body: JSON.stringify({
-							assistantMessageId,
-							threadId: targetThreadId,
-							model,
-						}),
-					}
-				);
+				// Make a POST request to the /stream HTTP endpoint using the config
+				const response = await fetch(streamConfig.streamUrl, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${streamConfig.token}`,
+					},
+					body: JSON.stringify(streamConfig.payload),
+				});
 
 				if (!response.body) {
 					throw new Error('Response body is null');
@@ -174,10 +172,10 @@ export function ChatView({ threadId }: ChatViewProps) {
 		[
 			threadId,
 			model,
-			prepareForStream,
-			createThreadAndPrepareForStream,
+			prepareForStreamMutation,
+			createThreadAndPrepareForStreamMutation,
 			router,
-			getToken,
+			getStreamConfig,
 			isThreadDeleted,
 			thread,
 		]
