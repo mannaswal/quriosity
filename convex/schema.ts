@@ -7,6 +7,7 @@ export default defineSchema({
 		name: v.string(),
 		email: v.optional(v.string()),
 		authId: v.string(),
+		lastModelUsed: v.optional(v.string()),
 	}).index('by_auth_id', ['authId']),
 
 	threads: defineTable({

@@ -29,6 +29,7 @@ import {
 	messageKeys,
 } from '@/hooks/use-messages';
 import { useThread, useThreads } from '@/hooks/use-threads';
+import { useCurrentUser, useUpdateLastModelUsed } from '@/hooks/use-user';
 
 export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 	const [message, setMessage] = useState('');
@@ -37,6 +38,7 @@ export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 
 	// --- Pre-emptive state initialization from cached data ---
 	const threads = useThreads();
+	const currentUser = useCurrentUser();
 	const getInitialModel = () => {
 		if (threadId) {
 			// Find the thread in the cached list from the sidebar
@@ -45,8 +47,12 @@ export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 				// If we have a model, use it for the initial state
 				return preloadedThread.currentModel as ModelId;
 			}
+		} else if (currentUser?.lastModelUsed) {
+			// For new chats, use the user's last used model
+			return currentUser.lastModelUsed as ModelId;
 		}
-		// For new chats or if data isn't cached, start with no model selected.
+
+		// Fallback for new chats or if data isn't cached.
 		// The useEffect below will set the appropriate default.
 		return undefined;
 	};
@@ -60,6 +66,7 @@ export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 	const createThreadAndPrepareForStreamMutation =
 		useCreateThreadAndPrepareForStream();
 	const updateThreadModelMutation = useUpdateThreadModel();
+	const { mutate: updateLastModelUsed } = useUpdateLastModelUsed();
 	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
 
 	// Effect to sync thread's model to local state
@@ -70,19 +77,24 @@ export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 			setModel(thread.currentModel as ModelId);
 		} else if (!threadId) {
 			// This is a new chat session (no threadId).
-			// Set the default model for the new chat.
-			setModel('google/gemini-2.0-flash-001');
+			// Set the default based on the user's last preference or a system default.
+			setModel(
+				(currentUser?.lastModelUsed as ModelId) ?? 'google/gemini-2.0-flash-001'
+			);
 		}
 		// When loading a thread (threadId exists but thread is not yet loaded),
 		// we deliberately do nothing. This keeps the previous model visible
 		// until the new one is loaded, preventing any flicker.
-	}, [thread, threadId]);
+	}, [thread, threadId, currentUser]);
 
 	const handleModelChange = useCallback(
 		async (newModel: ModelId) => {
 			// Update local state immediately for snappy UI
 			setModel(newModel);
-			// If there's a thread, persist the change
+			// Update the preference in the database for the current user
+			updateLastModelUsed({ model: newModel });
+
+			// If there's a thread, persist the change to the thread as well
 			if (threadId) {
 				updateThreadModelMutation.mutate({
 					threadId,
@@ -92,7 +104,7 @@ export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 			// If no threadId, the new model is stored in local state
 			// and will be used when handleSendMessage creates the new thread.
 		},
-		[threadId, updateThreadModelMutation]
+		[threadId, updateThreadModelMutation, updateLastModelUsed]
 	);
 
 	const handleSendMessage = useCallback(
