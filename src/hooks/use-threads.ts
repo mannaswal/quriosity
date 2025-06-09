@@ -10,6 +10,7 @@ import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { Thread } from '@/lib/types';
 import { toast } from 'sonner';
+import { useEffect } from 'react';
 
 /**
  * Query key factory for thread-related queries
@@ -37,13 +38,33 @@ export function useThreads() {
 }
 
 /**
- * Hook to get a specific thread by ID
+ * Hook to get a specific thread by ID, with optimistic updates.
  */
 export function useThread(threadId?: Id<'threads'>) {
-	return useConvexQuery(
+	const { isAuthenticated } = useConvexAuth();
+	const queryClient = useQueryClient();
+
+	// Get authoritative data from Convex
+	const convexThread = useConvexQuery(
 		api.threads.getThread,
-		threadId ? { threadId } : 'skip'
+		threadId && isAuthenticated ? { threadId } : 'skip'
 	);
+
+	// Sync Convex data to React Query cache
+	useEffect(() => {
+		if (threadId && convexThread !== undefined) {
+			queryClient.setQueryData(threadKeys.detail(threadId), convexThread);
+		}
+	}, [convexThread, queryClient, threadId]);
+
+	// UI subscribes to React Query cache for instant optimistic updates
+	const { data: thread } = useQuery<Thread | null>({
+		queryKey: threadKeys.detail(threadId!),
+		enabled: !!threadId,
+		staleTime: Infinity, // This cache is managed manually by the effect above
+	});
+
+	return thread;
 }
 
 /**
