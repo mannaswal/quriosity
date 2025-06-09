@@ -30,6 +30,8 @@ import {
 } from 'lucide-react';
 import { ProgressiveBlur } from './ui/progressive-blur';
 import { Textarea } from './ui/textarea';
+import { ScrollButton } from './ui/scroll-button';
+import { Magnetic } from './ui/magnetic';
 
 interface ChatContainerProps {
 	threadId?: Id<'threads'>;
@@ -122,7 +124,12 @@ const MessageItem = memo(function MessageItem({
 					</Markdown>
 				</Message>
 			)}
-			<div className="flex items-center opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100">
+			<div
+				className={cn(
+					'flex items-center opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100',
+					message.role === 'assistant' && '-ml-0.5',
+					message.role === 'user' && 'mb-1'
+				)}>
 				{message.role === 'assistant' && message.status === 'complete' ? (
 					<>
 						<Button
@@ -143,7 +150,7 @@ const MessageItem = memo(function MessageItem({
 								<CopyIcon className="w-4 h-4" />
 							)}
 						</Button>
-						<div className="text-xs text-neutral-500">
+						<div className="text-xs text-neutral-500 ml-2">
 							<div>{models.find((m) => m.id === message.modelUsed)?.name}</div>
 						</div>
 					</>
@@ -198,7 +205,7 @@ const ChatContainer = memo(function ChatContainer({
 	const messages = useMessages(threadId) ?? [];
 
 	return (
-		<div className="flex h-screen w-full flex-col overflow-hidden justify-end pb-2">
+		<div className="flex h-screen w-full flex-col overflow-hidden justify-end pb-2 relative">
 			<ProgressiveBlur
 				className="pointer-events-none absolute top-0 left-0 h-14 w-full"
 				blurIntensity={0.4}
@@ -221,6 +228,11 @@ const ChatContainer = memo(function ChatContainer({
 						);
 					})}
 				</ChatContainerContent>
+				<div className="absolute right-1/2 bottom-32 translate-x-1/2">
+					<Magnetic>
+						<ScrollButton className="shadow-sm h-6 w-12 backdrop-blur-sm hover:translate-y-0.5 transition-transform duration-150" />
+					</Magnetic>
+				</div>
 			</ChatContainerRoot>
 		</div>
 	);
