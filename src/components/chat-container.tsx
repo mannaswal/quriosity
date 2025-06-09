@@ -16,6 +16,8 @@ import { cn } from '@/lib/utils';
 import { ChatMessage } from '@/lib/types';
 import { useMessages } from '@/hooks/use-messages';
 import { Id } from '../../convex/_generated/dataModel';
+import { models } from '@/lib/models';
+import { CheckIcon, CopyIcon } from 'lucide-react';
 
 interface ChatContainerProps {
 	threadId?: Id<'threads'>;
@@ -27,20 +29,77 @@ const MessageItem = memo(function MessageItem({
 }: {
 	message: ChatMessage;
 }) {
+	const [copied, setCopied] = useState(false);
+
 	return (
-		<Message
-			key={message._id}
+		<div
 			className={cn(
-				'py-1.5 px-3 rounded-lg leading-loose',
-				message.role === 'user' && 'bg-neutral-800 self-end max-w-xl',
-				message.role === 'assistant' && 'text-neutral-100'
+				'w-full flex flex-col gap-2',
+				message.role === 'user' && 'items-end'
 			)}>
-			<Markdown
-				id={message._id}
-				className="max-w-full prose dark:prose-invert">
-				{message.content}
-			</Markdown>
-		</Message>
+			<Message
+				key={message._id}
+				className={cn(
+					'peer/message leading-loose flex flex-col w-fit',
+					message.role === 'user' &&
+						'bg-neutral-800 max-w-xl self-end py-2.5 px-4 rounded-2xl rounded-br-md ',
+					message.role === 'assistant' && 'text-neutral-100'
+				)}>
+				<Markdown
+					id={message._id}
+					className="max-w-full prose dark:prose-invert">
+					{message.content}
+				</Markdown>
+			</Message>
+			<div className="flex items-center gap-2 opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100">
+				{message.role === 'assistant' && message.status === 'complete' ? (
+					<>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-8"
+							onClick={(e) => {
+								navigator.clipboard.writeText(message.content);
+								setCopied(true);
+
+								setTimeout(() => {
+									setCopied(false);
+								}, 2000);
+							}}>
+							{copied ? (
+								<CheckIcon className="w-4 h-4" />
+							) : (
+								<CopyIcon className="w-4 h-4" />
+							)}
+						</Button>
+						<div className="text-xs text-neutral-500">
+							<div>{models.find((m) => m.id === message.modelUsed)?.name}</div>
+						</div>
+					</>
+				) : message.role === 'user' ? (
+					<>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-8"
+							onClick={(e) => {
+								navigator.clipboard.writeText(message.content);
+								setCopied(true);
+
+								setTimeout(() => {
+									setCopied(false);
+								}, 2000);
+							}}>
+							{copied ? (
+								<CheckIcon className="w-4 h-4" />
+							) : (
+								<CopyIcon className="w-4 h-4" />
+							)}
+						</Button>
+					</>
+				) : null}
+			</div>
+		</div>
 	);
 });
 
@@ -51,8 +110,8 @@ const ChatContainer = memo(function ChatContainer({
 
 	return (
 		<div className="flex h-screen w-full flex-col overflow-hidden justify-end pb-2">
-			<ChatContainerRoot className="flex-1 justify-end">
-				<ChatContainerContent className="space-y-4 p-2 max-w-3xl mx-auto pt-10 pb-32">
+			<ChatContainerRoot className="flex-1">
+				<ChatContainerContent className="p-4 max-w-3xl mx-auto pt-10 pb-32 space-y-1">
 					{messages.map((message) => (
 						<MessageItem
 							key={message._id}
