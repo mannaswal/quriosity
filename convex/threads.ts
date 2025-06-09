@@ -186,3 +186,126 @@ export const createThreadAndPrepareForStream = mutation({
 		return { threadId, assistantMessageId };
 	},
 });
+
+/**
+ * Delete a thread and all its associated messages
+ * Only the thread owner can delete their threads
+ */
+export const deleteThread = mutation({
+	args: {
+		threadId: v.id('threads'),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) throw new Error('Not authenticated');
+
+		// Verify the thread exists and get the thread data
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread) throw new Error('Thread not found');
+
+		// Verify the user owns this thread
+		const user = await ctx.db
+			.query('users')
+			.withIndex('by_auth_id', (q) => q.eq('authId', identity.subject))
+			.unique();
+
+		if (!user || thread.userId !== user._id) {
+			throw new Error('Unauthorized: You can only delete your own threads');
+		}
+
+		// Delete all messages associated with this thread
+		const messages = await ctx.db
+			.query('messages')
+			.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
+			.collect();
+
+		// Delete all messages in parallel
+		await Promise.all(messages.map((message) => ctx.db.delete(message._id)));
+
+		// Delete the thread itself
+		await ctx.db.delete(args.threadId);
+
+		return { success: true };
+	},
+});
+
+/**
+ * Toggle the pinned status of a thread
+ * Only the thread owner can pin/unpin their threads
+ */
+export const pinThread = mutation({
+	args: {
+		threadId: v.id('threads'),
+		pinned: v.boolean(),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) throw new Error('Not authenticated');
+
+		// Verify the thread exists and get the thread data
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread) throw new Error('Thread not found');
+
+		// Verify the user owns this thread
+		const user = await ctx.db
+			.query('users')
+			.withIndex('by_auth_id', (q) => q.eq('authId', identity.subject))
+			.unique();
+
+		if (!user || thread.userId !== user._id) {
+			throw new Error('Unauthorized: You can only pin/unpin your own threads');
+		}
+
+		// Update the thread's pinned status
+		await ctx.db.patch(args.threadId, {
+			pinned: args.pinned,
+		});
+
+		return { success: true, pinned: args.pinned };
+	},
+});
+
+/**
+ * Rename a thread's title
+ * Only the thread owner can rename their threads
+ */
+export const renameThread = mutation({
+	args: {
+		threadId: v.id('threads'),
+		newTitle: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) throw new Error('Not authenticated');
+
+		// Validate the new title
+		if (!args.newTitle.trim()) {
+			throw new Error('Thread title cannot be empty');
+		}
+
+		if (args.newTitle.length > 100) {
+			throw new Error('Thread title cannot exceed 100 characters');
+		}
+
+		// Verify the thread exists and get the thread data
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread) throw new Error('Thread not found');
+
+		// Verify the user owns this thread
+		const user = await ctx.db
+			.query('users')
+			.withIndex('by_auth_id', (q) => q.eq('authId', identity.subject))
+			.unique();
+
+		if (!user || thread.userId !== user._id) {
+			throw new Error('Unauthorized: You can only rename your own threads');
+		}
+
+		// Update the thread's title
+		await ctx.db.patch(args.threadId, {
+			title: args.newTitle.trim(),
+		});
+
+		return { success: true, newTitle: args.newTitle.trim() };
+	},
+});

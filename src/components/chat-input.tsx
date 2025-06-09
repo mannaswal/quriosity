@@ -35,18 +35,21 @@ export function ChatInput({
 		setMessage(''); // Clear input after sending
 	};
 
+	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+		if (e.key === 'Enter') {
+			onSendMessage();
+		}
+	};
+
 	return (
 		<div className="w-full absolute bottom-2 left-1/2 -translate-x-1/2 max-w-3xl">
 			<PromptInput>
 				<PromptInputTextarea
 					value={message}
+					placeholder="Type here..."
 					className="md:text-base"
 					onChange={(e) => setMessage(e.target.value)}
-					onKeyDown={(e) => {
-						if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-							onSendMessage();
-						}
-					}}
+					onKeyDown={handleKeyDown}
 				/>
 				<PromptInputActions className="w-full flex items-center justify-between pt-2">
 					<PromptInputAction

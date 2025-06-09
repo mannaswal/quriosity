@@ -9,6 +9,7 @@ import ChatContainer from '@/components/chat-container';
 import { ChatInput } from '@/components/chat-input';
 import { useAuth } from '@clerk/nextjs';
 import { OptimisticMessage } from '@/lib/types';
+import { toast } from 'sonner';
 
 interface ChatViewProps {
 	threadId?: Id<'threads'>;
@@ -20,6 +21,7 @@ export function ChatView({ threadId }: ChatViewProps) {
 	const [model, setModel] = useState('google/gemini-2.0-flash-001');
 	const [optimisticMessage, setOptimisticMessage] =
 		useState<OptimisticMessage | null>(null);
+	const [isThreadDeleted, setIsThreadDeleted] = useState(false);
 
 	const messages =
 		useQuery(api.messages.listByThread, threadId ? { threadId } : 'skip') ?? [];
@@ -36,6 +38,16 @@ export function ChatView({ threadId }: ChatViewProps) {
 	);
 	const updateThreadModel = useMutation(api.threads.updateThreadModel);
 
+	// Handle thread deletion detection
+	useEffect(() => {
+		if (threadId && thread === null && !isThreadDeleted) {
+			// Thread was deleted (query returned null, not undefined which means loading)
+			setIsThreadDeleted(true);
+			toast.error('This conversation has been deleted');
+			router.push('/');
+		}
+	}, [thread, threadId, isThreadDeleted, router]);
+
 	// Load the thread's current model when thread data is available
 	useEffect(() => {
 		if (thread?.currentModel) {
@@ -45,6 +57,11 @@ export function ChatView({ threadId }: ChatViewProps) {
 
 	const handleModelChange = useCallback(
 		async (newModel: string) => {
+			// Prevent model changes if thread is deleted
+			if (isThreadDeleted || (threadId && thread === null)) {
+				return;
+			}
+
 			setModel(newModel);
 
 			// Update the thread's model if we have a threadId
@@ -59,12 +76,18 @@ export function ChatView({ threadId }: ChatViewProps) {
 				}
 			}
 		},
-		[threadId, updateThreadModel]
+		[threadId, updateThreadModel, isThreadDeleted, thread]
 	);
 
 	const handleSendMessage = useCallback(
 		async (messageToSend: string) => {
 			if (!messageToSend.trim()) return;
+
+			// Prevent sending messages if thread is deleted
+			if (isThreadDeleted || (threadId && thread === null)) {
+				toast.error('Cannot send message: conversation has been deleted');
+				return;
+			}
 
 			// Reset optimistic state
 			setOptimisticMessage(null);
@@ -130,7 +153,18 @@ export function ChatView({ threadId }: ChatViewProps) {
 				}
 			} catch (error) {
 				console.error('Failed to send message or stream response:', error);
-				// Optionally, show an error toast to the user
+
+				// Check if the error is due to thread not existing
+				if (
+					error instanceof Error &&
+					error.message.includes('Thread not found')
+				) {
+					setIsThreadDeleted(true);
+					toast.error('This conversation has been deleted');
+					router.push('/');
+				} else {
+					toast.error('Failed to send message');
+				}
 			} finally {
 				// Clear the optimistic message once the stream is fully handled
 				setOptimisticMessage(null);
@@ -143,8 +177,30 @@ export function ChatView({ threadId }: ChatViewProps) {
 			createThreadAndPrepareForStream,
 			router,
 			getToken,
+			isThreadDeleted,
+			thread,
 		]
 	);
+
+	// // Show loading state while checking if thread exists
+	// if (threadId && thread === undefined) {
+	// 	return (
+	// 		<div className="w-full h-screen max-h-screen relative flex items-center justify-center">
+	// 			<div className="text-sm text-muted-foreground">
+	// 				Loading conversation...
+	// 			</div>
+	// 		</div>
+	// 	);
+	// }
+
+	// // Don't render chat if thread is deleted
+	// if (isThreadDeleted || (threadId && thread === null)) {
+	// 	return (
+	// 		<div className="w-full h-screen max-h-screen relative flex items-center justify-center">
+	// 			<div className="text-sm text-muted-foreground">Redirecting...</div>
+	// 		</div>
+	// 	);
+	// }
 
 	return (
 		<div className="w-full h-screen max-h-screen relative">
@@ -152,7 +208,6 @@ export function ChatView({ threadId }: ChatViewProps) {
 				messages={messages}
 				optimisticMessage={optimisticMessage}
 			/>
-
 			<ChatInput
 				model={model}
 				handleModelChange={handleModelChange}

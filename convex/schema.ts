@@ -15,6 +15,7 @@ export default defineSchema({
 		isPublic: v.boolean(),
 		shareId: v.optional(v.string()),
 		currentModel: v.optional(v.string()),
+		pinned: v.optional(v.boolean()),
 	})
 		.index('by_user', ['userId'])
 		.index('by_share_id', ['shareId']),

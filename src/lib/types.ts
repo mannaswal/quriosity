@@ -47,6 +47,7 @@ export interface Thread {
 	isPublic: boolean;
 	shareId?: string;
 	currentModel?: string;
+	pinned?: boolean;
 }
 
 export interface User {
