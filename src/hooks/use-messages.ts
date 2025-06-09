@@ -4,10 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
 	useQuery as useConvexQuery,
 	useMutation as useConvexMutation,
+	useConvexAuth,
 } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
+import { ChatMessage } from '@/lib/types';
+import { toast } from 'sonner';
 import { threadKeys } from './use-threads';
+import { useEffect } from 'react';
 
 /**
  * Query key factory for message-related queries
@@ -15,18 +19,48 @@ import { threadKeys } from './use-threads';
 export const messageKeys = {
 	all: ['messages'] as const,
 	lists: () => [...messageKeys.all, 'list'] as const,
-	list: (threadId: string) => [...messageKeys.lists(), threadId] as const,
+	list: (threadId?: string) => [...messageKeys.lists(), threadId] as const,
 };
 
 /**
- * Hook to get messages for a specific thread with pure Convex
+ * Hook to get messages for a thread, with optimistic updates.
+ * This is now the primary hook for displaying messages.
  */
 export function useMessages(threadId?: Id<'threads'>) {
-	// Back to pure Convex for now
-	return useConvexQuery(
+	const { isAuthenticated } = useConvexAuth();
+	const queryClient = useQueryClient();
+
+	// Get the authoritative list of messages from the server via Convex
+	const convexMessages = useConvexQuery(
 		api.messages.listByThread,
-		threadId ? { threadId } : 'skip'
+		threadId && isAuthenticated ? { threadId } : 'skip'
 	);
+
+	// When the authoritative server data changes, sync it to the React Query cache.
+	// This ensures the cache is up-to-date with the ground truth from Convex.
+	useEffect(() => {
+		if (convexMessages !== undefined) {
+			queryClient.setQueryData(messageKeys.list(threadId), convexMessages);
+		}
+	}, [convexMessages, queryClient, threadId]);
+
+	// The UI subscribes to the React Query cache via useQuery.
+	// This provides instant updates from setQueryData calls during the stream,
+	// ensuring a smooth rendering experience.
+	const { data: messages } = useQuery<ChatMessage[]>({
+		queryKey: messageKeys.list(threadId),
+		// No queryFn is needed as we manage the cache manually.
+		// It's populated by the useEffect above or the streaming logic in mutations.
+		initialData: () => {
+			// Initialize with data already in cache if available
+			return queryClient.getQueryData(messageKeys.list(threadId)) ?? [];
+		},
+		enabled: !!threadId,
+		// Ensure it doesn't try to refetch on its own
+		staleTime: Infinity,
+	});
+
+	return messages;
 }
 
 /**
@@ -104,19 +138,31 @@ export function useCreateThreadAndPrepareForStream() {
 		mutationFn: async (data: { messageContent: string; model: string }) => {
 			return await createThreadMutation(data);
 		},
-		onSuccess: (result) => {
+		onSuccess: (result, variables) => {
 			// Invalidate threads list to show the new thread
 			queryClient.invalidateQueries({ queryKey: threadKeys.lists() });
 
-			// Pre-populate the new thread's message cache
+			// Pre-populate the new thread's message cache with user message and assistant placeholder
+			const userMessage = {
+				_id: `temp-user-${Date.now()}`,
+				threadId: result.threadId,
+				role: 'user',
+				content: variables.messageContent,
+				_creationTime: Date.now(),
+			};
+
+			const assistantMessage = {
+				_id: result.assistantMessageId,
+				threadId: result.threadId,
+				role: 'assistant',
+				content: '',
+				status: 'in_progress',
+				_creationTime: Date.now() + 1,
+			};
+
 			queryClient.setQueryData(messageKeys.list(result.threadId), [
-				{
-					_id: `temp-user-${Date.now()}`,
-					threadId: result.threadId,
-					role: 'user',
-					content: '', // Will be filled by the actual data
-					_creationTime: Date.now(),
-				},
+				userMessage,
+				assistantMessage,
 			]);
 		},
 	});
