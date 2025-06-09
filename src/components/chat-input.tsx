@@ -30,6 +30,7 @@ import {
 } from '@/hooks/use-messages';
 import { useThread, useThreads } from '@/hooks/use-threads';
 import { useCurrentUser, useUpdateLastModelUsed } from '@/hooks/use-user';
+import { handleStreamResponse } from '@/lib/stream-helper';
 
 export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 	const [message, setMessage] = useState('');
@@ -140,41 +141,7 @@ export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 					model: model!, // Use model from state
 				});
 
-				const response = await fetch(streamConfig.streamUrl, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						Authorization: `Bearer ${streamConfig.token}`,
-					},
-					body: JSON.stringify(streamConfig.payload),
-				});
-
-				if (!response.body) {
-					throw new Error('Response body is null');
-				}
-
-				const reader = response.body.getReader();
-				const decoder = new TextDecoder();
-				let accumulatedResponse = '';
-
-				while (true) {
-					const { done, value } = await reader.read();
-					if (done) break;
-					accumulatedResponse += decoder.decode(value);
-
-					// Update cache with streaming content
-					queryClient.setQueryData(
-						messageKeys.list(targetThreadId),
-						(old: any[] | undefined) => {
-							if (!old) return [];
-							return old.map((msg) =>
-								msg._id === assistantMessageId
-									? { ...msg, content: accumulatedResponse }
-									: msg
-							);
-						}
-					);
-				}
+				await handleStreamResponse({ streamConfig, queryClient });
 			} catch (error) {
 				console.error('Failed to send message or stream response:', error);
 				toast.error('Failed to send message');

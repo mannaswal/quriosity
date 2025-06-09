@@ -12,6 +12,8 @@ import { ChatMessage } from '@/lib/types';
 import { toast } from 'sonner';
 import { threadKeys } from './use-threads';
 import { useEffect } from 'react';
+import { trpc } from '@/lib/trpc/client';
+import { handleStreamResponse } from '@/lib/stream-helper';
 
 /**
  * Query key factory for message-related queries
@@ -209,6 +211,142 @@ export function useUpdateThreadModel() {
 			queryClient.invalidateQueries({
 				queryKey: threadKeys.detail(variables.threadId),
 			});
+		},
+	});
+}
+
+/**
+ * Hook to regenerate an assistant's response.
+ */
+export function useRegenerate(opts: {
+	onSuccess?: () => void;
+	onError?: (error: Error) => void;
+}) {
+	const queryClient = useQueryClient();
+	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
+	const regenerateMutation = useConvexMutation(api.messages.regenerateResponse);
+
+	return useMutation({
+		mutationFn: async ({
+			userMessageId,
+			threadId,
+		}: {
+			userMessageId: Id<'messages'>;
+			threadId: Id<'threads'>;
+		}) => {
+			const queryKey = messageKeys.list(threadId);
+
+			// Find the user message in the cache
+			const userMessage = queryClient
+				.getQueryData<ChatMessage[]>(queryKey)
+				?.find((m) => m._id === userMessageId);
+
+			if (!userMessage) {
+				throw new Error('Message to regenerate not found in cache.');
+			}
+
+			const originalMessages =
+				queryClient.getQueryData<ChatMessage[]>(queryKey);
+
+			// Optimistically remove all messages after the one we're retrying
+			queryClient.setQueryData<ChatMessage[]>(
+				queryKey,
+				(old) =>
+					old?.filter((m) => m._creationTime <= userMessage._creationTime) ?? []
+			);
+
+			try {
+				const result = await regenerateMutation({ userMessageId });
+				const streamConfig = await getStreamConfig.mutateAsync(result);
+				await handleStreamResponse({ streamConfig, queryClient });
+				return result;
+			} catch (error) {
+				// Rollback on error
+				queryClient.setQueryData(queryKey, originalMessages);
+				throw error; // Re-throw to be caught by onError
+			}
+		},
+		onSuccess: () => {
+			opts.onSuccess?.();
+		},
+		onError: (error: Error) => {
+			toast.error(error.message || 'Failed to regenerate response');
+			opts.onError?.(error);
+		},
+		onSettled: (data) => {
+			if (data) {
+				queryClient.invalidateQueries({
+					queryKey: messageKeys.list(data.threadId),
+				});
+			}
+		},
+	});
+}
+
+/**
+ * Hook to edit a user message and regenerate the assistant's response.
+ */
+export function useEditAndResubmit(opts: {
+	onSuccess?: () => void;
+	onError?: (error: Error) => void;
+}) {
+	const queryClient = useQueryClient();
+	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
+	const editMutation = useConvexMutation(api.messages.editAndResubmit);
+
+	return useMutation({
+		mutationFn: async ({
+			userMessageId,
+			threadId,
+			newContent,
+		}: {
+			userMessageId: Id<'messages'>;
+			threadId: Id<'threads'>;
+			newContent: string;
+		}) => {
+			const queryKey = messageKeys.list(threadId);
+			const originalMessages =
+				queryClient.getQueryData<ChatMessage[]>(queryKey);
+
+			// Optimistically update the UI
+			queryClient.setQueryData<ChatMessage[]>(queryKey, (old) => {
+				if (!old) return [];
+				const userMessageIndex = old.findIndex((m) => m._id === userMessageId);
+				if (userMessageIndex === -1) return old;
+
+				// Update the content of the user message
+				const updatedMessages = old.map((m, i) =>
+					i === userMessageIndex ? { ...m, content: newContent } : m
+				);
+
+				// Remove all messages after the user message
+				return updatedMessages.slice(0, userMessageIndex + 1);
+			});
+
+			try {
+				const result = await editMutation({ userMessageId, newContent });
+				const streamConfig = await getStreamConfig.mutateAsync(result);
+				await handleStreamResponse({ streamConfig, queryClient });
+				return result;
+			} catch (error) {
+				// Rollback on error
+				queryClient.setQueryData(queryKey, originalMessages);
+				throw error; // Re-throw to be caught by onError
+			}
+		},
+		onSuccess: () => {
+			opts.onSuccess?.();
+		},
+		onError: (error: Error) => {
+			toast.error(error.message || 'Failed to edit message');
+			opts.onError?.(error);
+		},
+		onSettled: (data) => {
+			if (data) {
+				queryClient.invalidateQueries({
+					queryKey: messageKeys.list(data.threadId),
+				});
+			}
 		},
 	});
 }
