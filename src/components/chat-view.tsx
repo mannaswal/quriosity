@@ -10,6 +10,7 @@ import { ChatInput } from '@/components/chat-input';
 import { useAuth } from '@clerk/nextjs';
 import { OptimisticMessage } from '@/lib/types';
 import { toast } from 'sonner';
+import { ModelId } from '@/lib/models';
 
 interface ChatViewProps {
 	threadId?: Id<'threads'>;
@@ -18,7 +19,7 @@ interface ChatViewProps {
 export function ChatView({ threadId }: ChatViewProps) {
 	const router = useRouter();
 	const { getToken } = useAuth();
-	const [model, setModel] = useState('google/gemini-2.0-flash-001');
+	const [model, setModel] = useState<ModelId>('google/gemini-2.0-flash-001');
 	const [optimisticMessage, setOptimisticMessage] =
 		useState<OptimisticMessage | null>(null);
 	const [isThreadDeleted, setIsThreadDeleted] = useState(false);
@@ -51,12 +52,12 @@ export function ChatView({ threadId }: ChatViewProps) {
 	// Load the thread's current model when thread data is available
 	useEffect(() => {
 		if (thread?.currentModel) {
-			setModel(thread.currentModel);
+			setModel(thread.currentModel as ModelId);
 		}
 	}, [thread?.currentModel]);
 
 	const handleModelChange = useCallback(
-		async (newModel: string) => {
+		async (newModel: ModelId) => {
 			// Prevent model changes if thread is deleted
 			if (isThreadDeleted || (threadId && thread === null)) {
 				return;
@@ -181,26 +182,6 @@ export function ChatView({ threadId }: ChatViewProps) {
 			thread,
 		]
 	);
-
-	// // Show loading state while checking if thread exists
-	// if (threadId && thread === undefined) {
-	// 	return (
-	// 		<div className="w-full h-screen max-h-screen relative flex items-center justify-center">
-	// 			<div className="text-sm text-muted-foreground">
-	// 				Loading conversation...
-	// 			</div>
-	// 		</div>
-	// 	);
-	// }
-
-	// // Don't render chat if thread is deleted
-	// if (isThreadDeleted || (threadId && thread === null)) {
-	// 	return (
-	// 		<div className="w-full h-screen max-h-screen relative flex items-center justify-center">
-	// 			<div className="text-sm text-muted-foreground">Redirecting...</div>
-	// 		</div>
-	// 	);
-	// }
 
 	return (
 		<div className="w-full h-screen max-h-screen relative">

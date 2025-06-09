@@ -34,11 +34,11 @@ const MessageItem = memo(function MessageItem({
 			className={cn(
 				'py-1.5 px-3 rounded-lg leading-loose',
 				message.role === 'user' && 'bg-neutral-800 self-end max-w-xl',
-				message.role === 'assistant' && 'text-neutral-100 self-start'
+				message.role === 'assistant' && 'text-neutral-100'
 			)}>
 			<Markdown
 				id={message._id || `markdown-${index}`}
-				className="prose dark:prose-invert">
+				className="max-w-full prose dark:prose-invert">
 				{message.content}
 			</Markdown>
 		</Message>
@@ -77,9 +77,9 @@ const ChatContainer = memo(function ChatContainer({
 	}
 
 	return (
-		<div className="flex h-screen pb-28 w-full flex-col overflow-hidden">
-			<ChatContainerRoot className="flex-1">
-				<ChatContainerContent className="space-y-4 p-4 max-w-3xl mx-auto">
+		<div className="flex h-screen w-full flex-col overflow-hidden justify-end pb-2">
+			<ChatContainerRoot className="flex-1 justify-end">
+				<ChatContainerContent className="space-y-4 p-2 max-w-3xl mx-auto pt-10 pb-28">
 					{messagesToRender.map((message, index) => (
 						<MessageItem
 							key={message._id || `message-${index}`}

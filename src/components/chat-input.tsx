@@ -16,14 +16,15 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from './ui/select';
+import { ModelId, models } from '@/lib/models';
 
 export function ChatInput({
 	model,
 	handleModelChange,
 	handleSendMessage,
 }: {
-	model: string;
-	handleModelChange: (model: string) => void;
+	model: ModelId;
+	handleModelChange: (model: ModelId) => void;
 	handleSendMessage: (message: string) => void;
 }) {
 	const [message, setMessage] = useState('');
@@ -57,20 +58,18 @@ export function ChatInput({
 						tooltip="Model">
 						<Select
 							value={model}
-							onValueChange={(value) => handleModelChange(value)}>
+							onValueChange={(value) => handleModelChange(value as ModelId)}>
 							<SelectTrigger className="border-none not-hover:dark:bg-transparent">
 								<SelectValue placeholder="Select a model" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="google/gemini-2.0-flash-001">
-									Gemini 2.0 Flash
-								</SelectItem>
-								<SelectItem value="google/gemini-2.5-flash-preview-05-20">
-									Gemini 2.5 Flash
-								</SelectItem>
-								<SelectItem value="openai/gpt-4.1-nano">
-									GPT-4.1 Nano
-								</SelectItem>
+								{models.map((m) => (
+									<SelectItem
+										key={m.id}
+										value={m.id}>
+										{m.name}
+									</SelectItem>
+								))}
 							</SelectContent>
 						</Select>
 					</PromptInputAction>

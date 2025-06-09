@@ -80,7 +80,7 @@ function PromptInput({
 				}}>
 				<div
 					className={cn(
-						'border-input bg-neutral-900 rounded-2xl p-2 shadow-xs',
+						'border-[0.5px] border-input/60 bg-neutral-900/90 backdrop-blur rounded-2xl p-2 shadow-inner',
 						className
 					)}>
 					{children}
