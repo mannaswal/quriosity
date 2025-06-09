@@ -18,6 +18,7 @@ import { useMessages } from '@/hooks/use-messages';
 import { Id } from '../../convex/_generated/dataModel';
 import { models } from '@/lib/models';
 import { CheckIcon, CopyIcon } from 'lucide-react';
+import { ProgressiveBlur } from './ui/progressive-blur';
 
 interface ChatContainerProps {
 	threadId?: Id<'threads'>;
@@ -110,8 +111,15 @@ const ChatContainer = memo(function ChatContainer({
 
 	return (
 		<div className="flex h-screen w-full flex-col overflow-hidden justify-end pb-2">
+			<ProgressiveBlur
+				className="pointer-events-none absolute top-0 left-0 h-14 w-full"
+				blurIntensity={0.4}
+				blurLayers={12}
+				direction="top"
+			/>
+			<div className="absolute top-0 left-0 h-14 w-full bg-gradient-to-t from-transparent to-background/95" />
 			<ChatContainerRoot className="flex-1">
-				<ChatContainerContent className="p-4 max-w-3xl mx-auto pt-10 pb-32 space-y-1">
+				<ChatContainerContent className="p-4 max-w-3xl mx-auto pt-14 pb-32 space-y-1">
 					{messages.map((message) => (
 						<MessageItem
 							key={message._id}
