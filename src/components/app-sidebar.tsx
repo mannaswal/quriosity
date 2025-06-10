@@ -150,7 +150,7 @@ export function AppSidebar() {
 	}, [router]);
 
 	return (
-		<Sidebar>
+		<Sidebar variant="floating">
 			<SidebarHeader>
 				<Link href="/">
 					<h1 className="text-2xl font-medium p-2 tracking-tight">M3 Chat</h1>
@@ -366,7 +366,7 @@ const ThreadItem = ({
 								) : (
 									<>
 										{thread.branchedFromMessageId && (
-											<SplitIcon className="size-4 shrink-0 text-muted-foreground mr-1" />
+											<SplitIcon className="size-3.5 shrink-0 text-muted-foreground rotate-180" />
 										)}
 										<span
 											onDoubleClick={(e) => {

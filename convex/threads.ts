@@ -130,7 +130,7 @@ export const listByThread = query({
 	},
 });
 
-export const createThreadAndPrepareForStream = mutation({
+export const createThread = mutation({
 	args: {
 		messageContent: v.string(),
 		model: v.string(),
@@ -161,30 +161,14 @@ export const createThreadAndPrepareForStream = mutation({
 			currentModel: args.model,
 		});
 
-		// 2. Create the user message and assistant placeholder
-		await ctx.db.insert('messages', {
-			threadId: threadId,
-			role: 'user',
-			content: args.messageContent,
-			modelUsed: args.model,
-		});
-
-		const assistantMessageId = await ctx.db.insert('messages', {
-			threadId: threadId,
-			role: 'assistant',
-			content: '',
-			status: 'in_progress',
-			modelUsed: args.model,
-		});
-
-		// 3. Schedule title generation to run concurrently (non-blocking)
+		// 2. Schedule title generation to run concurrently (non-blocking)
 		await ctx.scheduler.runAfter(0, internal.threads.generateThreadTitle, {
 			threadId: threadId,
 			firstMessage: args.messageContent,
 		});
 
-		// 4. Return the new thread's and assistant message's ID to the client
-		return { threadId, assistantMessageId };
+		// 3. Return the new thread's ID to the client
+		return { threadId };
 	},
 });
 

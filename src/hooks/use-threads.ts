@@ -12,6 +12,7 @@ import { Thread } from '@/lib/types';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { messageKeys } from './use-messages';
 
 /**
  * Query key factory for thread-related queries
@@ -66,6 +67,82 @@ export function useThread(threadId?: Id<'threads'>) {
 	});
 
 	return thread;
+}
+
+/**
+ * Hook for creating thread
+ */
+export function useCreateThread() {
+	const queryClient = useQueryClient();
+	const createThreadMutation = useConvexMutation(api.threads.createThread);
+
+	return useMutation({
+		mutationFn: async (data: { messageContent: string; model: string }) => {
+			return await createThreadMutation(data);
+		},
+		onSuccess: (result, variables) => {
+			// Invalidate threads list to show the new thread
+			queryClient.invalidateQueries({ queryKey: threadKeys.lists() });
+
+			// Pre-populate the new thread's message cache with user message
+			const userMessage = {
+				_id: `temp-user-${Date.now()}`,
+				threadId: result.threadId,
+				role: 'user',
+				content: variables.messageContent,
+				_creationTime: Date.now(),
+			};
+
+			queryClient.setQueryData(messageKeys.list(result.threadId), [
+				userMessage,
+			]);
+		},
+	});
+}
+
+/**
+ * Hook for updating thread model with optimistic updates
+ */
+export function useUpdateThreadModel() {
+	const queryClient = useQueryClient();
+	const updateModelMutation = useConvexMutation(api.threads.updateThreadModel);
+
+	return useMutation({
+		mutationFn: async (data: { threadId: Id<'threads'>; model: string }) => {
+			return await updateModelMutation(data);
+		},
+		onMutate: async ({ threadId, model }) => {
+			await queryClient.cancelQueries({
+				queryKey: threadKeys.detail(threadId),
+			});
+
+			const previousThread = queryClient.getQueryData(
+				threadKeys.detail(threadId)
+			);
+
+			// Optimistically update the thread's current model
+			queryClient.setQueryData(threadKeys.detail(threadId), (old: any) => {
+				if (!old) return old;
+				return { ...old, currentModel: model };
+			});
+
+			return { previousThread };
+		},
+		onError: (err, variables, context) => {
+			// Rollback on error
+			if (context?.previousThread) {
+				queryClient.setQueryData(
+					threadKeys.detail(variables.threadId),
+					context.previousThread
+				);
+			}
+		},
+		onSettled: (data, error, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: threadKeys.detail(variables.threadId),
+			});
+		},
+	});
 }
 
 /**

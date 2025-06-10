@@ -22,13 +22,13 @@ import { ModelId, models } from '@/lib/models';
 import { Id } from '../../convex/_generated/dataModel';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc/client';
+import { usePrepareForStream, messageKeys } from '@/hooks/use-messages';
 import {
-	usePrepareForStream,
-	useCreateThreadAndPrepareForStream,
+	useCreateThread,
+	useThread,
+	useThreads,
 	useUpdateThreadModel,
-	messageKeys,
-} from '@/hooks/use-messages';
-import { useThread, useThreads } from '@/hooks/use-threads';
+} from '@/hooks/use-threads';
 import { useCurrentUser, useUpdateLastModelUsed } from '@/hooks/use-user';
 import { handleStreamResponse } from '@/lib/stream-helper';
 
@@ -63,12 +63,11 @@ export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 	const [model, setModel] = useState<ModelId | undefined>(getInitialModel);
 
 	// Mutation hooks
-	const prepareForStreamMutation = usePrepareForStream();
-	const createThreadAndPrepareForStreamMutation =
-		useCreateThreadAndPrepareForStream();
-	const updateThreadModelMutation = useUpdateThreadModel();
-	const { mutate: updateLastModelUsed } = useUpdateLastModelUsed();
+	const { mutateAsync: prepareForStreamMutation } = usePrepareForStream();
+	const createThreadMutation = useCreateThread().mutateAsync;
+	const updateThreadModelMutation = useUpdateThreadModel().mutate;
 	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
+	const { mutate: updateLastModelUsed } = useUpdateLastModelUsed();
 
 	// Effect to sync thread's model to local state
 	useEffect(() => {
@@ -90,84 +89,65 @@ export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 
 	const handleModelChange = useCallback(
 		async (newModel: ModelId) => {
-			// Update local state immediately for snappy UI
-			setModel(newModel);
-			// Update the preference in the database for the current user
-			updateLastModelUsed({ model: newModel });
+			setModel(newModel); // Optimistic update
+			updateLastModelUsed({ model: newModel }); // Persist to database
 
-			// If there's a thread, persist the change to the thread as well
 			if (threadId) {
-				updateThreadModelMutation.mutate({
+				updateThreadModelMutation({
 					threadId,
 					model: newModel,
 				});
 			}
-			// If no threadId, the new model is stored in local state
-			// and will be used when handleSendMessage creates the new thread.
 		},
 		[threadId, updateThreadModelMutation, updateLastModelUsed]
 	);
 
-	const handleSendMessage = useCallback(
-		async (messageToSend: string) => {
-			if (!messageToSend.trim()) return;
+	const handleSendMessage = async (messageContent: string, model: ModelId) => {
+		let targetThreadId: Id<'threads'> | undefined = threadId;
 
-			let targetThreadId: Id<'threads'> | undefined;
+		try {
+			let assistantMessageId: Id<'messages'>;
 
-			try {
-				let assistantMessageId: Id<'messages'>;
-
-				if (threadId) {
-					targetThreadId = threadId;
-					assistantMessageId = await prepareForStreamMutation.mutateAsync({
-						threadId: threadId,
-						messageContent: messageToSend,
-						model: model!, // Use model from state
-					});
-				} else {
-					const result =
-						await createThreadAndPrepareForStreamMutation.mutateAsync({
-							messageContent: messageToSend,
-							model: model!, // Use model from state
-						});
-					assistantMessageId = result.assistantMessageId;
-					targetThreadId = result.threadId;
-					router.push(`/chat/${targetThreadId}`);
-				}
-
-				const streamConfig = await getStreamConfig.mutateAsync({
-					threadId: targetThreadId,
-					assistantMessageId,
-					model: model!, // Use model from state
+			if (!targetThreadId) {
+				const result = await createThreadMutation({
+					messageContent: messageContent,
+					model: model, // Use model from state
 				});
-
-				await handleStreamResponse({ streamConfig, queryClient });
-			} catch (error) {
-				console.error('Failed to send message or stream response:', error);
-				toast.error('Failed to send message');
-			} finally {
-				// Invalidate to get final message from server
-				if (targetThreadId) {
-					queryClient.invalidateQueries({
-						queryKey: messageKeys.list(targetThreadId),
-					});
-				}
+				targetThreadId = result.threadId;
 			}
-		},
-		[
-			threadId,
-			model,
-			prepareForStreamMutation,
-			createThreadAndPrepareForStreamMutation,
-			router,
-			getStreamConfig,
-			queryClient,
-		]
-	);
+
+			// If there is a thread, we can use the existing thread
+			assistantMessageId = await prepareForStreamMutation({
+				threadId: targetThreadId,
+				messageContent: messageContent,
+				model: model, // Use model from state
+			});
+
+			router.push(`/chat/${targetThreadId}`);
+
+			const streamConfig = await getStreamConfig.mutateAsync({
+				threadId: targetThreadId,
+				assistantMessageId,
+				model: model, // Use model from state
+			});
+
+			await handleStreamResponse({ streamConfig, queryClient });
+		} catch (error) {
+			console.error('Failed to send message or stream response:', error);
+			toast.error('Failed to send message');
+		} finally {
+			// Invalidate to get final message from server
+			if (targetThreadId) {
+				queryClient.invalidateQueries({
+					queryKey: messageKeys.list(targetThreadId),
+				});
+			}
+		}
+	};
 
 	const onSendMessage = () => {
 		if (!message.trim() || !model) return;
-		handleSendMessage(message);
+		handleSendMessage(message, model);
 		setMessage(''); // Clear input after sending
 	};
 

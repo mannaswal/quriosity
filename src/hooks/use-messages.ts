@@ -92,20 +92,23 @@ export function usePrepareForStream() {
 			);
 
 			// Optimistically add user message to cache
-			queryClient.setQueryData(messageKeys.list(threadId), (old: any) => {
-				if (!old) return old;
-				return [
-					...old,
-					{
-						_id: `temp-${Date.now()}`, // Temporary ID
-						threadId,
-						role: 'user',
-						content: messageContent,
-						modelUsed: model,
-						_creationTime: Date.now(),
-					},
-				];
-			});
+			queryClient.setQueryData(
+				messageKeys.list(threadId),
+				(messageHistory: ChatMessage[]) => {
+					if (!messageHistory) return messageHistory;
+					return [
+						...messageHistory,
+						{
+							_id: `temp-${Date.now()}`, // Temporary ID
+							threadId,
+							role: 'user',
+							content: messageContent,
+							modelUsed: model,
+							_creationTime: Date.now(),
+						},
+					];
+				}
+			);
 
 			return { previousMessages };
 		},
@@ -122,94 +125,6 @@ export function usePrepareForStream() {
 			// Always refetch after mutation to get the real data
 			queryClient.invalidateQueries({
 				queryKey: messageKeys.list(variables.threadId),
-			});
-		},
-	});
-}
-
-/**
- * Hook for creating thread and preparing for stream
- */
-export function useCreateThreadAndPrepareForStream() {
-	const queryClient = useQueryClient();
-	const createThreadMutation = useConvexMutation(
-		api.threads.createThreadAndPrepareForStream
-	);
-
-	return useMutation({
-		mutationFn: async (data: { messageContent: string; model: string }) => {
-			return await createThreadMutation(data);
-		},
-		onSuccess: (result, variables) => {
-			// Invalidate threads list to show the new thread
-			queryClient.invalidateQueries({ queryKey: threadKeys.lists() });
-
-			// Pre-populate the new thread's message cache with user message and assistant placeholder
-			const userMessage = {
-				_id: `temp-user-${Date.now()}`,
-				threadId: result.threadId,
-				role: 'user',
-				content: variables.messageContent,
-				_creationTime: Date.now(),
-			};
-
-			const assistantMessage = {
-				_id: result.assistantMessageId,
-				threadId: result.threadId,
-				role: 'assistant',
-				content: '',
-				status: 'in_progress',
-				_creationTime: Date.now() + 1,
-			};
-
-			queryClient.setQueryData(messageKeys.list(result.threadId), [
-				userMessage,
-				assistantMessage,
-			]);
-		},
-	});
-}
-
-/**
- * Hook for updating thread model with optimistic updates
- */
-export function useUpdateThreadModel() {
-	const queryClient = useQueryClient();
-	const updateModelMutation = useConvexMutation(api.threads.updateThreadModel);
-
-	return useMutation({
-		mutationFn: async (data: { threadId: Id<'threads'>; model: string }) => {
-			return await updateModelMutation(data);
-		},
-		onMutate: async ({ threadId, model }) => {
-			await queryClient.cancelQueries({
-				queryKey: threadKeys.detail(threadId),
-			});
-
-			const previousThread = queryClient.getQueryData(
-				threadKeys.detail(threadId)
-			);
-
-			// Optimistically update the thread's current model
-			queryClient.setQueryData(threadKeys.detail(threadId), (old: any) => {
-				if (!old) return old;
-				return { ...old, currentModel: model };
-			});
-
-			return { previousThread };
-		},
-		onError: (err, variables, context) => {
-			// Rollback on error
-			if (context?.previousThread) {
-				queryClient.setQueryData(
-					threadKeys.detail(variables.threadId),
-					context.previousThread
-				);
-			}
-		},
-		onSettled: (data, error, variables) => {
-			queryClient.invalidateQueries({
-				queryKey: threadKeys.detail(variables.threadId),
 			});
 		},
 	});
