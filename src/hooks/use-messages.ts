@@ -65,6 +65,7 @@ export function usePrepareForStream() {
  * Hook for smooth streaming with Convex optimistic updates
  */
 export function useStreamResponse() {
+	// Initiate the stream
 	const streamResponse = async (
 		streamConfig: any,
 		threadId: Id<'threads'>,
@@ -93,7 +94,7 @@ export function useStreamResponse() {
 				if (done) break;
 
 				const chunk = decoder.decode(value);
-				accumulatedContent += chunk;
+				accumulatedContent += chunk; // doing nothing with the content for now
 			}
 		} catch (error) {
 			if (error instanceof DOMException && error.name === 'AbortError') {

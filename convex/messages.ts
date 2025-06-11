@@ -38,7 +38,7 @@ export const prepareForStream = mutation({
 		if (!identity) throw new Error('Not authenticated');
 
 		// Set thread as streaming
-		await ctx.db.patch(args.threadId, { isStreaming: true });
+		// await ctx.db.patch(args.threadId, { isStreaming: true });
 
 		const [_, assistantMessageId] = await Promise.all([
 			// 1. Save the user's message to the database
@@ -205,7 +205,7 @@ export const regenerateResponse = mutation({
 		}
 
 		// Set thread as streaming
-		await ctx.db.patch(userMessage.threadId, { isStreaming: true });
+		// await ctx.db.patch(userMessage.threadId, { isStreaming: true });
 
 		// Create a new placeholder message for the assistant
 		const newAssistantMessageId = await ctx.db.insert('messages', {
@@ -259,7 +259,7 @@ export const editAndResubmit = mutation({
 		}
 
 		// Set thread as streaming
-		await ctx.db.patch(userMessage.threadId, { isStreaming: true });
+		// await ctx.db.patch(userMessage.threadId, { isStreaming: true });
 
 		// 3. Create a new placeholder message for the assistant
 		const newAssistantMessageId = await ctx.db.insert('messages', {

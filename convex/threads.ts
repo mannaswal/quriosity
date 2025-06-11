@@ -353,3 +353,10 @@ export const branchFromMessage = mutation({
 		return newThreadId;
 	},
 });
+
+export const setStreaming = internalMutation({
+	args: { threadId: v.id('threads'), isStreaming: v.boolean() },
+	handler: async (ctx, { threadId, isStreaming }) => {
+		await ctx.db.patch(threadId, { isStreaming });
+	},
+});

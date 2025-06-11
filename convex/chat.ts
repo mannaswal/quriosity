@@ -17,6 +17,11 @@ export const streamChat = httpAction(async (ctx, request) => {
 		return new Response('Not authenticated', { status: 401 });
 	}
 
+	await ctx.runMutation(internal.threads.setStreaming, {
+		threadId,
+		isStreaming: true,
+	});
+
 	try {
 		const messageHistory = await ctx.runQuery(api.messages.listByThread, {
 			threadId: threadId as Id<'threads'>,

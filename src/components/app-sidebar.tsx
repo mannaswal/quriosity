@@ -48,6 +48,8 @@ import {
 import { Thread } from '@/lib/types';
 
 import { useMemo } from 'react';
+import { TextShimmer } from './ui/text-shimmer';
+import { Loader } from './ui/loader';
 
 /**
  * Helper function to group threads by pinned status and recency.
@@ -332,6 +334,8 @@ const ThreadItem = ({
 		}
 	};
 
+	const isStreaming = !!thread.isStreaming;
+
 	return (
 		<SidebarMenuItem className="rounded-md overflow-hidden">
 			<ContextMenu>
@@ -375,16 +379,26 @@ const ThreadItem = ({
 								)}
 							</Link>
 						</SidebarMenuButton>
+						{isStreaming && (
+							<div className="absolute top-1/2 -translate-y-1/2 right-1 flex items-center justify-center h-full p-1 transition-opacity z-[5] animate-in fade-in-0 duration-200 fade-out-0">
+								<Loader
+									variant="pulse"
+									size="sm"
+								/>
+							</div>
+						)}
+
 						<div
 							data-state={
 								editingThreadId === thread._id ? 'editing' : 'not-editing'
 							}
 							className={cn(
-								'text-sidebar-foreground hover:text-sidebar-accent-foreground peer-hover/menu-button:text-sidebar-accent-foreground absolute top-1/2 -translate-y-1/2 right-0 flex items-center justify-center bg-sidebar-accent h-full p-1 transition-opacity ',
+								'text-sidebar-foreground hover:text-sidebar-accent-foreground peer-hover/menu-button:text-sidebar-accent-foreground absolute top-1/2 -translate-y-1/2 right-0 flex items-center justify-center bg-sidebar-accent h-full p-1 transition-opacity z-10',
 								'group-hover/menu-item:opacity-100 opacity-0',
 								'data-[state=editing]:hidden'
 							)}>
 							<div className="w-4 h-full bg-gradient-to-r to-sidebar-accent from-transparent absolute left-0 -translate-x-full" />
+
 							<Button
 								variant="ghost"
 								size="icon"
