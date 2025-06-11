@@ -21,5 +21,5 @@ Made for the T3 Chat Cloneathon
 - [ ] Chat Sharing
 - [ ] Web Search
 - [ ] Bring Your Own Key
-- [ ] Mobile App
-- [ ] Anything Else
+- [ ] Temporary chats
+- [ ] Projects

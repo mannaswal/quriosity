@@ -8,49 +8,43 @@ import {
 	PromptInputTextarea,
 } from '../../ui/prompt-input';
 import { Button } from '../../ui/button';
-import { useState, useCallback, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ModelId } from '@/lib/models';
 import { Id } from '../../../../convex/_generated/dataModel';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc/client';
 import { usePrepareForStream } from '@/hooks/use-messages';
-import {
-	useCreateThread,
-	useThread,
-	useThreads,
-	useUpdateThreadModel,
-} from '@/hooks/use-threads';
-import { useCurrentUser, useUpdateLastModelUsed } from '@/hooks/use-user';
+import { useCreateThread, useThreadId } from '@/hooks/use-threads';
 import { ModelSelector } from './model-selector';
 import { useModel } from '@/hooks/use-model';
 
 export function ChatInput() {
-	const router = useRouter();
-	const thread = useThread();
 	const model = useModel();
+	const router = useRouter();
+	const threadId = useThreadId();
+
+	const createThreadMutation = useCreateThread();
+	const prepareForStreamMutation = usePrepareForStream();
+	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
 
 	const [message, setMessage] = useState('');
 
-	// Mutation hooks
-	const prepareForStreamMutation = usePrepareForStream();
-	const createThreadMutation = useCreateThread();
-	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
-
 	const handleSendMessage = async (messageContent: string, model: ModelId) => {
 		try {
-			let targetThreadId: Id<'threads'> | undefined = thread?._id;
+			let targetThreadId = threadId;
 			let assistantMessageId: Id<'messages'>;
 
 			if (!targetThreadId) {
-				const result = await createThreadMutation({
+				// If there is no thread, we create a new one
+				const { threadId: newThreadId } = await createThreadMutation({
 					messageContent: messageContent,
 					model: model,
 				});
-				targetThreadId = result.threadId;
+				targetThreadId = newThreadId;
 			}
 
-			// If there is a thread, we can use the existing thread
+			// Sure that a thread exists, we prepare for streaming
 			assistantMessageId = await prepareForStreamMutation({
 				threadId: targetThreadId,
 				messageContent: messageContent,

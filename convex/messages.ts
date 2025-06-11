@@ -37,22 +37,24 @@ export const prepareForStream = mutation({
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) throw new Error('Not authenticated');
 
-		// 1. Save the user's message to the database
-		await ctx.db.insert('messages', {
-			threadId: args.threadId,
-			role: 'user',
-			content: args.messageContent,
-			modelUsed: args.model,
-		});
+		const [_, assistantMessageId] = await Promise.all([
+			// 1. Save the user's message to the database
+			await ctx.db.insert('messages', {
+				threadId: args.threadId,
+				role: 'user',
+				content: args.messageContent,
+				modelUsed: args.model,
+			}),
 
-		// 2. Create the placeholder for the assistant's response
-		const assistantMessageId = await ctx.db.insert('messages', {
-			threadId: args.threadId,
-			role: 'assistant',
-			content: '', // Start with empty content
-			status: 'in_progress', // Set the status
-			modelUsed: args.model,
-		});
+			// 2. Create the placeholder for the assistant's response
+			await ctx.db.insert('messages', {
+				threadId: args.threadId,
+				role: 'assistant',
+				content: '', // Start with empty content
+				status: 'in_progress', // Set the status
+				modelUsed: args.model,
+			}),
+		]);
 
 		// 3. Return the ID of the placeholder
 		return assistantMessageId;
