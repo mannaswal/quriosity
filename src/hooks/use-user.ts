@@ -1,6 +1,5 @@
 'use client';
 
-import { useMutation, useQuery } from '@tanstack/react-query';
 import { useConvexAuth, useMutation as useConvexMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useQuery as useConvexQuery } from 'convex/react';
@@ -22,13 +21,12 @@ export function useCurrentUser() {
 export function useUpdateLastModelUsed() {
 	const mutation = useConvexMutation(api.users.updateLastModelUsed);
 
-	return useMutation({
-		mutationFn: async ({ model }: { model: string }) => {
-			return await mutation({ model });
-		},
-		onError: (error) => {
+	return async (args: { model: string }) => {
+		try {
+			return await mutation(args);
+		} catch (error) {
 			console.error('Failed to update last model used:', error);
-			// Optionally, show a toast notification
-		},
-	});
+			throw error;
+		}
+	};
 }

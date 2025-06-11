@@ -10,7 +10,6 @@ import {
 import { Button } from './ui/button';
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
 import {
 	Select,
 	SelectContent,
@@ -22,7 +21,7 @@ import { ModelId, models } from '@/lib/models';
 import { Id } from '../../convex/_generated/dataModel';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc/client';
-import { usePrepareForStream, messageKeys } from '@/hooks/use-messages';
+import { usePrepareForStream } from '@/hooks/use-messages';
 import {
 	useCreateThread,
 	useThread,
@@ -30,12 +29,10 @@ import {
 	useUpdateThreadModel,
 } from '@/hooks/use-threads';
 import { useCurrentUser, useUpdateLastModelUsed } from '@/hooks/use-user';
-import { handleStreamResponse } from '@/lib/stream-helper';
 
 export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 	const [message, setMessage] = useState('');
 	const router = useRouter();
-	const queryClient = useQueryClient();
 
 	// --- Pre-emptive state initialization from cached data ---
 	const threads = useThreads();
@@ -63,11 +60,11 @@ export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 	const [model, setModel] = useState<ModelId | undefined>(getInitialModel);
 
 	// Mutation hooks
-	const { mutateAsync: prepareForStreamMutation } = usePrepareForStream();
-	const createThreadMutation = useCreateThread().mutateAsync;
-	const updateThreadModelMutation = useUpdateThreadModel().mutate;
+	const prepareForStreamMutation = usePrepareForStream();
+	const createThreadMutation = useCreateThread();
+	const updateThreadModelMutation = useUpdateThreadModel();
 	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
-	const { mutate: updateLastModelUsed } = useUpdateLastModelUsed();
+	const updateLastModelUsed = useUpdateLastModelUsed();
 
 	// Effect to sync thread's model to local state
 	useEffect(() => {
@@ -90,10 +87,10 @@ export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 	const handleModelChange = useCallback(
 		async (newModel: ModelId) => {
 			setModel(newModel); // Optimistic update
-			updateLastModelUsed({ model: newModel }); // Persist to database
+			await updateLastModelUsed({ model: newModel }); // Persist to database
 
 			if (threadId) {
-				updateThreadModelMutation({
+				await updateThreadModelMutation({
 					threadId,
 					model: newModel,
 				});
@@ -103,15 +100,14 @@ export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 	);
 
 	const handleSendMessage = async (messageContent: string, model: ModelId) => {
-		let targetThreadId: Id<'threads'> | undefined = threadId;
-
 		try {
+			let targetThreadId: Id<'threads'> | undefined = threadId;
 			let assistantMessageId: Id<'messages'>;
 
 			if (!targetThreadId) {
 				const result = await createThreadMutation({
 					messageContent: messageContent,
-					model: model, // Use model from state
+					model: model,
 				});
 				targetThreadId = result.threadId;
 			}
@@ -120,7 +116,7 @@ export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 			assistantMessageId = await prepareForStreamMutation({
 				threadId: targetThreadId,
 				messageContent: messageContent,
-				model: model, // Use model from state
+				model: model,
 			});
 
 			router.push(`/chat/${targetThreadId}`);
@@ -128,20 +124,21 @@ export function ChatInput({ threadId }: { threadId?: Id<'threads'> }) {
 			const streamConfig = await getStreamConfig.mutateAsync({
 				threadId: targetThreadId,
 				assistantMessageId,
-				model: model, // Use model from state
+				model: model,
 			});
 
-			await handleStreamResponse({ streamConfig, queryClient });
+			// Start the streaming request - Convex will handle database updates automatically
+			await fetch(streamConfig.streamUrl, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${streamConfig.token}`,
+				},
+				body: JSON.stringify(streamConfig.payload),
+			});
 		} catch (error) {
 			console.error('Failed to send message or stream response:', error);
 			toast.error('Failed to send message');
-		} finally {
-			// Invalidate to get final message from server
-			if (targetThreadId) {
-				queryClient.invalidateQueries({
-					queryKey: messageKeys.list(targetThreadId),
-				});
-			}
 		}
 	};
 

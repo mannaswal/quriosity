@@ -251,7 +251,7 @@ const ThreadItem = ({
 		threadId: string,
 		currentPinned: boolean | undefined
 	) => {
-		pinThreadMutation.mutate({
+		await pinThreadMutation({
 			threadId: threadId as any,
 			pinned: !currentPinned,
 		});
@@ -266,7 +266,7 @@ const ThreadItem = ({
 			router.push('/');
 		}
 
-		deleteThreadMutation.mutate(threadIdToDelete as any);
+		await deleteThreadMutation(threadIdToDelete as any);
 	};
 
 	/**
@@ -307,21 +307,16 @@ const ThreadItem = ({
 			return;
 		}
 
-		renameThreadMutation.mutate(
-			{
+		try {
+			await renameThreadMutation({
 				threadId: editingThreadId as any,
 				newTitle: trimmedTitle,
-			},
-			{
-				onSuccess: () => {
-					cancelEditing();
-				},
-				onError: () => {
-					// Revert to original title on error
-					cancelEditing();
-				},
-			}
-		);
+			});
+			cancelEditing();
+		} catch (error) {
+			// Revert to original title on error
+			cancelEditing();
+		}
 	};
 
 	/**

@@ -50,48 +50,76 @@ const MessageItem = memo(function MessageItem({
 	const [isEditing, setIsEditing] = useState(false);
 	const [editedContent, setEditedContent] = useState(message.content);
 	const [copied, setCopied] = useState(false);
-	const { mutate: regenerate, isPending: isRegenerating } = useRegenerate({});
-	const { mutate: editAndResubmit, isPending: isEditingAndResubmitting } =
-		useEditAndResubmit({
-			onSuccess: () => setIsEditing(false),
-		});
-	const { mutate: branch, isPending: isBranching } = useBranchThread();
+	const [isRegenerating, setIsRegenerating] = useState(false);
+	const [isEditingAndResubmitting, setIsEditingAndResubmitting] =
+		useState(false);
+	const [isBranching, setIsBranching] = useState(false);
+
+	const regenerate = useRegenerate({
+		onSuccess: () => setIsRegenerating(false),
+		onError: () => setIsRegenerating(false),
+	});
+	const editAndResubmit = useEditAndResubmit({
+		onSuccess: () => {
+			setIsEditing(false);
+			setIsEditingAndResubmitting(false);
+		},
+		onError: () => setIsEditingAndResubmitting(false),
+	});
+	const branch = useBranchThread();
 
 	const isPending = isRegenerating || isEditingAndResubmitting || isBranching;
 
 	// If the edited content is the same as the original content, regenerate the message
 	// If the edited content is different, edit and resubmit the message
-	const handleRegenerate = () => {
+	const handleRegenerate = async () => {
 		if (message.role === 'user') {
-			if (editedContent === message.content) {
-				regenerate({
-					userMessageId: message._id,
-					threadId: message.threadId,
-				});
-			} else if (editedContent.trim()) {
-				editAndResubmit({
+			try {
+				if (editedContent === message.content) {
+					setIsRegenerating(true);
+					await regenerate({
+						userMessageId: message._id,
+						threadId: message.threadId,
+					});
+				} else if (editedContent.trim()) {
+					setIsEditingAndResubmitting(true);
+					await editAndResubmit({
+						userMessageId: message._id,
+						threadId: message.threadId,
+						newContent: editedContent,
+					});
+				}
+				setIsEditing(false);
+			} catch (error) {
+				setIsRegenerating(false);
+				setIsEditingAndResubmitting(false);
+			}
+		}
+	};
+
+	const handleSaveEdit = async () => {
+		if (message.role === 'user' && editedContent.trim()) {
+			try {
+				setIsEditingAndResubmitting(true);
+				await editAndResubmit({
 					userMessageId: message._id,
 					threadId: message.threadId,
 					newContent: editedContent,
 				});
+			} catch (error) {
+				setIsEditingAndResubmitting(false);
 			}
-			setIsEditing(false);
 		}
 	};
 
-	const handleSaveEdit = () => {
-		if (message.role === 'user' && editedContent.trim()) {
-			editAndResubmit({
-				userMessageId: message._id,
-				threadId: message.threadId,
-				newContent: editedContent,
-			});
-		}
-	};
-
-	const handleBranch = () => {
+	const handleBranch = async () => {
 		if (message.role === 'assistant') {
-			branch({ messageId: message._id });
+			try {
+				setIsBranching(true);
+				await branch({ messageId: message._id });
+			} catch (error) {
+				setIsBranching(false);
+			}
 		}
 	};
 
@@ -163,6 +191,7 @@ const MessageItem = memo(function MessageItem({
 							variant="ghost"
 							size="icon"
 							className="size-8"
+							disabled={isBranching}
 							onClick={handleBranch}>
 							<SplitIcon className="size-4 rotate-180" />
 						</Button>
