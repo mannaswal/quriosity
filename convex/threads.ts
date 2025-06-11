@@ -64,7 +64,6 @@ export const updateThreadTitle = internalMutation({
 export const getUserThreads = query({
 	handler: async (ctx) => {
 		const identity = await ctx.auth.getUserIdentity();
-		console.log('getUserThreads', identity);
 		if (!identity) throw new Error('Not authenticated');
 
 		const user = await ctx.db

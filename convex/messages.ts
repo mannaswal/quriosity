@@ -37,6 +37,9 @@ export const prepareForStream = mutation({
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) throw new Error('Not authenticated');
 
+		// Set thread as streaming
+		await ctx.db.patch(args.threadId, { isStreaming: true });
+
 		const [_, assistantMessageId] = await Promise.all([
 			// 1. Save the user's message to the database
 			await ctx.db.insert('messages', {
@@ -78,7 +81,16 @@ export const appendContent = internalMutation({
 export const markComplete = internalMutation({
 	args: { messageId: v.id('messages') },
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.messageId, { status: 'complete' });
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return;
+
+		await Promise.all([
+			ctx.db.patch(args.messageId, {
+				status: 'complete',
+				stopReason: 'completed',
+			}),
+			ctx.db.patch(message.threadId, { isStreaming: false }),
+		]);
 	},
 });
 
@@ -86,7 +98,66 @@ export const markComplete = internalMutation({
 export const markError = internalMutation({
 	args: { messageId: v.id('messages') },
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.messageId, { status: 'error' });
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return;
+
+		await Promise.all([
+			ctx.db.patch(args.messageId, {
+				status: 'error',
+				stopReason: 'error',
+			}),
+			ctx.db.patch(message.threadId, { isStreaming: false }),
+		]);
+	},
+});
+
+// Marks the message as stopped by user
+export const markStopped = internalMutation({
+	args: { messageId: v.id('messages') },
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return;
+
+		await Promise.all([
+			ctx.db.patch(args.messageId, {
+				status: 'complete',
+				stopReason: 'stopped',
+			}),
+			ctx.db.patch(message.threadId, { isStreaming: false }),
+		]);
+	},
+});
+
+// Public mutation to stop a stream
+export const stopStream = mutation({
+	args: { threadId: v.id('threads') },
+	handler: async (ctx, args) => {
+		const user = await getMe(ctx);
+		if (!user) {
+			throw new Error('User not authenticated.');
+		}
+
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread || thread.userId !== user._id) {
+			throw new Error('Thread not found or user not authorized.');
+		}
+
+		// Set a stop flag on the thread
+		await ctx.db.patch(args.threadId, { isStreaming: false });
+
+		// Find the in-progress message and mark it as stopped
+		const inProgressMessage = await ctx.db
+			.query('messages')
+			.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
+			.filter((q) => q.eq(q.field('status'), 'in_progress'))
+			.first();
+
+		if (inProgressMessage) {
+			await ctx.db.patch(inProgressMessage._id, {
+				status: 'complete',
+				stopReason: 'stopped',
+			});
+		}
 	},
 });
 
@@ -132,6 +203,9 @@ export const regenerateResponse = mutation({
 		for (const message of subsequentMessages) {
 			await ctx.db.delete(message._id);
 		}
+
+		// Set thread as streaming
+		await ctx.db.patch(userMessage.threadId, { isStreaming: true });
 
 		// Create a new placeholder message for the assistant
 		const newAssistantMessageId = await ctx.db.insert('messages', {
@@ -183,6 +257,9 @@ export const editAndResubmit = mutation({
 		for (const message of subsequentMessages) {
 			await ctx.db.delete(message._id);
 		}
+
+		// Set thread as streaming
+		await ctx.db.patch(userMessage.threadId, { isStreaming: true });
 
 		// 3. Create a new placeholder message for the assistant
 		const newAssistantMessageId = await ctx.db.insert('messages', {

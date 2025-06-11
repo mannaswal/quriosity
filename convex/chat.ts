@@ -34,9 +34,13 @@ export const streamChat = httpAction(async (ctx, request) => {
 				content,
 			}));
 
-		const { textStream } = await streamText({
+		// Create AbortController for cancellation
+		const abortController = new AbortController();
+
+		const { textStream, finishReason, usage } = await streamText({
 			model: openrouter.chat(model),
 			messages: formattedHistory,
+			abortSignal: abortController.signal,
 		});
 
 		// Create a ReadableStream that will stream to the client
@@ -59,8 +63,26 @@ export const streamChat = httpAction(async (ctx, request) => {
 					}
 				};
 
+				const checkForCancellation = async () => {
+					const thread = await ctx.runQuery(api.threads.getThread, {
+						threadId: threadId as Id<'threads'>,
+					});
+					return !thread?.isStreaming;
+				};
+
 				try {
 					for await (const textPart of textStream) {
+						// Check for cancellation at each batch interval
+						if (await checkForCancellation()) {
+							abortController.abort();
+							await flushToDb();
+							await ctx.runMutation(internal.messages.markStopped, {
+								messageId: assistantMessageId as Id<'messages'>,
+							});
+							controller.close();
+							return;
+						}
+
 						// Send chunk to client immediately
 						controller.enqueue(encoder.encode(textPart));
 
@@ -80,27 +102,50 @@ export const streamChat = httpAction(async (ctx, request) => {
 					// Flush any remaining content
 					await flushToDb();
 
-					// Mark as complete when done
-					await ctx.runMutation(internal.messages.markComplete, {
-						messageId: assistantMessageId as Id<'messages'>,
-					});
+					// Get the final finish reason and handle appropriately
+					const finalFinishReason = await finishReason;
+
+					if (finalFinishReason === 'stop' || finalFinishReason === 'length') {
+						await ctx.runMutation(internal.messages.markComplete, {
+							messageId: assistantMessageId as Id<'messages'>,
+						});
+					} else {
+						// Handle other finish reasons as errors
+						await ctx.runMutation(internal.messages.markError, {
+							messageId: assistantMessageId as Id<'messages'>,
+						});
+					}
 
 					controller.close();
 				} catch (error) {
 					console.error('Error in text stream:', error);
 
-					// Try to save any accumulated content before erroring
-					if (accumulatedContent.length > 0) {
-						try {
-							await flushToDb();
-						} catch (dbError) {
-							console.error('Failed to save accumulated content:', dbError);
+					// Check if it was cancelled by user
+					if (await checkForCancellation()) {
+						// Save any accumulated content before stopping
+						if (accumulatedContent.length > 0) {
+							try {
+								await flushToDb();
+							} catch (dbError) {
+								console.error('Failed to save accumulated content:', dbError);
+							}
 						}
+						await ctx.runMutation(internal.messages.markStopped, {
+							messageId: assistantMessageId as Id<'messages'>,
+						});
+					} else {
+						// Try to save any accumulated content before erroring
+						if (accumulatedContent.length > 0) {
+							try {
+								await flushToDb();
+							} catch (dbError) {
+								console.error('Failed to save accumulated content:', dbError);
+							}
+						}
+						await ctx.runMutation(internal.messages.markError, {
+							messageId: assistantMessageId as Id<'messages'>,
+						});
 					}
-
-					await ctx.runMutation(internal.messages.markError, {
-						messageId: assistantMessageId as Id<'messages'>,
-					});
 					controller.error(error);
 				}
 			},

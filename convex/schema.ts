@@ -18,6 +18,7 @@ export default defineSchema({
 		currentModel: v.optional(v.string()),
 		pinned: v.optional(v.boolean()),
 		branchedFromMessageId: v.optional(v.id('messages')),
+		isStreaming: v.optional(v.boolean()),
 	})
 		.index('by_user', ['userId'])
 		.index('by_share_id', ['shareId'])
@@ -36,5 +37,8 @@ export default defineSchema({
 			)
 		),
 		modelUsed: v.string(),
+		stopReason: v.optional(
+			v.union(v.literal('completed'), v.literal('stopped'), v.literal('error'))
+		),
 	}).index('by_thread', ['threadId']),
 });

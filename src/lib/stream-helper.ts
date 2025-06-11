@@ -1,20 +1,23 @@
 import { inferProcedureOutput } from '@trpc/server';
 import { AppRouter } from '@/lib/trpc/root';
+import { QueryClient } from '@tanstack/react-query';
+import { messageKeys } from '@/hooks/use-messages';
+import { Id } from '../../convex/_generated/dataModel';
 
 // Infer the output type from the tRPC router
 export type GetStreamConfigResult = inferProcedureOutput<
 	AppRouter['streaming']['getStreamConfig']
 >;
 
-/**
- * Simple stream handler that just initiates the stream.
- * Convex handles all database updates automatically on the backend.
- */
+interface StreamResponseParams {
+	streamConfig: GetStreamConfigResult;
+	queryClient: QueryClient;
+}
+
 export async function handleStreamResponse({
 	streamConfig,
-}: {
-	streamConfig: GetStreamConfigResult;
-}) {
+	queryClient,
+}: StreamResponseParams) {
 	const response = await fetch(streamConfig.streamUrl, {
 		method: 'POST',
 		headers: {
@@ -24,21 +27,34 @@ export async function handleStreamResponse({
 		body: JSON.stringify(streamConfig.payload),
 	});
 
-	if (!response.ok) {
-		throw new Error(`Stream request failed: ${response.status}`);
+	if (!response.body) {
+		throw new Error('Response body is null');
 	}
 
-	// Just consume the stream to keep the connection alive
-	// The backend handles all database updates automatically
-	if (response.body) {
-		const reader = response.body.getReader();
-		try {
-			while (true) {
-				const { done } = await reader.read();
-				if (done) break;
+	const reader = response.body.getReader();
+	const decoder = new TextDecoder();
+	let accumulatedResponse = '';
+
+	const targetThreadId = streamConfig.payload.threadId as Id<'threads'>;
+	const assistantMessageId = streamConfig.payload
+		.assistantMessageId as Id<'messages'>;
+
+	while (true) {
+		const { done, value } = await reader.read();
+		if (done) break;
+		accumulatedResponse += decoder.decode(value);
+
+		// Update React Query cache with streaming content
+		queryClient.setQueryData(
+			messageKeys.list(targetThreadId),
+			(old: any[] | undefined) => {
+				if (!old) return [];
+				return old.map((msg) =>
+					msg._id === assistantMessageId
+						? { ...msg, content: accumulatedResponse }
+						: msg
+				);
 			}
-		} finally {
-			reader.releaseLock();
-		}
+		);
 	}
 }
