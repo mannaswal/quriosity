@@ -1,5 +1,5 @@
 import { Id } from '../../../../convex/_generated/dataModel';
-import { ChatView } from '@/components/chat-view';
+import { ChatView } from '@/components/chat/chat-view';
 
 export default async function ChatPage({
 	params,

@@ -2,10 +2,10 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import ChatContainer from '@/components/chat-container';
-import { ChatInput } from '@/components/chat-input';
+import ChatContainer from '@/components/chat/chat-container';
+import { ChatInput } from '@/components/chat/chat-input';
 import { useThread } from '@/hooks/use-threads';
-import { Id } from '../../convex/_generated/dataModel';
+import { Id } from '../../../convex/_generated/dataModel';
 import { toast } from 'sonner';
 
 interface ChatViewProps {

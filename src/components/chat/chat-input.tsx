@@ -6,8 +6,8 @@ import {
 	PromptInputAction,
 	PromptInputActions,
 	PromptInputTextarea,
-} from './ui/prompt-input';
-import { Button } from './ui/button';
+} from '../ui/prompt-input';
+import { Button } from '../ui/button';
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -16,9 +16,9 @@ import {
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from './ui/select';
+} from '../ui/select';
 import { ModelId, models } from '@/lib/models';
-import { Id } from '../../convex/_generated/dataModel';
+import { Id } from '../../../convex/_generated/dataModel';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc/client';
 import { usePrepareForStream } from '@/hooks/use-messages';
