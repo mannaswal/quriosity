@@ -33,7 +33,6 @@ export function ChatInput() {
 	const stopStream = useStopStream();
 
 	const [message, setMessage] = useState('');
-	const abortControllerRef = useRef<AbortController | null>(null);
 
 	const isStreaming = thread?.isStreaming || false;
 
@@ -66,16 +65,8 @@ export function ChatInput() {
 				model: model,
 			});
 
-			// Create new AbortController for this request
-			abortControllerRef.current = new AbortController();
-
 			// Start streaming with optimistic updates
-			await streamResponse(
-				streamConfig,
-				targetThreadId,
-				assistantMessageId,
-				abortControllerRef.current
-			);
+			await streamResponse(streamConfig, targetThreadId, assistantMessageId);
 		} catch (error) {
 			// Check if error was due to abort
 			if (error instanceof DOMException && error.name === 'AbortError') {
@@ -84,20 +75,14 @@ export function ChatInput() {
 			}
 			console.error('Failed to send message or stream response:', error);
 			toast.error('Failed to send message');
-		} finally {
-			abortControllerRef.current = null;
 		}
 	};
 
 	const handleStop = async () => {
 		if (!threadId) return;
 
+		console.log('handleStop');
 		try {
-			// Abort the fetch request immediately
-			if (abortControllerRef.current) {
-				abortControllerRef.current.abort();
-			}
-
 			// Stop the stream via database
 			await stopStream(threadId);
 		} catch (error) {

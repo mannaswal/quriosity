@@ -65,45 +65,10 @@ export function usePrepareForStream() {
  * Hook for smooth streaming with Convex optimistic updates
  */
 export function useStreamResponse() {
-	const updateStreamingMessage = useConvexMutation(
-		api.messages.updateStreamingChunk
-	).withOptimisticUpdate((localStore, { threadId, messageId, content }) => {
-		const currentMessages = localStore.getQuery(api.messages.listByThread, {
-			threadId,
-		});
-
-		if (currentMessages) {
-			const updatedMessages = currentMessages.map((msg: ChatMessage) =>
-				msg._id === messageId ? { ...msg, content } : msg
-			);
-			localStore.setQuery(
-				api.messages.listByThread,
-				{ threadId },
-				updatedMessages
-			);
-		}
-	});
-
-	const addOptimisticMessageMutation = useConvexMutation(
-		api.messages.addOptimisticMessage
-	).withOptimisticUpdate((localStore, { threadId, message }) => {
-		const currentMessages = localStore.getQuery(api.messages.listByThread, {
-			threadId,
-		});
-
-		if (currentMessages) {
-			localStore.setQuery(api.messages.listByThread, { threadId }, [
-				...currentMessages,
-				message,
-			]);
-		}
-	});
-
 	const streamResponse = async (
 		streamConfig: any,
 		threadId: Id<'threads'>,
-		messageId: Id<'messages'>,
-		abortController: AbortController
+		messageId: Id<'messages'>
 	) => {
 		try {
 			const response = await fetch(streamConfig.streamUrl, {
@@ -113,7 +78,6 @@ export function useStreamResponse() {
 					Authorization: `Bearer ${streamConfig.token}`,
 				},
 				body: JSON.stringify(streamConfig.payload),
-				signal: abortController.signal,
 			});
 
 			if (!response.body) {
@@ -130,13 +94,6 @@ export function useStreamResponse() {
 
 				const chunk = decoder.decode(value);
 				accumulatedContent += chunk;
-
-				// Use optimistic update for each chunk
-				updateStreamingMessage({
-					threadId,
-					messageId,
-					content: accumulatedContent,
-				});
 			}
 		} catch (error) {
 			if (error instanceof DOMException && error.name === 'AbortError') {
@@ -146,18 +103,7 @@ export function useStreamResponse() {
 			throw error;
 		}
 	};
-
-	const addOptimisticMessage = (
-		threadId: Id<'threads'>,
-		message: ChatMessage
-	) => {
-		addOptimisticMessageMutation({
-			threadId,
-			message,
-		});
-	};
-
-	return { streamResponse, addOptimisticMessage };
+	return { streamResponse };
 }
 
 /**
@@ -183,9 +129,6 @@ export function useRegenerate(opts: {
 		threadId: Id<'threads'>;
 	}) => {
 		try {
-			// Create abort controller for this request
-			abortControllerRef.current = new AbortController();
-
 			const result = await regenerateMutation({
 				userMessageId: args.userMessageId,
 			});
@@ -195,8 +138,7 @@ export function useRegenerate(opts: {
 			await streamResponse(
 				streamConfig,
 				args.threadId,
-				result.assistantMessageId,
-				abortControllerRef.current
+				result.assistantMessageId
 			);
 
 			opts.onSuccess?.();
@@ -234,9 +176,6 @@ export function useEditAndResubmit(opts: {
 		newContent: string;
 	}) => {
 		try {
-			// Create abort controller for this request
-			abortControllerRef.current = new AbortController();
-
 			const result = await editMutation({
 				userMessageId: args.userMessageId,
 				newContent: args.newContent,
@@ -247,8 +186,7 @@ export function useEditAndResubmit(opts: {
 			await streamResponse(
 				streamConfig,
 				args.threadId,
-				result.assistantMessageId,
-				abortControllerRef.current
+				result.assistantMessageId
 			);
 
 			opts.onSuccess?.();

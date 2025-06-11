@@ -5,10 +5,6 @@ import { Id } from './_generated/dataModel';
 import { CoreMessage, streamText } from 'ai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 
-const persistentTextStreaming = new PersistentTextStreaming(
-	components.persistentTextStreaming
-);
-
 const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY,
 });
@@ -75,7 +71,6 @@ export const streamChat = httpAction(async (ctx, request) => {
 						// Check for cancellation at each batch interval
 						if (await checkForCancellation()) {
 							abortController.abort();
-							await flushToDb();
 							await ctx.runMutation(internal.messages.markStopped, {
 								messageId: assistantMessageId as Id<'messages'>,
 							});
