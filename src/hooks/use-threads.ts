@@ -8,7 +8,7 @@ import {
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 /**
  * Hook to get all user threads
@@ -23,9 +23,30 @@ export function useThreads() {
 }
 
 /**
+ * Custom hook to extract the 'threadId' from the URL parameters.
+ * Assumes the dynamic route segment is named `[threadId]`.
+ *
+ * Example: /threads/[threadId] -> /threads/123
+ *
+ * @returns The threadId as a string, or undefined if not found or on a non-thread page.
+ */
+export function useThreadId(): Id<'threads'> | undefined {
+	const params = useParams();
+
+	const threadId = params.threadId;
+
+	if (Array.isArray(threadId)) {
+		return threadId[0] as Id<'threads'>;
+	}
+
+	return threadId as Id<'threads'> | undefined;
+}
+
+/**
  * Hook to get a specific thread by ID
  */
-export function useThread(threadId?: Id<'threads'>) {
+export function useThread() {
+	const threadId = useThreadId();
 	const { isAuthenticated } = useConvexAuth();
 
 	return useConvexQuery(

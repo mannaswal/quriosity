@@ -1,48 +1,20 @@
 'use client';
 
-import { useState, useEffect, useRef, memo } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-	Message,
-	MessageAvatar,
-	MessageContent,
-} from '@/components/ui/message';
+import { memo } from 'react';
 import {
 	ChatContainerRoot,
 	ChatContainerContent,
 } from '@/components/ui/chat-container';
-import { Markdown } from '@/components/ui/markdown';
-import { cn } from '@/lib/utils';
 import { ChatMessage } from '@/lib/types';
-import {
-	useMessages,
-	useRegenerate,
-	useEditAndResubmit,
-} from '@/hooks/use-messages';
-import { Id } from '../../../convex/_generated/dataModel';
-import { models } from '@/lib/models';
-import {
-	CheckIcon,
-	CopyIcon,
-	EditIcon,
-	RefreshCcwIcon,
-	PencilIcon,
-	SplitIcon,
-} from 'lucide-react';
+import { useMessages } from '@/hooks/use-messages';
 import { ProgressiveBlur } from '../ui/progressive-blur';
-import { Textarea } from '../ui/textarea';
 import { ScrollButton } from '../ui/scroll-button';
 import { Magnetic } from '../ui/magnetic';
-import { useBranchThread } from '@/hooks/use-threads';
 import { MessageItem } from './message/message-item';
+import { useThreadId } from '@/hooks/use-threads';
 
-interface ChatContainerProps {
-	threadId?: Id<'threads'>;
-}
-
-const ChatContainer = memo(function ChatContainer({
-	threadId,
-}: ChatContainerProps) {
+const ChatContainer = memo(function ChatContainer() {
+	const threadId = useThreadId();
 	const messages = useMessages(threadId) ?? [];
 
 	return (

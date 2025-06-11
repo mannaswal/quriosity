@@ -9,16 +9,19 @@ import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc/client';
+import { ChatMessage } from '@/lib/types';
 
 /**
  * Hook to get messages for a thread
  */
-export function useMessages(threadId?: Id<'threads'>) {
+export function useMessages(threadId?: Id<'threads'>): ChatMessage[] {
 	const { isAuthenticated } = useConvexAuth();
 
-	return useConvexQuery(
-		api.messages.listByThread,
-		threadId && isAuthenticated ? { threadId } : 'skip'
+	return (
+		useConvexQuery(
+			api.messages.listByThread,
+			threadId && isAuthenticated ? { threadId } : 'skip'
+		) ?? []
 	);
 }
 
