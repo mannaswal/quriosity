@@ -49,7 +49,6 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 					{message.content}
 				</Markdown>
 			</Message>
-
 			{message.status === 'complete' && (
 				<div className="flex items-center opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 -ml-0.5">
 					<Button
@@ -71,8 +70,19 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 						onClick={handleBranch}>
 						<SplitIcon className="size-4 rotate-180" />
 					</Button>
-					<div className="text-xs text-neutral-500 ml-2">
-						<div>{models.find((m) => m.id === message.modelUsed)?.name}</div>
+					<div className="flex gap-2 text-xs ml-2">
+						<div className="text-neutral-500">
+							<div>{models.find((m) => m.id === message.modelUsed)?.name}</div>
+						</div>
+
+						{message.stopReason === 'stopped' && (
+							<>
+								<span className="text-accent">•</span>
+								<div className="text-xs text-rose-400/80 text-center">
+									Stopped by user
+								</div>
+							</>
+						)}
 					</div>
 				</div>
 			)}

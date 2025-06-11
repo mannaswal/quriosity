@@ -265,7 +265,6 @@ export function useStopStream() {
 	return async (threadId: Id<'threads'>) => {
 		try {
 			await stopMutation({ threadId });
-			toast.success('Stream stopped');
 		} catch (error) {
 			toast.error('Failed to stop stream');
 			throw error;

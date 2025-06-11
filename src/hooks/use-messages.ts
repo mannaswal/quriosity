@@ -10,9 +10,10 @@ import { Id } from '../../convex/_generated/dataModel';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc/client';
 import { ChatMessage } from '@/lib/types';
+import { useRef } from 'react';
 
 /**
- * Hook to get messages for a thread
+ * Hook to get messages for a thread - simplified to just return Convex query
  */
 export function useMessages(threadId?: Id<'threads'>): ChatMessage[] {
 	const { isAuthenticated } = useConvexAuth();
@@ -40,8 +41,8 @@ export function usePrepareForStream() {
 
 			if (currentMessages) {
 				// Add optimistic user message
-				const optimisticMessage = {
-					_id: `temp-${Date.now()}` as Id<'messages'>,
+				const optimisticUserMessage = {
+					_id: `temp-user-${Date.now()}` as Id<'messages'>,
 					threadId,
 					role: 'user' as const,
 					content: messageContent,
@@ -49,13 +50,114 @@ export function usePrepareForStream() {
 					_creationTime: Date.now(),
 				};
 
-				localStore.setQuery(api.messages.listByThread, { threadId }, [
-					...currentMessages,
-					optimisticMessage,
-				]);
+				const newMessages = [...currentMessages, optimisticUserMessage];
+				localStore.setQuery(
+					api.messages.listByThread,
+					{ threadId },
+					newMessages
+				);
 			}
 		}
 	);
+}
+
+/**
+ * Hook for smooth streaming with Convex optimistic updates
+ */
+export function useStreamResponse() {
+	const updateStreamingMessage = useConvexMutation(
+		api.messages.updateStreamingChunk
+	).withOptimisticUpdate((localStore, { threadId, messageId, content }) => {
+		const currentMessages = localStore.getQuery(api.messages.listByThread, {
+			threadId,
+		});
+
+		if (currentMessages) {
+			const updatedMessages = currentMessages.map((msg: ChatMessage) =>
+				msg._id === messageId ? { ...msg, content } : msg
+			);
+			localStore.setQuery(
+				api.messages.listByThread,
+				{ threadId },
+				updatedMessages
+			);
+		}
+	});
+
+	const addOptimisticMessageMutation = useConvexMutation(
+		api.messages.addOptimisticMessage
+	).withOptimisticUpdate((localStore, { threadId, message }) => {
+		const currentMessages = localStore.getQuery(api.messages.listByThread, {
+			threadId,
+		});
+
+		if (currentMessages) {
+			localStore.setQuery(api.messages.listByThread, { threadId }, [
+				...currentMessages,
+				message,
+			]);
+		}
+	});
+
+	const streamResponse = async (
+		streamConfig: any,
+		threadId: Id<'threads'>,
+		messageId: Id<'messages'>,
+		abortController: AbortController
+	) => {
+		try {
+			const response = await fetch(streamConfig.streamUrl, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${streamConfig.token}`,
+				},
+				body: JSON.stringify(streamConfig.payload),
+				signal: abortController.signal,
+			});
+
+			if (!response.body) {
+				throw new Error('Response body is null');
+			}
+
+			const reader = response.body.getReader();
+			const decoder = new TextDecoder();
+			let accumulatedContent = '';
+
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				const chunk = decoder.decode(value);
+				accumulatedContent += chunk;
+
+				// Use optimistic update for each chunk
+				updateStreamingMessage({
+					threadId,
+					messageId,
+					content: accumulatedContent,
+				});
+			}
+		} catch (error) {
+			if (error instanceof DOMException && error.name === 'AbortError') {
+				console.log('Stream was aborted');
+				return;
+			}
+			throw error;
+		}
+	};
+
+	const addOptimisticMessage = (
+		threadId: Id<'threads'>,
+		message: ChatMessage
+	) => {
+		addOptimisticMessageMutation({
+			threadId,
+			message,
+		});
+	};
+
+	return { streamResponse, addOptimisticMessage };
 }
 
 /**
@@ -66,14 +168,13 @@ export function useRegenerate(opts: {
 	onError?: (error: Error) => void;
 }) {
 	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
+	const { streamResponse } = useStreamResponse();
+	const abortControllerRef = useRef<AbortController | null>(null);
 
 	const regenerateMutation = useConvexMutation(
 		api.messages.regenerateResponse
 	).withOptimisticUpdate((localStore, args) => {
 		const { userMessageId } = args;
-
-		// We need to find the thread first to get messages
-		// Since we only have userMessageId, we can't easily do optimistic updates here
 		// The mutation will handle removing subsequent messages server-side
 	});
 
@@ -82,27 +183,34 @@ export function useRegenerate(opts: {
 		threadId: Id<'threads'>;
 	}) => {
 		try {
+			// Create abort controller for this request
+			abortControllerRef.current = new AbortController();
+
 			const result = await regenerateMutation({
 				userMessageId: args.userMessageId,
 			});
 			const streamConfig = await getStreamConfig.mutateAsync(result);
 
-			// Start the streaming request - Convex will handle database updates automatically
-			await fetch(streamConfig.streamUrl, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${streamConfig.token}`,
-				},
-				body: JSON.stringify(streamConfig.payload),
-			});
+			// Start streaming with optimistic updates
+			await streamResponse(
+				streamConfig,
+				args.threadId,
+				result.assistantMessageId,
+				abortControllerRef.current
+			);
 
 			opts.onSuccess?.();
 			return result;
 		} catch (error) {
+			if (error instanceof DOMException && error.name === 'AbortError') {
+				console.log('Regenerate was aborted');
+				return;
+			}
 			toast.error('Failed to regenerate response');
 			opts.onError?.(error as Error);
 			throw error;
+		} finally {
+			abortControllerRef.current = null;
 		}
 	};
 }
@@ -115,6 +223,8 @@ export function useEditAndResubmit(opts: {
 	onError?: (error: Error) => void;
 }) {
 	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
+	const { streamResponse } = useStreamResponse();
+	const abortControllerRef = useRef<AbortController | null>(null);
 
 	const editMutation = useConvexMutation(api.messages.editAndResubmit);
 
@@ -124,28 +234,35 @@ export function useEditAndResubmit(opts: {
 		newContent: string;
 	}) => {
 		try {
+			// Create abort controller for this request
+			abortControllerRef.current = new AbortController();
+
 			const result = await editMutation({
 				userMessageId: args.userMessageId,
 				newContent: args.newContent,
 			});
 			const streamConfig = await getStreamConfig.mutateAsync(result);
 
-			// Start the streaming request - Convex will handle database updates automatically
-			await fetch(streamConfig.streamUrl, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${streamConfig.token}`,
-				},
-				body: JSON.stringify(streamConfig.payload),
-			});
+			// Start streaming with optimistic updates
+			await streamResponse(
+				streamConfig,
+				args.threadId,
+				result.assistantMessageId,
+				abortControllerRef.current
+			);
 
 			opts.onSuccess?.();
 			return result;
 		} catch (error) {
+			if (error instanceof DOMException && error.name === 'AbortError') {
+				console.log('Edit and resubmit was aborted');
+				return;
+			}
 			toast.error('Failed to edit message');
 			opts.onError?.(error as Error);
 			throw error;
+		} finally {
+			abortControllerRef.current = null;
 		}
 	};
 }

@@ -14,7 +14,7 @@ import { ModelId } from '@/lib/models';
 import { Id } from '../../../../convex/_generated/dataModel';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc/client';
-import { usePrepareForStream } from '@/hooks/use-messages';
+import { usePrepareForStream, useStreamResponse } from '@/hooks/use-messages';
 import { useCreateThread, useThreadId, useThread } from '@/hooks/use-threads';
 import { useStopStream } from '@/hooks/use-threads';
 import { ModelSelector } from './model-selector';
@@ -27,7 +27,8 @@ export function ChatInput() {
 	const thread = useThread();
 
 	const createThreadMutation = useCreateThread();
-	const prepareForStreamMutation = usePrepareForStream();
+	const prepareForStream = usePrepareForStream();
+	const { streamResponse } = useStreamResponse();
 	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
 	const stopStream = useStopStream();
 
@@ -51,7 +52,7 @@ export function ChatInput() {
 			}
 
 			// Sure that a thread exists, we prepare for streaming
-			assistantMessageId = await prepareForStreamMutation({
+			assistantMessageId = await prepareForStream({
 				threadId: targetThreadId,
 				messageContent: messageContent,
 				model: model,
@@ -68,16 +69,13 @@ export function ChatInput() {
 			// Create new AbortController for this request
 			abortControllerRef.current = new AbortController();
 
-			// Start the streaming request - Convex will handle database updates automatically
-			await fetch(streamConfig.streamUrl, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${streamConfig.token}`,
-				},
-				body: JSON.stringify(streamConfig.payload),
-				signal: abortControllerRef.current.signal,
-			});
+			// Start streaming with optimistic updates
+			await streamResponse(
+				streamConfig,
+				targetThreadId,
+				assistantMessageId,
+				abortControllerRef.current
+			);
 		} catch (error) {
 			// Check if error was due to abort
 			if (error instanceof DOMException && error.name === 'AbortError') {
@@ -125,7 +123,6 @@ export function ChatInput() {
 					data-ms-editor="false"
 					placeholder={isStreaming ? 'Generating response...' : 'Type here...'}
 					className="md:text-base"
-					disabled={isStreaming}
 				/>
 				<PromptInputActions className="w-full flex items-center justify-between pt-2">
 					<PromptInputAction

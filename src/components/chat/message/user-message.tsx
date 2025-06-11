@@ -27,6 +27,7 @@ export function UserMessage({ message, showRetry }: UserMessageProps) {
 		onSuccess: () => setIsRegenerating(false),
 		onError: () => setIsRegenerating(false),
 	});
+
 	const editAndResubmit = useEditAndResubmit({
 		onSuccess: () => {
 			setIsEditing(false);
