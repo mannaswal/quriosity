@@ -1,4 +1,4 @@
-# M3 Chat
+# Quriosity
 
 Made for the T3 Chat Cloneathon
 
