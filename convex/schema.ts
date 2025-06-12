@@ -9,6 +9,12 @@ export const ThreadStatus = v.union(
 	v.literal('error')
 );
 
+const MessageRole = v.union(
+	v.literal('user'),
+	v.literal('assistant'),
+	v.literal('system')
+);
+
 export const MessageStatus = v.union(
 	v.literal('pending'),
 	v.literal('streaming'),
@@ -50,7 +56,7 @@ export default defineSchema({
 		userId: v.id('users'),
 		threadId: v.id('threads'),
 
-		role: v.union(v.literal('user'), v.literal('assistant')),
+		role: MessageRole,
 		content: v.string(),
 		status: MessageStatus,
 		modelUsed: v.string(),
