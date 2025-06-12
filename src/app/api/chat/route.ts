@@ -12,43 +12,6 @@ const openrouter = createOpenRouter({
 });
 
 /**
- * Helper function to call Convex HTTP actions
- */
-async function callConvexHttpAction(
-	actionPath: string,
-	body: any,
-	token: string
-) {
-	const convexUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL!;
-
-	const response = await fetch(`${convexUrl}${actionPath}`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`,
-			Origin: process.env.NEXTAUTH_URL || 'http://localhost:3000',
-		},
-		body: JSON.stringify(body),
-	});
-
-	console.log(`${convexUrl}${actionPath}`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`,
-			Origin: process.env.NEXTAUTH_URL || 'http://localhost:3000',
-		},
-		body,
-	});
-
-	if (!response.ok) {
-		throw new Error(await response.text());
-	}
-
-	return await response.json();
-}
-
-/**
  * Main chat endpoint for streaming AI responses
  * Handles initial stream requests from the client who sent the message
  * Implements dual streaming: direct to client + Redis buffering for other clients
@@ -56,7 +19,7 @@ async function callConvexHttpAction(
 export async function POST(request: NextRequest) {
 	try {
 		// 1. Authenticate request
-		const authHeader = request.headers.get('authorization');
+		const authHeader = request.headers.get('Authorization');
 		if (!authHeader || !authHeader.startsWith('Bearer ')) {
 			return new NextResponse('Unauthorized', { status: 401 });
 		}
@@ -227,4 +190,41 @@ export async function OPTIONS() {
 			'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 		},
 	});
+}
+
+/**
+ * Helper function to call Convex HTTP actions
+ */
+async function callConvexHttpAction(
+	actionPath: string,
+	body: any,
+	token: string
+) {
+	const convexUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL!;
+
+	const response = await fetch(`${convexUrl}${actionPath}`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`,
+			Origin: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+		},
+		body: JSON.stringify(body),
+	});
+
+	console.log(`${convexUrl}${actionPath}`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`,
+			Origin: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+		},
+		body,
+	});
+
+	if (!response.ok) {
+		throw new Error(await response.text());
+	}
+
+	return await response.json();
 }

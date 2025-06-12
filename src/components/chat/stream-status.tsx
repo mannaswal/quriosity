@@ -1,5 +1,5 @@
 import { Id } from '../../../convex/_generated/dataModel';
-import { useThreadStreamingStatus } from '@/lib/stores/streaming-store';
+import { useThreadStreamingStatus } from '@/stores/streaming-store';
 import { useThread } from '@/hooks/use-threads';
 import { Loader2, StopCircle, AlertCircle } from 'lucide-react';
 

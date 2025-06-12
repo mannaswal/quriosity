@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Id } from '../../../../convex/_generated/dataModel';
-import { useStreamingContent } from '@/lib/stores/streaming-store';
+import { useStreamingContent } from '@/stores/streaming-store';
 import { useStreamDetection } from '@/hooks/use-resume-stream';
 import { ChatMessage } from '@/lib/types';
 

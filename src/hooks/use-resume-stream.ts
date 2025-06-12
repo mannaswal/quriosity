@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { Id } from '../../convex/_generated/dataModel';
-import { useStreamingActions } from '@/lib/stores/streaming-store';
+import { useStreamingActions } from '@/stores/streaming-store';
 import { trpc } from '@/lib/trpc/client';
 
 /**

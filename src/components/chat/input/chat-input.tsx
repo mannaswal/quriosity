@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { useSendMessage } from '@/hooks/use-messages';
 import { useRequestStopStream } from '@/hooks/use-threads';
-import { useThreadStreamingStatus } from '@/lib/stores/streaming-store';
+import { useThreadStreamingStatus } from '@/stores/streaming-store';
 import { ModelSelector } from './model-selector';
 
 export function ChatInput() {

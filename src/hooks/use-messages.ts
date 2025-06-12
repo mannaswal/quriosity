@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc/client';
 import { ChatMessage } from '@/lib/types';
 import { useRef } from 'react';
-import { useStreamingActions } from '@/lib/stores/streaming-store';
+import { useStreamingActions } from '@/stores/streaming-store';
 import { ModelId } from '@/lib/models';
 import { useCreateThread, useThread, useThreadId } from './use-threads';
 import { useRouter } from 'next/navigation';
