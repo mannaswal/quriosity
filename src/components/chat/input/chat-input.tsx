@@ -10,25 +10,21 @@ import {
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { useSendMessage } from '@/hooks/use-messages';
-import { useStopStream, useThread } from '@/hooks/use-threads';
+import { useStopStream } from '@/hooks/use-threads';
 import {
 	useThreadStreamingStatus,
 	useStreamingActions,
 } from '@/lib/stores/streaming-store';
 import { ModelSelector } from './model-selector';
-import { Id } from 'convex/_generated/dataModel';
 
 export function ChatInput() {
 	const [message, setMessage] = useState('');
-	const thread = useThread();
 
 	const stopStream = useStopStream();
 	const sendMessage = useSendMessage();
 	const { abortStream } = useStreamingActions();
 
-	const { isStreaming, activeMessageId } = useThreadStreamingStatus(
-		thread?._id || ('' as Id<'threads'>)
-	);
+	const { isStreaming, activeMessageId } = useThreadStreamingStatus();
 
 	const handleStop = async () => {
 		try {

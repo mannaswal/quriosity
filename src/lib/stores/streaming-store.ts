@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { useMemo } from 'react';
 import { Id } from '../../../convex/_generated/dataModel';
+import { useThread } from '@/hooks/use-threads';
 
 /**
  * Individual chunk data structure
@@ -279,12 +280,15 @@ export function useStreamingContent(messageId: Id<'messages'>) {
 /**
  * Hook to check if a thread is currently streaming
  */
-export function useThreadStreamingStatus(threadId: Id<'threads'>) {
+export function useThreadStreamingStatus() {
+	const thread = useThread();
 	const isStreaming = useStreamingStore((state) =>
-		state.actions.isThreadStreaming(threadId)
+		thread
+			? thread.isStreaming || state.actions.isThreadStreaming(thread._id)
+			: false
 	);
 	const activeMessageId = useStreamingStore((state) =>
-		state.actions.getActiveStreamForThread(threadId)
+		thread ? state.actions.getActiveStreamForThread(thread._id) : null
 	);
 
 	return useMemo(
