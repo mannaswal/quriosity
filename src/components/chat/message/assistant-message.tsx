@@ -8,6 +8,7 @@ import { Markdown } from '../../ui/markdown';
 import { Message } from '@/components/ui/message';
 import { CheckIcon, CopyIcon, SplitIcon } from 'lucide-react';
 import { useMessageContent, StreamingCursor } from './streaming-message';
+import { Loader } from '@/components/ui/loader';
 
 interface AssistantMessageProps {
 	message: ChatMessage;
@@ -50,6 +51,12 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 
 	return (
 		<div className="w-full flex flex-col gap-2">
+			{message.status === 'in_progress' && content === '' && (
+				<Loader
+					variant="pulse-dot"
+					className="mt-2.5"
+				/>
+			)}
 			<Message
 				key={message._id}
 				className="peer/message flex flex-col w-full text-neutral-100">
@@ -61,6 +68,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 					</Markdown>
 				</div>
 			</Message>
+
 			{(message.status === 'complete' || (!isStreaming && content)) && (
 				<div className="flex items-center opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 -ml-0.5">
 					<Button
