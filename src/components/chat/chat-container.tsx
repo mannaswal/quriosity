@@ -29,14 +29,10 @@ const ChatContainer = memo(function ChatContainer() {
 			<ChatContainerRoot className="flex-1">
 				<ChatContainerContent className="p-4 max-w-3xl mx-auto pt-14 pb-32 space-y-1">
 					{messages.map((message, index) => {
-						const showRetry =
-							message.role === 'user' &&
-							messages[index + 1]?.role === 'assistant';
 						return (
 							<MessageItem
 								key={message._id}
 								message={message as ChatMessage}
-								showRetry={showRetry}
 							/>
 						);
 					})}

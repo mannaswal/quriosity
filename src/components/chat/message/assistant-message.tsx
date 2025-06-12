@@ -6,9 +6,10 @@ import { cn } from '@/lib/utils';
 import { Button } from '../../ui/button';
 import { Markdown } from '../../ui/markdown';
 import { Message } from '@/components/ui/message';
-import { CheckIcon, CopyIcon, SplitIcon } from 'lucide-react';
+import { CheckIcon, CopyIcon, RefreshCcwIcon, SplitIcon } from 'lucide-react';
 import { useMessageContent, StreamingCursor } from './streaming-message';
 import { Loader } from '@/components/ui/loader';
+import { useRegenerate } from '@/hooks/use-messages';
 
 interface AssistantMessageProps {
 	message: ChatMessage;
@@ -23,9 +24,10 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 	const [isBranching, setIsBranching] = useState(false);
 
 	const branch = useBranchThread();
+	const regenerate = useRegenerate({});
 
 	// Get streaming-aware content
-	const { content, isStreaming, showCursor } = useMessageContent(
+	const { content, isStreaming, isPending } = useMessageContent(
 		message._id,
 		message.content,
 		message.status
@@ -41,7 +43,6 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 	};
 
 	const handleCopy = () => {
-		// Copy the current content (streaming or final)
 		navigator.clipboard.writeText(content);
 		setCopied(true);
 		setTimeout(() => {
@@ -49,9 +50,18 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 		}, 2000);
 	};
 
+	const handleRegenerate = async () => {
+		try {
+			await regenerate({
+				messageId: message._id,
+				threadId: message.threadId,
+			});
+		} catch (error) {}
+	};
+
 	return (
 		<div className="w-full flex flex-col gap-2">
-			{message.status === 'in_progress' && content === '' && (
+			{isPending && (
 				<Loader
 					variant="pulse-dot"
 					className="mt-2.5"
@@ -72,6 +82,23 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 			{(message.status === 'complete' || (!isStreaming && content)) && (
 				<div className="flex items-center opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 -ml-0.5">
 					<Button
+						onClick={handleRegenerate}
+						disabled={isPending}
+						variant="ghost"
+						size="icon"
+						className="size-8">
+						<RefreshCcwIcon className="size-4" />
+					</Button>
+
+					<Button
+						variant="ghost"
+						size="icon"
+						className="size-8"
+						disabled={isBranching}
+						onClick={handleBranch}>
+						<SplitIcon className="size-4 rotate-180" />
+					</Button>
+					<Button
 						variant="ghost"
 						size="icon"
 						className="size-8"
@@ -81,14 +108,6 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 						) : (
 							<CopyIcon className="w-4 h-4" />
 						)}
-					</Button>
-					<Button
-						variant="ghost"
-						size="icon"
-						className="size-8"
-						disabled={isBranching}
-						onClick={handleBranch}>
-						<SplitIcon className="size-4 rotate-180" />
 					</Button>
 					<div className="flex gap-2 text-xs ml-2">
 						<div className="text-neutral-500">

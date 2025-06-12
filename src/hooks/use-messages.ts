@@ -257,13 +257,13 @@ export function useRegenerate(opts: {
 	const regenerateMutation = useConvexMutation(api.messages.regenerateResponse);
 
 	return async (args: {
-		userMessageId: Id<'messages'>;
+		messageId: Id<'messages'>;
 		threadId: Id<'threads'>;
 	}) => {
 		try {
 			const { assistantMessageId, model, threadId, messages } =
 				await regenerateMutation({
-					userMessageId: args.userMessageId,
+					messageId: args.messageId,
 				});
 
 			const streamConfig = await getStreamConfig.mutateAsync({

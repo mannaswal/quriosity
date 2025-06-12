@@ -104,7 +104,7 @@ export function useMessageContent(
 		content: streamingContent || databaseContent,
 		isStreaming,
 		hasStreamingContent: !!streamingContent,
-		showCursor: isStreaming || (status === 'in_progress' && !streamingContent),
+		isPending: status === 'in_progress' && !streamingContent,
 	};
 }
 

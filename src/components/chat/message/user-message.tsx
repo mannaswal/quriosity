@@ -9,13 +9,12 @@ import { CheckIcon, CopyIcon, RefreshCcwIcon, PencilIcon } from 'lucide-react';
 
 interface UserMessageProps {
 	message: ChatMessage;
-	showRetry: boolean;
 }
 
 /**
  * Component for rendering user messages with edit, regenerate, and copy functionality
  */
-export function UserMessage({ message, showRetry }: UserMessageProps) {
+export function UserMessage({ message }: UserMessageProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editedContent, setEditedContent] = useState(message.content);
 	const [copied, setCopied] = useState(false);
@@ -45,7 +44,7 @@ export function UserMessage({ message, showRetry }: UserMessageProps) {
 			if (editedContent === message.content) {
 				setIsRegenerating(true);
 				await regenerate({
-					userMessageId: message._id,
+					messageId: message._id,
 					threadId: message.threadId,
 				});
 			} else if (editedContent.trim()) {
@@ -117,16 +116,14 @@ export function UserMessage({ message, showRetry }: UserMessageProps) {
 			)}
 
 			<div className="flex items-center opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 mb-1">
-				{showRetry && (
-					<Button
-						onClick={handleRegenerate}
-						disabled={isPending}
-						variant="ghost"
-						size="icon"
-						className="size-8">
-						<RefreshCcwIcon className="size-4" />
-					</Button>
-				)}
+				<Button
+					onClick={handleRegenerate}
+					disabled={isPending}
+					variant="ghost"
+					size="icon"
+					className="size-8">
+					<RefreshCcwIcon className="size-4" />
+				</Button>
 				<Button
 					onClick={() => setIsEditing((prev) => !prev)}
 					disabled={isPending}

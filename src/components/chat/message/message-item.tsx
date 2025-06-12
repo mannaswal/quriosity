@@ -10,21 +10,13 @@ import { Id } from '../../../../convex/_generated/dataModel';
  */
 export const MessageItem = memo(function MessageItem({
 	message,
-	showRetry,
 }: {
 	message: ChatMessage;
-	showRetry: boolean;
 }) {
 	if (message.role === 'assistant')
 		return <AssistantMessage message={message} />;
 
-	if (message.role === 'user')
-		return (
-			<UserMessage
-				message={message}
-				showRetry={showRetry}
-			/>
-		);
+	if (message.role === 'user') return <UserMessage message={message} />;
 
 	return <div>Unknown message role: {message.role}</div>;
 });

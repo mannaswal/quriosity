@@ -5,6 +5,7 @@ import { api } from './_generated/api';
 import { getMe } from './users';
 import { internal } from './_generated/api';
 import schema from './schema';
+import { Doc } from './_generated/dataModel';
 
 // Query to get messages for the UI
 export const listByThread = query({
@@ -51,24 +52,22 @@ export const prepareForStream = mutation({
 			throw new Error('Thread not found or user not authorized');
 		}
 
-		const [userMessageId, assistantMessageId] = await Promise.all([
-			// 1. Save the user's message to the database
-			ctx.db.insert('messages', {
-				threadId: args.threadId,
-				role: 'user',
-				content: args.messageContent,
-				modelUsed: args.model,
-			}),
+		// 1. Save the user's message to the database
+		await ctx.db.insert('messages', {
+			threadId: args.threadId,
+			role: 'user',
+			content: args.messageContent,
+			modelUsed: args.model,
+		});
 
-			// 2. Create the placeholder for the assistant's response
-			ctx.db.insert('messages', {
-				threadId: args.threadId,
-				role: 'assistant',
-				content: '', // Start with empty content
-				status: 'in_progress', // Set the status
-				modelUsed: args.model,
-			}),
-		]);
+		// 2. Create the placeholder for the assistant's response
+		const assistantMessageId = await ctx.db.insert('messages', {
+			threadId: args.threadId,
+			role: 'assistant',
+			content: '', // Start with empty content
+			status: 'in_progress', // Set the status
+			modelUsed: args.model,
+		});
 
 		const [messages, _] = await Promise.all([
 			// 3. Get the user's message from the database
@@ -230,19 +229,39 @@ export const create = internalMutation({
 });
 
 export const regenerateResponse = mutation({
-	args: { userMessageId: v.id('messages') },
-	handler: async (ctx, { userMessageId }) => {
+	args: { messageId: v.id('messages') },
+	handler: async (ctx, { messageId }) => {
 		const user = await getMe(ctx);
 		if (!user) {
 			throw new Error('User not authenticated.');
 		}
 
-		const userMessage = await ctx.db.get(userMessageId);
-		if (!userMessage || userMessage.role !== 'user') {
-			throw new Error('Invalid user message ID.');
+		let userMessage: Doc<'messages'>;
+
+		const message = await ctx.db.get(messageId);
+
+		if (!message) {
+			throw new Error('Message not found.');
 		}
 
-		const thread = await ctx.db.get(userMessage.threadId);
+		if (message.role === 'user') {
+			userMessage = message;
+		} else {
+			// Meaning an assistant triggered this mutation, so we must get the previous message which is the user message
+			const messages = await ctx.db
+				.query('messages')
+				.withIndex('by_thread', (q) => q.eq('threadId', message.threadId))
+				.filter((q) => q.lt(q.field('_creationTime'), message._creationTime))
+				.collect();
+
+			userMessage = messages[messages.length - 1];
+
+			if (!userMessage || userMessage.role !== 'user') {
+				throw new Error('User message not found.');
+			}
+		}
+
+		const thread = await ctx.db.get(message.threadId);
 		if (!thread || thread.userId !== user._id) {
 			throw new Error('User not authorized to access this thread.');
 		}
