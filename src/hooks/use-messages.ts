@@ -70,7 +70,7 @@ export function useStreamResponse() {
 		streamConfig: {
 			streamUrl: string;
 			token: string;
-			payload: Record<string, any>;
+			payload: Record<string, string>;
 		},
 		threadId: Id<'threads'>,
 		messageId: Id<'messages'>

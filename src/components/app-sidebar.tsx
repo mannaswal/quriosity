@@ -50,6 +50,7 @@ import { Thread } from '@/lib/types';
 import { useMemo } from 'react';
 import { TextShimmer } from './ui/text-shimmer';
 import { Loader } from './ui/loader';
+import { Id } from 'convex/_generated/dataModel';
 
 /**
  * Helper function to group threads by pinned status and recency.
@@ -254,7 +255,7 @@ const ThreadItem = ({
 		currentPinned: boolean | undefined
 	) => {
 		await pinThreadMutation({
-			threadId: threadId as any,
+			threadId: threadId as Id<'threads'>,
 			pinned: !currentPinned,
 		});
 	};
@@ -268,7 +269,7 @@ const ThreadItem = ({
 			router.push('/');
 		}
 
-		await deleteThreadMutation(threadIdToDelete as any);
+		await deleteThreadMutation(threadIdToDelete as Id<'threads'>);
 	};
 
 	/**
@@ -311,7 +312,7 @@ const ThreadItem = ({
 
 		try {
 			await renameThreadMutation({
-				threadId: editingThreadId as any,
+				threadId: editingThreadId as Id<'threads'>,
 				newTitle: trimmedTitle,
 			});
 			cancelEditing();

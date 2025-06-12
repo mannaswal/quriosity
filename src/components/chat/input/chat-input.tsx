@@ -39,7 +39,6 @@ export function ChatInput() {
 	const handleSendMessage = async (messageContent: string, model: ModelId) => {
 		try {
 			let targetThreadId = threadId;
-			let assistantMessageId: Id<'messages'>;
 
 			if (!targetThreadId) {
 				// If there is no thread, we create a new one
@@ -51,7 +50,7 @@ export function ChatInput() {
 			}
 
 			// Sure that a thread exists, we prepare for streaming
-			assistantMessageId = await prepareForStream({
+			const assistantMessageId = await prepareForStream({
 				threadId: targetThreadId,
 				messageContent: messageContent,
 				model: model,
