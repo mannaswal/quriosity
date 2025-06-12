@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { streamText, CoreMessage } from 'ai';
-import { addChunkToBuffer, markStreamComplete } from '@/lib/redis';
+import { streamText, CoreMessage, processDataStream } from 'ai';
+import {
+	addChunkToBuffer,
+	checkStreamStopFlag,
+	markStreamComplete,
+} from '@/lib/redis';
 
 const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY!,
@@ -27,8 +31,18 @@ async function callConvexHttpAction(
 		body: JSON.stringify(body),
 	});
 
+	console.log(`${convexUrl}${actionPath}`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`,
+			Origin: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+		},
+		body,
+	});
+
 	if (!response.ok) {
-		throw new Error(`Convex HTTP action failed: ${response.statusText}`);
+		throw new Error(await response.text());
 	}
 
 	return await response.json();
@@ -65,21 +79,42 @@ export async function POST(request: NextRequest) {
 				content: msg.content,
 			}));
 
+		const abortController = new AbortController();
+
 		// 4. Initialize AI stream
-		const { textStream, finishReason } = await streamText({
+		const { textStream, finishReason } = streamText({
 			model: openrouter.chat(model),
 			messages: formattedHistory,
+			abortSignal: abortController.signal,
 		});
 
 		// 5. Create ReadableStream for dual streaming
 		const encoder = new TextEncoder();
 		let accumulatedContent = '';
+		let wasStopped = false;
 
 		const stream = new ReadableStream({
 			async start(controller) {
 				try {
+					let chunkCount = 0;
+					const checkInterval = 3; // Check every 3 chunks
+
 					// Stream chunks and buffer them
 					for await (const textPart of textStream) {
+						// Periodically check for a stop signal
+						if (chunkCount % checkInterval === 0) {
+							const stopFlag = await checkStreamStopFlag(assistantMessageId);
+							console.log(`Stop flag: ${stopFlag}`);
+							if (stopFlag) {
+								console.log(`Stop signal received for ${assistantMessageId}`);
+								wasStopped = true;
+								abortController.abort();
+								break;
+							}
+						}
+
+						processDataStream;
+
 						// Send chunk directly to initiating client
 						controller.enqueue(encoder.encode(textPart));
 
@@ -88,17 +123,31 @@ export async function POST(request: NextRequest) {
 
 						// Accumulate for final content
 						accumulatedContent += textPart;
+						chunkCount++;
 					}
 
+					console.log('out of loop');
+
 					// 6. Handle completion
-					const finalFinishReason = await finishReason;
-					const status =
-						finalFinishReason === 'stop' || finalFinishReason === 'length'
-							? 'complete'
-							: 'error';
+					const finalFinishReason = wasStopped ? 'stop' : await finishReason;
+					const status = wasStopped
+						? 'complete'
+						: finalFinishReason === 'stop' || finalFinishReason === 'length'
+						? 'complete'
+						: 'error';
+					const stopReason = wasStopped
+						? 'stopped'
+						: status === 'complete'
+						? 'completed'
+						: 'error';
+
+					console.log(finalFinishReason);
 
 					// Mark completion in Redis
-					await markStreamComplete(assistantMessageId, status);
+					await markStreamComplete(
+						assistantMessageId,
+						wasStopped ? 'stopped' : status
+					);
 
 					// Finalize in Convex via HTTP action
 					await callConvexHttpAction(
@@ -107,7 +156,7 @@ export async function POST(request: NextRequest) {
 							messageId: assistantMessageId,
 							content: accumulatedContent,
 							status: status,
-							stopReason: status === 'complete' ? 'completed' : 'error',
+							stopReason: stopReason,
 						},
 						token
 					);
@@ -117,21 +166,20 @@ export async function POST(request: NextRequest) {
 					console.error('Error in chat stream:', error);
 
 					// Save any accumulated content before erroring
-					if (accumulatedContent.length > 0) {
-						try {
-							await callConvexHttpAction(
-								'/finalize-stream',
-								{
-									messageId: assistantMessageId,
-									content: accumulatedContent,
-									status: 'error',
-									stopReason: 'error',
-								},
-								token
-							);
-						} catch (saveError) {
-							console.error('Failed to save content on error:', saveError);
-						}
+
+					try {
+						await callConvexHttpAction(
+							'/finalize-stream',
+							{
+								messageId: assistantMessageId,
+								content: accumulatedContent,
+								status: 'error',
+								stopReason: 'error',
+							},
+							token
+						);
+					} catch (saveError) {
+						console.error('Failed to save content on error:', saveError);
 					}
 
 					// Mark error in Redis
@@ -141,9 +189,13 @@ export async function POST(request: NextRequest) {
 				}
 			},
 
-			cancel() {
+			async cancel() {
 				// Handle client disconnection
-				console.log('Stream cancelled by client');
+				console.log(
+					'Stream cancelled by client, but will continue in background'
+				);
+				// This is now only for actual disconnections, not user-initiated stops.
+				// The stream will continue to buffer in Redis for other clients.
 			},
 		});
 

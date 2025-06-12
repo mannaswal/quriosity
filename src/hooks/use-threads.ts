@@ -234,45 +234,19 @@ export function useBranchThread() {
 /**
  * Hook for stopping an active stream
  */
-export function useStopStream() {
+export function useRequestStopStream() {
 	const threadId = useThreadId();
+	const requestStopMutation = useConvexMutation(api.messages.requestStopStream);
 
-	const stopMutation = useConvexMutation(
-		api.messages.stopStream
-	).withOptimisticUpdate((localStore, args) => {
-		const { threadId } = args;
-
-		// Optimistically update the thread to show streaming stopped
-		const currentThread = localStore.getQuery(api.threads.getThread, {
-			threadId,
-		});
-		if (currentThread) {
-			localStore.setQuery(
-				api.threads.getThread,
-				{ threadId },
-				{ ...currentThread, isStreaming: false }
-			);
-		}
-
-		// Also update in the threads list
-		const threadsList = localStore.getQuery(api.threads.getUserThreads, {});
-		if (threadsList) {
-			const updatedList = threadsList.map((thread) =>
-				thread._id === threadId ? { ...thread, isStreaming: false } : thread
-			);
-			localStore.setQuery(api.threads.getUserThreads, {}, updatedList);
-		}
-	});
-
-	const stopStream = async () => {
+	const requestStop = async () => {
 		if (!threadId) return;
 		try {
-			await stopMutation({ threadId });
+			await requestStopMutation({ threadId });
 		} catch (error) {
-			toast.error('Failed to stop stream');
-			throw error;
+			toast.error('Failed to request stream stop');
+			// We don't re-throw here as it's not a critical client-side failure
 		}
 	};
 
-	return stopStream;
+	return requestStop;
 }

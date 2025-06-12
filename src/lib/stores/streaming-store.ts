@@ -149,7 +149,7 @@ export const useStreamingStore = create<StreamingState>()(
 
 					const updatedSession = {
 						...session,
-						status,
+						status: status === 'stopped' ? 'complete' : status,
 						endTime: Date.now(),
 						abortController: undefined, // Clear abort controller
 					};

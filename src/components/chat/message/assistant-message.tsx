@@ -79,6 +79,12 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 				</div>
 			</Message>
 
+			{message.status === 'error' && (
+				<div className="text-xs text-rose-400/80 text-center">
+					An error occurred
+				</div>
+			)}
+
 			{(message.status === 'complete' || (!isStreaming && content)) && (
 				<div className="flex items-center opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 -ml-0.5">
 					<Button
@@ -119,6 +125,14 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 								<span className="text-accent">•</span>
 								<div className="text-xs text-rose-400/80 text-center">
 									Stopped by user
+								</div>
+							</>
+						)}
+						{message.stopReason === 'error' && (
+							<>
+								<span className="text-accent">•</span>
+								<div className="text-xs text-rose-400/80 text-center">
+									An error occurred
 								</div>
 							</>
 						)}

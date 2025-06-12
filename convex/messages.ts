@@ -1,11 +1,15 @@
 // convex/messages.ts
 import { v } from 'convex/values';
-import { internalMutation, mutation, query } from './_generated/server';
-import { api } from './_generated/api';
+import {
+	internalMutation,
+	mutation,
+	query,
+	internalAction,
+} from './_generated/server';
+import { api, internal } from './_generated/api';
 import { getMe } from './users';
-import { internal } from './_generated/api';
-import schema from './schema';
 import { Doc } from './_generated/dataModel';
+import { setStreamStopFlag } from './redis';
 
 // Query to get messages for the UI
 export const listByThread = query({
@@ -183,8 +187,17 @@ export const markStopped = internalMutation({
 	},
 });
 
+// Action to set the stop flag in Redis.
+// This is an action because it performs a side effect (calling an external service).
+export const _requestStopStreamAction = internalAction({
+	args: { messageId: v.id('messages') },
+	handler: async (_, { messageId }) => {
+		await setStreamStopFlag(messageId);
+	},
+});
+
 // Public mutation to stop a stream
-export const stopStream = mutation({
+export const requestStopStream = mutation({
 	args: { threadId: v.id('threads') },
 	handler: async (ctx, args) => {
 		const user = await getMe(ctx);
@@ -197,10 +210,7 @@ export const stopStream = mutation({
 			throw new Error('Thread not found or user not authorized.');
 		}
 
-		// Set a stop flag on the thread
-		await ctx.db.patch(args.threadId, { isStreaming: false });
-
-		// Find the in-progress message and mark it as stopped
+		// Find the in-progress message for the thread
 		const inProgressMessage = await ctx.db
 			.query('messages')
 			.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
@@ -208,10 +218,15 @@ export const stopStream = mutation({
 			.first();
 
 		if (inProgressMessage) {
-			await ctx.db.patch(inProgressMessage._id, {
-				status: 'complete',
-				stopReason: 'stopped',
-			});
+			// Schedule an action to set the Redis stop flag.
+			// We use an action because mutations can't have side effects.
+			await ctx.scheduler.runAfter(
+				0,
+				internal.messages._requestStopStreamAction,
+				{
+					messageId: inProgressMessage._id,
+				}
+			);
 		}
 	},
 });

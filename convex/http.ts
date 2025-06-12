@@ -28,7 +28,12 @@ cors.route({
 			const { messageId, content, status, stopReason } = body;
 
 			// Validate required fields
-			if (!messageId || !content || !status) {
+			if (
+				messageId === undefined ||
+				content === undefined ||
+				status === undefined ||
+				stopReason === undefined
+			) {
 				return new Response('Missing required fields', { status: 400 });
 			}
 

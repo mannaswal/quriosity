@@ -97,11 +97,16 @@ export function useMessageContent(
 	databaseContent: string,
 	status?: string
 ) {
-	const { content: streamingContent, isStreaming } =
-		useStreamingContent(messageId);
+	const {
+		content: streamingContent,
+		isStreaming,
+		status: streamingStatus,
+	} = useStreamingContent(messageId);
 
 	return {
-		content: streamingContent || databaseContent,
+		content: isStreaming
+			? streamingContent
+			: databaseContent || streamingContent,
 		isStreaming,
 		hasStreamingContent: !!streamingContent,
 		isPending: status === 'in_progress' && !streamingContent,
