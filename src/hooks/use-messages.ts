@@ -4,6 +4,7 @@ import {
 	useQuery as useConvexQuery,
 	useMutation as useConvexMutation,
 	useConvexAuth,
+	useQuery,
 } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
@@ -11,6 +12,11 @@ import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc/client';
 import { ChatMessage } from '@/lib/types';
 import { useRef } from 'react';
+import { useStreamingActions } from '@/lib/stores/streaming-store';
+import { ModelId } from '@/lib/models';
+import { useCreateThread, useThread, useThreadId } from './use-threads';
+import { useRouter } from 'next/navigation';
+import { useModel } from './use-model';
 
 /**
  * Hook to get messages for a thread - simplified to just return Convex query
@@ -62,20 +68,47 @@ export function usePrepareForStream() {
 }
 
 /**
- * Hook for smooth streaming with Convex optimistic updates
+ * Hook for smooth streaming with Zustand state management
  */
 export function useStreamResponse() {
+	const { startStream, addChunk, completeStream } = useStreamingActions();
+	const abortControllerRef = useRef<AbortController | null>(null);
+
 	// Initiate the stream
 	const streamResponse = async (
 		streamConfig: {
 			streamUrl: string;
+			resumeUrl: string;
 			token: string;
-			payload: Record<string, string>;
+			payload: {
+				threadId: string;
+				assistantMessageId: string;
+				model: string;
+				messages: ChatMessage[];
+			};
+			sessionId: string;
 		},
 		threadId: Id<'threads'>,
 		messageId: Id<'messages'>
 	) => {
 		try {
+			// Abort any existing stream
+			if (abortControllerRef.current) {
+				abortControllerRef.current.abort();
+			}
+
+			// Create new abort controller
+			const abortController = new AbortController();
+			abortControllerRef.current = abortController;
+
+			// Start the stream session in Zustand
+			startStream({
+				messageId,
+				threadId,
+				sessionId: streamConfig.sessionId,
+				abortController,
+			});
+
 			const response = await fetch(streamConfig.streamUrl, {
 				method: 'POST',
 				headers: {
@@ -83,7 +116,12 @@ export function useStreamResponse() {
 					Authorization: `Bearer ${streamConfig.token}`,
 				},
 				body: JSON.stringify(streamConfig.payload),
+				signal: abortController.signal,
 			});
+
+			if (!response.ok) {
+				throw new Error(`Stream failed: ${response.statusText}`);
+			}
 
 			if (!response.body) {
 				throw new Error('Response body is null');
@@ -91,24 +129,119 @@ export function useStreamResponse() {
 
 			const reader = response.body.getReader();
 			const decoder = new TextDecoder();
-			let accumulatedContent = '';
 
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
+			try {
+				while (true) {
+					const { done, value } = await reader.read();
 
-				const chunk = decoder.decode(value);
-				accumulatedContent += chunk; // doing nothing with the content for now
+					if (done) {
+						// Stream completed normally
+						completeStream(messageId, 'complete');
+						break;
+					}
+
+					// Decode and add chunk to Zustand store
+					const chunk = decoder.decode(value, { stream: true });
+					if (chunk) {
+						addChunk(messageId, chunk);
+					}
+				}
+			} catch (error) {
+				if (error instanceof DOMException && error.name === 'AbortError') {
+					// Stream was aborted
+					completeStream(messageId, 'stopped');
+				} else {
+					// Stream error
+					console.error('Stream error:', error);
+					completeStream(messageId, 'error');
+				}
+			} finally {
+				reader.releaseLock();
 			}
 		} catch (error) {
 			if (error instanceof DOMException && error.name === 'AbortError') {
 				console.log('Stream was aborted');
+				completeStream(messageId, 'stopped');
 				return;
 			}
+			console.error('Failed to start stream:', error);
+			completeStream(messageId, 'error');
+			throw error;
+		} finally {
+			abortControllerRef.current = null;
+		}
+	};
+
+	return { streamResponse };
+}
+
+/**
+ * Hook to send a new message
+ */
+export function useSendMessage(opts?: {
+	onSuccess?: () => void;
+	onError?: (error: Error) => void;
+}) {
+	const model = useModel();
+	const router = useRouter();
+	const thread = useThread();
+	const prepareForStream = usePrepareForStream();
+	const { streamResponse } = useStreamResponse();
+	const createThreadMutation = useCreateThread();
+	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
+
+	const sendMessage = async (messageContent: string) => {
+		if (!model || thread?.isStreaming) return;
+
+		try {
+			let targetThreadId = thread?._id;
+
+			// If there is no thread, we create a new one
+			if (!targetThreadId) {
+				const newThreadId = await createThreadMutation({
+					messageContent: messageContent,
+					model: model,
+				});
+				targetThreadId = newThreadId;
+			}
+
+			// If there is no thread, need to redirect to the new thread using the threadId we just created
+			if (!thread) router.push(`/chat/${targetThreadId}`);
+
+			// Sure that a thread exists, we prepare for streaming
+			const { assistantMessageId, messages } = await prepareForStream({
+				threadId: targetThreadId,
+				messageContent: messageContent,
+				model: model,
+			});
+
+			const streamConfig = await getStreamConfig.mutateAsync({
+				threadId: targetThreadId,
+				assistantMessageId,
+				model,
+			});
+
+			// Populate messages for the stream
+			streamConfig.payload.messages = messages;
+
+			// Start streaming with optimistic updates
+			await streamResponse(streamConfig, targetThreadId, assistantMessageId);
+
+			opts?.onSuccess?.();
+
+			return targetThreadId;
+		} catch (error) {
+			if (error instanceof DOMException && error.name === 'AbortError') {
+				console.log('Regenerate was aborted');
+				return;
+			}
+			toast.error('Failed to regenerate response');
+			opts?.onError?.(error as Error);
 			throw error;
 		}
 	};
-	return { streamResponse };
+
+	return sendMessage;
 }
 
 /**
@@ -120,34 +253,33 @@ export function useRegenerate(opts: {
 }) {
 	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
 	const { streamResponse } = useStreamResponse();
-	const abortControllerRef = useRef<AbortController | null>(null);
 
-	const regenerateMutation = useConvexMutation(
-		api.messages.regenerateResponse
-	).withOptimisticUpdate((localStore, args) => {
-		const { userMessageId } = args;
-		// The mutation will handle removing subsequent messages server-side
-	});
+	const regenerateMutation = useConvexMutation(api.messages.regenerateResponse);
 
 	return async (args: {
 		userMessageId: Id<'messages'>;
 		threadId: Id<'threads'>;
 	}) => {
 		try {
-			const result = await regenerateMutation({
-				userMessageId: args.userMessageId,
+			const { assistantMessageId, model, threadId, messages } =
+				await regenerateMutation({
+					userMessageId: args.userMessageId,
+				});
+
+			const streamConfig = await getStreamConfig.mutateAsync({
+				threadId,
+				assistantMessageId,
+				model,
 			});
-			const streamConfig = await getStreamConfig.mutateAsync(result);
+
+			// Populate messages for the stream
+			streamConfig.payload.messages = messages;
 
 			// Start streaming with optimistic updates
-			await streamResponse(
-				streamConfig,
-				args.threadId,
-				result.assistantMessageId
-			);
+			await streamResponse(streamConfig, args.threadId, assistantMessageId);
 
 			opts.onSuccess?.();
-			return result;
+			return { assistantMessageId, messages };
 		} catch (error) {
 			if (error instanceof DOMException && error.name === 'AbortError') {
 				console.log('Regenerate was aborted');
@@ -156,8 +288,6 @@ export function useRegenerate(opts: {
 			toast.error('Failed to regenerate response');
 			opts.onError?.(error as Error);
 			throw error;
-		} finally {
-			abortControllerRef.current = null;
 		}
 	};
 }
@@ -171,7 +301,6 @@ export function useEditAndResubmit(opts: {
 }) {
 	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
 	const { streamResponse } = useStreamResponse();
-	const abortControllerRef = useRef<AbortController | null>(null);
 
 	const editMutation = useConvexMutation(api.messages.editAndResubmit);
 
@@ -181,21 +310,26 @@ export function useEditAndResubmit(opts: {
 		newContent: string;
 	}) => {
 		try {
-			const result = await editMutation({
-				userMessageId: args.userMessageId,
-				newContent: args.newContent,
+			const { assistantMessageId, model, threadId, messages } =
+				await editMutation({
+					userMessageId: args.userMessageId,
+					newContent: args.newContent,
+				});
+
+			const streamConfig = await getStreamConfig.mutateAsync({
+				threadId,
+				assistantMessageId,
+				model,
 			});
-			const streamConfig = await getStreamConfig.mutateAsync(result);
+
+			// Populate messages for the stream
+			streamConfig.payload.messages = messages;
 
 			// Start streaming with optimistic updates
-			await streamResponse(
-				streamConfig,
-				args.threadId,
-				result.assistantMessageId
-			);
+			await streamResponse(streamConfig, args.threadId, assistantMessageId);
 
 			opts.onSuccess?.();
-			return result;
+			return { assistantMessageId, messages };
 		} catch (error) {
 			if (error instanceof DOMException && error.name === 'AbortError') {
 				console.log('Edit and resubmit was aborted');
@@ -204,8 +338,6 @@ export function useEditAndResubmit(opts: {
 			toast.error('Failed to edit message');
 			opts.onError?.(error as Error);
 			throw error;
-		} finally {
-			abortControllerRef.current = null;
 		}
 	};
 }

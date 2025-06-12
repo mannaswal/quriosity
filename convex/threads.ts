@@ -145,13 +145,11 @@ export const createThread = mutation({
 			.withIndex('by_auth_id', (q) => q.eq('authId', identity.subject))
 			.unique();
 
-		const userId =
-			existingUser?._id ??
-			(await ctx.db.insert('users', {
-				name: identity.name ?? 'Anonymous',
-				email: identity.email,
-				authId: identity.subject,
-			}));
+		if (!existingUser) {
+			throw new Error('User not found');
+		}
+
+		const userId = existingUser._id;
 
 		// 1. Create the new thread with the initial model
 		const threadId = await ctx.db.insert('threads', {
@@ -168,7 +166,7 @@ export const createThread = mutation({
 		});
 
 		// 3. Return the new thread's ID to the client
-		return { threadId };
+		return threadId;
 	},
 });
 
@@ -354,9 +352,77 @@ export const branchFromMessage = mutation({
 	},
 });
 
+/**
+ * Internal mutation to set streaming state on a thread
+ */
 export const setStreaming = internalMutation({
 	args: { threadId: v.id('threads'), isStreaming: v.boolean() },
+	returns: v.null(),
 	handler: async (ctx, { threadId, isStreaming }) => {
 		await ctx.db.patch(threadId, { isStreaming });
+		return null;
+	},
+});
+
+/**
+ * Internal mutation to stop streaming on a thread
+ */
+export const stopStream = internalMutation({
+	args: { threadId: v.id('threads') },
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.threadId, { isStreaming: false });
+		return null;
+	},
+});
+
+/**
+ * Query to get the single message with 'in_progress' status for a thread
+ * Used to identify which message is currently streaming
+ */
+export const getStreamingMessage = query({
+	args: { threadId: v.id('threads') },
+	returns: v.union(
+		v.object({
+			_id: v.id('messages'),
+			_creationTime: v.number(),
+			threadId: v.id('threads'),
+			parentId: v.optional(v.id('messages')),
+			role: v.union(v.literal('user'), v.literal('assistant')),
+			content: v.string(),
+			status: v.optional(
+				v.union(
+					v.literal('in_progress'),
+					v.literal('complete'),
+					v.literal('error')
+				)
+			),
+			modelUsed: v.string(),
+			stopReason: v.optional(
+				v.union(
+					v.literal('completed'),
+					v.literal('stopped'),
+					v.literal('error')
+				)
+			),
+		}),
+		v.null()
+	),
+	handler: async (ctx, args) => {
+		const user = await getMe(ctx);
+		if (!user) {
+			return null;
+		}
+
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread || thread.userId !== user._id) {
+			return null;
+		}
+
+		return await ctx.db
+			.query('messages')
+			.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
+			.filter((q) => q.eq(q.field('status'), 'in_progress'))
+			.first();
 	},
 });

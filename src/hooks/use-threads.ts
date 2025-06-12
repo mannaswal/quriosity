@@ -235,6 +235,8 @@ export function useBranchThread() {
  * Hook for stopping an active stream
  */
 export function useStopStream() {
+	const threadId = useThreadId();
+
 	const stopMutation = useConvexMutation(
 		api.messages.stopStream
 	).withOptimisticUpdate((localStore, args) => {
@@ -262,7 +264,8 @@ export function useStopStream() {
 		}
 	});
 
-	return async (threadId: Id<'threads'>) => {
+	const stopStream = async () => {
+		if (!threadId) return;
 		try {
 			await stopMutation({ threadId });
 		} catch (error) {
@@ -270,4 +273,6 @@ export function useStopStream() {
 			throw error;
 		}
 	};
+
+	return stopStream;
 }

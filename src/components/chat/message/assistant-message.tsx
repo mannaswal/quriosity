@@ -7,6 +7,7 @@ import { Button } from '../../ui/button';
 import { Markdown } from '../../ui/markdown';
 import { Message } from '@/components/ui/message';
 import { CheckIcon, CopyIcon, SplitIcon } from 'lucide-react';
+import { useMessageContent, StreamingCursor } from './streaming-message';
 
 interface AssistantMessageProps {
 	message: ChatMessage;
@@ -14,12 +15,20 @@ interface AssistantMessageProps {
 
 /**
  * Component for rendering assistant messages with copy and branch functionality
+ * Now supports real-time streaming content
  */
 export function AssistantMessage({ message }: AssistantMessageProps) {
 	const [copied, setCopied] = useState(false);
 	const [isBranching, setIsBranching] = useState(false);
 
 	const branch = useBranchThread();
+
+	// Get streaming-aware content
+	const { content, isStreaming, showCursor } = useMessageContent(
+		message._id,
+		message.content,
+		message.status
+	);
 
 	const handleBranch = async () => {
 		try {
@@ -31,7 +40,8 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 	};
 
 	const handleCopy = () => {
-		navigator.clipboard.writeText(message.content);
+		// Copy the current content (streaming or final)
+		navigator.clipboard.writeText(content);
 		setCopied(true);
 		setTimeout(() => {
 			setCopied(false);
@@ -43,13 +53,15 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 			<Message
 				key={message._id}
 				className="peer/message flex flex-col w-full text-neutral-100">
-				<Markdown
-					id={message._id}
-					className="max-w-full prose dark:prose-invert">
-					{message.content}
-				</Markdown>
+				<div className="flex items-start">
+					<Markdown
+						id={message._id}
+						className="max-w-full prose dark:prose-invert flex-1">
+						{content}
+					</Markdown>
+				</div>
 			</Message>
-			{message.status === 'complete' && (
+			{(message.status === 'complete' || (!isStreaming && content)) && (
 				<div className="flex items-center opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 -ml-0.5">
 					<Button
 						variant="ghost"

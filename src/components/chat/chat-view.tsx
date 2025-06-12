@@ -4,12 +4,14 @@ import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ChatContainer from '@/components/chat/chat-container';
 import { ChatInput } from '@/components/chat/input/chat-input';
-import { useThread } from '@/hooks/use-threads';
+import { useThread, useThreadId } from '@/hooks/use-threads';
+import { StreamStatus } from '@/components/chat/stream-status';
 import { toast } from 'sonner';
 
 export function ChatView() {
 	const router = useRouter();
 	const thread = useThread();
+	const threadId = useThreadId();
 
 	const [isThreadDeleted, setIsThreadDeleted] = useState(false);
 

@@ -4,6 +4,7 @@ import { internalMutation, mutation, query } from './_generated/server';
 import { api } from './_generated/api';
 import { getMe } from './users';
 import { internal } from './_generated/api';
+import schema from './schema';
 
 // Query to get messages for the UI
 export const listByThread = query({
@@ -27,6 +28,10 @@ export const listByThread = query({
 	},
 });
 
+/**
+ * Prepare for streaming by creating user message and empty assistant message placeholder
+ * Sets thread streaming state and returns assistant message ID for streaming
+ */
 export const prepareForStream = mutation({
 	args: {
 		threadId: v.id('threads'),
@@ -37,12 +42,18 @@ export const prepareForStream = mutation({
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) throw new Error('Not authenticated');
 
-		// Set thread as streaming
-		// await ctx.db.patch(args.threadId, { isStreaming: true });
+		// Verify user has access to this thread
+		const user = await getMe(ctx);
+		if (!user) throw new Error('User not authenticated');
 
-		const [_, assistantMessageId] = await Promise.all([
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread || thread.userId !== user._id) {
+			throw new Error('Thread not found or user not authorized');
+		}
+
+		const [userMessageId, assistantMessageId] = await Promise.all([
 			// 1. Save the user's message to the database
-			await ctx.db.insert('messages', {
+			ctx.db.insert('messages', {
 				threadId: args.threadId,
 				role: 'user',
 				content: args.messageContent,
@@ -50,7 +61,7 @@ export const prepareForStream = mutation({
 			}),
 
 			// 2. Create the placeholder for the assistant's response
-			await ctx.db.insert('messages', {
+			ctx.db.insert('messages', {
 				threadId: args.threadId,
 				role: 'assistant',
 				content: '', // Start with empty content
@@ -59,23 +70,68 @@ export const prepareForStream = mutation({
 			}),
 		]);
 
-		// 3. Return the ID of the placeholder
-		return assistantMessageId;
+		const [messages, _] = await Promise.all([
+			// 3. Get the user's message from the database
+			ctx.db
+				.query('messages')
+				.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
+				.filter((q) => q.neq(q.field('status'), 'in_progress'))
+				.collect(),
+			// 4. Set thread as streaming
+			ctx.db.patch(args.threadId, { isStreaming: true }),
+		]);
+
+		if (!messages) {
+			throw new Error('User message not found');
+		}
+
+		// 4. Return the assistant message ID for streaming
+		return { assistantMessageId, messages };
 	},
 });
 
-// Appends a chunk of text to the message content
-export const appendContent = internalMutation({
-	args: { messageId: v.id('messages'), newContentChunk: v.string() },
+/**
+ * Finalize a streaming message with complete content and final status
+ * This is the ONLY time the assistant message gets its content - when the stream is complete
+ */
+export const finalizeStream = internalMutation({
+	args: {
+		messageId: v.id('messages'),
+		content: v.string(),
+		status: v.union(v.literal('complete'), v.literal('error')),
+		stopReason: v.optional(
+			v.union(v.literal('completed'), v.literal('stopped'), v.literal('error'))
+		),
+	},
+	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
-		if (!message) return; // Or throw an error
+		if (!message) {
+			throw new Error('Message not found');
+		}
 
-		await ctx.db.patch(args.messageId, {
-			content: message.content + args.newContentChunk,
-		});
+		// Use provided stopReason or derive from status
+		const stopReason =
+			args.stopReason || (args.status === 'complete' ? 'completed' : 'error');
+
+		await Promise.all([
+			// 1. Update message content with the FULL assembled content
+			ctx.db.patch(args.messageId, {
+				content: args.content,
+				status: args.status,
+				stopReason: stopReason,
+			}),
+			// 2. Update thread streaming state
+			ctx.db.patch(message.threadId, { isStreaming: false }),
+		]);
+
+		return null;
 	},
 });
+
+// Note: The old appendContent function has been removed
+// In the new architecture, we only write complete content once via finalizeStream
+// Edge Functions now call Convex via HTTP actions instead of public mutations
 
 // Marks the message as fully complete
 export const markComplete = internalMutation({
@@ -204,8 +260,13 @@ export const regenerateResponse = mutation({
 			await ctx.db.delete(message._id);
 		}
 
+		const messages = await ctx.db
+			.query('messages')
+			.withIndex('by_thread', (q) => q.eq('threadId', userMessage.threadId))
+			.collect();
+
 		// Set thread as streaming
-		// await ctx.db.patch(userMessage.threadId, { isStreaming: true });
+		await ctx.db.patch(userMessage.threadId, { isStreaming: true });
 
 		// Create a new placeholder message for the assistant
 		const newAssistantMessageId = await ctx.db.insert('messages', {
@@ -220,6 +281,7 @@ export const regenerateResponse = mutation({
 			assistantMessageId: newAssistantMessageId,
 			threadId: userMessage.threadId,
 			model: modelUsed,
+			messages,
 		};
 	},
 });
@@ -258,8 +320,13 @@ export const editAndResubmit = mutation({
 			await ctx.db.delete(message._id);
 		}
 
+		const messages = await ctx.db
+			.query('messages')
+			.withIndex('by_thread', (q) => q.eq('threadId', userMessage.threadId))
+			.collect();
+
 		// Set thread as streaming
-		// await ctx.db.patch(userMessage.threadId, { isStreaming: true });
+		await ctx.db.patch(userMessage.threadId, { isStreaming: true });
 
 		// 3. Create a new placeholder message for the assistant
 		const newAssistantMessageId = await ctx.db.insert('messages', {
@@ -274,6 +341,7 @@ export const editAndResubmit = mutation({
 			assistantMessageId: newAssistantMessageId,
 			threadId: userMessage.threadId,
 			model: modelUsed,
+			messages,
 		};
 	},
 });
