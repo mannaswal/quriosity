@@ -67,7 +67,11 @@ export function usePrepareForStream() {
 export function useStreamResponse() {
 	// Initiate the stream
 	const streamResponse = async (
-		streamConfig: any,
+		streamConfig: {
+			streamUrl: string;
+			token: string;
+			payload: Record<string, any>;
+		},
 		threadId: Id<'threads'>,
 		messageId: Id<'messages'>
 	) => {
