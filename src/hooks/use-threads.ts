@@ -56,13 +56,6 @@ export function useThread() {
 }
 
 /**
- * Hook for creating thread
- */
-export function useCreateThread() {
-	return useConvexMutation(api.threads.createThread);
-}
-
-/**
  * Hook for updating thread model with optimistic updates
  */
 export function useUpdateThreadModel() {

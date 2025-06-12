@@ -6,7 +6,7 @@ type MessageBody = { content: string };
 
 type StreamingStoreActions = {
 	addMessage: (id: MessageId, message: MessageBody) => void;
-	updateMessage: (id: MessageId, message: MessageBody) => void;
+	updateMessageBody: (id: MessageId, message: MessageBody) => void;
 	removeMessage: (id: MessageId) => void;
 	getMessage: (id: MessageId) => MessageBody | undefined;
 };
@@ -22,8 +22,14 @@ const useStreamingStore = create<StreamingStore>((set, get) => ({
 		addMessage: (id, message) => {
 			set((state) => ({ messages: { ...state.messages, [id]: message } }));
 		},
-		updateMessage: (id, message) => {
-			set((state) => ({ messages: { ...state.messages, [id]: message } }));
+		updateMessageBody: (id, message) => {
+			set((state) => {
+				if (!state.messages[id]) return state;
+
+				return {
+					messages: { ...state.messages, [id]: message },
+				};
+			});
 		},
 		removeMessage: (id) => {
 			set((state) => ({ messages: { ...state.messages, [id]: undefined } }));

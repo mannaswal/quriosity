@@ -47,7 +47,7 @@ export function TRPCProvider(props: { children: React.ReactNode }) {
 					async headers() {
 						const token = await getToken();
 						return {
-							Authorization: token ? `Bearer ${token}` : undefined,
+							authorization: token ? `Bearer ${token}` : undefined,
 						};
 					},
 				}),

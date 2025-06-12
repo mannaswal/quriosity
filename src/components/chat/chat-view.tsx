@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ChatContainer from '@/components/chat/chat-container';
 import { ChatInput } from '@/components/chat/input/chat-input';
 import { useThread, useThreadId } from '@/hooks/use-threads';
-import { StreamStatus } from '@/components/chat/stream-status';
 import { toast } from 'sonner';
 
 export function ChatView() {

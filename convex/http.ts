@@ -8,10 +8,10 @@ const http = httpRouter();
 
 const cors = corsRouter(http, {
 	allowedOrigins: ['*'],
-	allowedHeaders: ['Content-Type', 'Authorization', 'Origin'],
+	allowedHeaders: ['Content-Type', 'authorization', 'Origin'],
 	allowCredentials: true,
 	browserCacheMaxAge: 86400, // 24 hours
-	exposedHeaders: ['Content-Type', 'Authorization'],
+	exposedHeaders: ['Content-Type', 'authorization'],
 });
 
 /**
@@ -38,7 +38,7 @@ cors.route({
 			}
 
 			// Get auth token from header
-			const authHeader = request.headers.get('Authorization');
+			const authHeader = request.headers.get('authorization');
 			if (!authHeader || !authHeader.startsWith('Bearer ')) {
 				return new Response('Unauthorized', { status: 401 });
 			}

@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 		}
 
 		// 2. Authenticate request (simplified for now)
-		const authHeader = request.headers.get('Authorization');
+		const authHeader = request.headers.get('authorization');
 		if (!authHeader || !authHeader.startsWith('Bearer ')) {
 			return new NextResponse('Unauthorized', { status: 401 });
 		}
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
 				'X-Content-Type-Options': 'nosniff',
 				'Access-Control-Allow-Origin': '*',
 				'Access-Control-Allow-Methods': 'GET',
-				'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+				'Access-Control-Allow-Headers': 'Content-Type, authorization',
 			},
 		});
 	} catch (error) {
@@ -125,7 +125,7 @@ export async function OPTIONS() {
 		headers: {
 			'Access-Control-Allow-Origin': '*',
 			'Access-Control-Allow-Methods': 'GET, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+			'Access-Control-Allow-Headers': 'Content-Type, authorization',
 		},
 	});
 }

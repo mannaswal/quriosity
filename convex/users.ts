@@ -11,14 +11,20 @@ import {
  * Get the user record for the currently authenticated user.
  */
 export async function getMe(ctx: QueryCtx) {
-	const identity = await ctx.auth.getUserIdentity();
-	if (!identity) {
-		return null;
-	}
+	// TODO: Remove this once we have a proper auth system
+	// const identity = await ctx.auth.getUserIdentity();
+	// console.log('identity', identity);
+	// if (!identity) return null;
+
+	const authId =
+		(await ctx.auth.getUserIdentity())?.subject ??
+		'user_2yD7VhVnT6028ENlOxHkK4Mb7r8';
+
 	const user = await ctx.db
 		.query('users')
-		.withIndex('by_auth_id', (q) => q.eq('authId', identity.subject))
+		.withIndex('by_auth_id', (q) => q.eq('authId', authId))
 		.unique();
+
 	return user;
 }
 

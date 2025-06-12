@@ -11,16 +11,17 @@ import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { useSendMessage } from '@/hooks/use-messages';
 import { useRequestStopStream } from '@/hooks/use-threads';
-import { useThreadStreamingStatus } from '@/stores/streaming-store';
 import { ModelSelector } from './model-selector';
+import { useThread } from '@/hooks/use-threads';
 
 export function ChatInput() {
+	const thread = useThread();
 	const [message, setMessage] = useState('');
 
 	const sendMessage = useSendMessage();
 	const requestStop = useRequestStopStream();
 
-	const { isStreaming, activeMessageId } = useThreadStreamingStatus();
+	const isStreaming = thread?.isStreaming;
 
 	const handleStop = async () => {
 		try {

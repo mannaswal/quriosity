@@ -6,6 +6,7 @@ import {
 	checkStreamStopFlag,
 	markStreamComplete,
 } from '@/lib/redis';
+import { auth } from '@clerk/nextjs/server';
 
 const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY!,
@@ -19,12 +20,12 @@ const openrouter = createOpenRouter({
 export async function POST(request: NextRequest) {
 	try {
 		// 1. Authenticate request
-		const authHeader = request.headers.get('Authorization');
-		if (!authHeader || !authHeader.startsWith('Bearer ')) {
+		const { getToken } = await auth.protect();
+		const token = await getToken();
+
+		if (!token) {
 			return new NextResponse('Unauthorized', { status: 401 });
 		}
-
-		const token = authHeader.substring(7);
 
 		// 2. Extract request payload
 		const { threadId, assistantMessageId, model, messages } =
@@ -169,7 +170,7 @@ export async function POST(request: NextRequest) {
 				'X-Content-Type-Options': 'nosniff',
 				'Access-Control-Allow-Origin': '*',
 				'Access-Control-Allow-Methods': 'POST',
-				'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+				'Access-Control-Allow-Headers': 'Content-Type, authorization',
 			},
 		});
 	} catch (error) {
@@ -187,7 +188,7 @@ export async function OPTIONS() {
 		headers: {
 			'Access-Control-Allow-Origin': '*',
 			'Access-Control-Allow-Methods': 'POST, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+			'Access-Control-Allow-Headers': 'Content-Type, authorization',
 		},
 	});
 }
@@ -206,7 +207,7 @@ async function callConvexHttpAction(
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`,
+			authorization: `Bearer ${token}`,
 			Origin: process.env.NEXTAUTH_URL || 'http://localhost:3000',
 		},
 		body: JSON.stringify(body),
@@ -216,7 +217,7 @@ async function callConvexHttpAction(
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`,
+			authorization: `Bearer ${token}`,
 			Origin: process.env.NEXTAUTH_URL || 'http://localhost:3000',
 		},
 		body,

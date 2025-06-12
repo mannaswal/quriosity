@@ -5,31 +5,57 @@ import {
 	useMutation as useConvexMutation,
 	useConvexAuth,
 	useQuery,
+	useMutation,
 } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { toast } from 'sonner';
-import { trpc } from '@/lib/trpc/client';
+import { trpc } from '@/server/trpc/client';
 import { ChatMessage } from '@/lib/types';
 import { useRef } from 'react';
-import { useStreamingActions } from '@/stores/streaming-store';
-import { ModelId } from '@/lib/models';
-import { useCreateThread, useThread, useThreadId } from './use-threads';
+import { useStreamingStoreActions } from '@/stores/use-streaming-store';
+import { useThread } from './use-threads';
 import { useRouter } from 'next/navigation';
 import { useModel } from './use-model';
+import { getStreamConfig } from '@/lib/stream';
+import { createMessage } from '@/utils/create-message';
 
 /**
  * Hook to get messages for a thread - simplified to just return Convex query
  */
-export function useMessages(threadId?: Id<'threads'>): ChatMessage[] {
+export function useThreadMessages(threadId?: Id<'threads'>): ChatMessage[] {
 	const { isAuthenticated } = useConvexAuth();
+	const { getMessage } = useStreamingStoreActions();
 
-	return (
+	const messages =
 		useConvexQuery(
 			api.messages.listByThread,
 			threadId && isAuthenticated ? { threadId } : 'skip'
-		) ?? []
-	);
+		) ?? [];
+
+	if (!messages.length) return [];
+
+	const latestMessage = messages.at(-1);
+
+	if (!latestMessage) return messages;
+
+	const streamingMessage = getMessage(latestMessage._id);
+
+	if (
+		streamingMessage &&
+		latestMessage.role === 'assistant' &&
+		latestMessage.status === 'in_progress'
+	) {
+		return [
+			...messages.slice(0, -1),
+			{
+				...latestMessage,
+				content: streamingMessage.content,
+			},
+		];
+	}
+
+	return messages;
 }
 
 /**
@@ -71,15 +97,14 @@ export function usePrepareForStream() {
  * Hook for smooth streaming with Zustand state management
  */
 export function useStreamResponse() {
-	const { startStream, addChunk, completeStream } = useStreamingActions();
-	const abortControllerRef = useRef<AbortController | null>(null);
+	const { addMessage, updateMessageBody, removeMessage } =
+		useStreamingStoreActions();
 
 	// Initiate the stream
 	const streamResponse = async (
 		streamConfig: {
 			streamUrl: string;
 			resumeUrl: string;
-			token: string;
 			payload: {
 				threadId: string;
 				assistantMessageId: string;
@@ -91,32 +116,22 @@ export function useStreamResponse() {
 		threadId: Id<'threads'>,
 		messageId: Id<'messages'>
 	) => {
+		console.log(streamConfig.streamUrl, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer HI`,
+			},
+			body: streamConfig.payload,
+		});
 		try {
-			// Abort any existing stream
-			if (abortControllerRef.current) {
-				abortControllerRef.current.abort();
-			}
-
-			// Create new abort controller
-			const abortController = new AbortController();
-			abortControllerRef.current = abortController;
-
-			// Start the stream session in Zustand
-			startStream({
-				messageId,
-				threadId,
-				sessionId: streamConfig.sessionId,
-				abortController,
-			});
-
 			const response = await fetch(streamConfig.streamUrl, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: `Bearer ${streamConfig.token}`,
+					Authorization: `Bearer HI`,
 				},
 				body: JSON.stringify(streamConfig.payload),
-				signal: abortController.signal,
 			});
 
 			if (!response.ok) {
@@ -129,6 +144,7 @@ export function useStreamResponse() {
 
 			const reader = response.body.getReader();
 			const decoder = new TextDecoder();
+			let content = '';
 
 			try {
 				while (true) {
@@ -136,24 +152,26 @@ export function useStreamResponse() {
 
 					if (done) {
 						// Stream completed normally
-						completeStream(messageId, 'complete');
 						break;
 					}
 
 					// Decode and add chunk to Zustand store
 					const chunk = decoder.decode(value, { stream: true });
 					if (chunk) {
-						addChunk(messageId, chunk);
+						content += chunk;
+						updateMessageBody(messageId, {
+							content,
+						});
 					}
 				}
 			} catch (error) {
 				if (error instanceof DOMException && error.name === 'AbortError') {
 					// Stream was aborted
-					completeStream(messageId, 'stopped');
+					// completeStream(messageId, 'stopped');
 				} else {
 					// Stream error
 					console.error('Stream error:', error);
-					completeStream(messageId, 'error');
+					// completeStream(messageId, 'error');
 				}
 			} finally {
 				reader.releaseLock();
@@ -161,14 +179,12 @@ export function useStreamResponse() {
 		} catch (error) {
 			if (error instanceof DOMException && error.name === 'AbortError') {
 				console.log('Stream was aborted');
-				completeStream(messageId, 'stopped');
+				// completeStream(messageId, 'stopped');
 				return;
 			}
 			console.error('Failed to start stream:', error);
-			completeStream(messageId, 'error');
+			// completeStream(messageId, 'error');
 			throw error;
-		} finally {
-			abortControllerRef.current = null;
 		}
 	};
 
@@ -187,8 +203,8 @@ export function useSendMessage(opts?: {
 	const thread = useThread();
 	const prepareForStream = usePrepareForStream();
 	const { streamResponse } = useStreamResponse();
-	const createThreadMutation = useCreateThread();
-	const getStreamConfig = trpc.streaming.getStreamConfig.useMutation();
+	const { addMessage } = useStreamingStoreActions();
+	const createThread = useConvexMutation(api.threads.createThread);
 
 	const sendMessage = async (messageContent: string) => {
 		if (!model || thread?.isStreaming) return;
@@ -198,7 +214,7 @@ export function useSendMessage(opts?: {
 
 			// If there is no thread, we create a new one
 			if (!targetThreadId) {
-				const newThreadId = await createThreadMutation({
+				const newThreadId = await createThread({
 					messageContent: messageContent,
 					model: model,
 				});
@@ -208,24 +224,7 @@ export function useSendMessage(opts?: {
 			// If there is no thread, need to redirect to the new thread using the threadId we just created
 			if (!thread) router.push(`/chat/${targetThreadId}`);
 
-			// Sure that a thread exists, we prepare for streaming
-			const { assistantMessageId, messages } = await prepareForStream({
-				threadId: targetThreadId,
-				messageContent: messageContent,
-				model: model,
-			});
-
-			const streamConfig = await getStreamConfig.mutateAsync({
-				threadId: targetThreadId,
-				assistantMessageId,
-				model,
-			});
-
-			// Populate messages for the stream
-			streamConfig.payload.messages = messages;
-
-			// Start streaming with optimistic updates
-			await streamResponse(streamConfig, targetThreadId, assistantMessageId);
+			await createMessage(targetThreadId, messageContent, model);
 
 			opts?.onSuccess?.();
 

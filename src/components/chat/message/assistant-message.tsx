@@ -7,7 +7,6 @@ import { Button } from '../../ui/button';
 import { Markdown } from '../../ui/markdown';
 import { Message } from '@/components/ui/message';
 import { CheckIcon, CopyIcon, RefreshCcwIcon, SplitIcon } from 'lucide-react';
-import { useMessageContent, StreamingCursor } from './streaming-message';
 import { Loader } from '@/components/ui/loader';
 import { useRegenerate } from '@/hooks/use-messages';
 
@@ -26,12 +25,9 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 	const branch = useBranchThread();
 	const regenerate = useRegenerate({});
 
-	// Get streaming-aware content
-	const { content, isStreaming, isPending } = useMessageContent(
-		message._id,
-		message.content,
-		message.status
-	);
+	const isPending = message.status === 'in_progress';
+	const isStreaming = message.status === 'in_progress';
+	const content = message.content;
 
 	const handleBranch = async () => {
 		try {
@@ -43,7 +39,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 	};
 
 	const handleCopy = () => {
-		navigator.clipboard.writeText(content);
+		navigator.clipboard.writeText(message.content);
 		setCopied(true);
 		setTimeout(() => {
 			setCopied(false);

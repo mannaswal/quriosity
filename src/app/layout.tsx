@@ -4,7 +4,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { ConvexClientProvider } from '@/auth/convex-client-provider';
 import { ClerkProvider } from '@clerk/nextjs';
-import { TRPCProvider } from '@/lib/trpc/provider';
+import { TRPCProvider } from '@/server/trpc/provider';
 import { Toaster } from '@/components/ui/sonner';
 import { cookies } from 'next/headers';
 

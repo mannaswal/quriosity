@@ -73,23 +73,23 @@ export const prepareForStream = mutation({
 			modelUsed: args.model,
 		});
 
-		const [messages, _] = await Promise.all([
+		const [messages, assistantMessage, _] = await Promise.all([
 			// 3. Get the user's message from the database
 			ctx.db
 				.query('messages')
 				.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
 				.filter((q) => q.neq(q.field('status'), 'in_progress'))
 				.collect(),
+			ctx.db.get(assistantMessageId),
 			// 4. Set thread as streaming
 			ctx.db.patch(args.threadId, { isStreaming: true }),
 		]);
 
-		if (!messages) {
-			throw new Error('User message not found');
-		}
+		if (!messages) throw new Error('User message not found');
+		if (!assistantMessage) throw new Error('Assistant message not found');
 
 		// 4. Return the assistant message ID for streaming
-		return { assistantMessageId, messages };
+		return { messages, assistantMessage };
 	},
 });
 

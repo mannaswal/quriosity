@@ -136,24 +136,12 @@ export const createThread = mutation({
 		model: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) throw new Error('Not authenticated');
-
-		// Check if a user record for this auth_id already exists
-		const existingUser = await ctx.db
-			.query('users')
-			.withIndex('by_auth_id', (q) => q.eq('authId', identity.subject))
-			.unique();
-
-		if (!existingUser) {
-			throw new Error('User not found');
-		}
-
-		const userId = existingUser._id;
+		const user = await getMe(ctx);
+		if (!user) throw new Error('Not authenticated');
 
 		// 1. Create the new thread with the initial model
 		const threadId = await ctx.db.insert('threads', {
-			userId: userId,
+			userId: user._id,
 			title: 'New Chat',
 			isPublic: false,
 			currentModel: args.model,

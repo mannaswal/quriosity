@@ -6,7 +6,7 @@ import {
 	ChatContainerContent,
 } from '@/components/ui/chat-container';
 import { ChatMessage } from '@/lib/types';
-import { useMessages } from '@/hooks/use-messages';
+import { useThreadMessages } from '@/hooks/use-messages';
 import { ProgressiveBlur } from '../ui/progressive-blur';
 import { ScrollButton } from '../ui/scroll-button';
 import { Magnetic } from '../ui/magnetic';
@@ -15,7 +15,7 @@ import { useThreadId } from '@/hooks/use-threads';
 
 const ChatContainer = memo(function ChatContainer() {
 	const threadId = useThreadId();
-	const messages = useMessages(threadId) ?? [];
+	const messages = useThreadMessages(threadId);
 
 	return (
 		<div className="flex h-screen w-full flex-col overflow-hidden justify-end pb-2 relative">

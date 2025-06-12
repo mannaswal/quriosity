@@ -33,12 +33,16 @@ export const streamingRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const { threadId, assistantMessageId, model } = input;
 
+			console.log('generating token');
+
 			// Get authentication token for the streaming endpoint
 			const token = await ctx.auth.getToken({ template: 'convex' });
 
 			if (!token) {
 				throw new Error('Failed to get authentication token');
 			}
+
+			console.log('token', token);
 
 			// Get message history for the Edge Function
 			// Note: In a real implementation, you'd fetch this from Convex

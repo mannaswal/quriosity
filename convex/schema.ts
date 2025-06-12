@@ -2,6 +2,26 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
+export const ThreadStatus = v.union(
+	v.literal('pending'),
+	v.literal('streaming'),
+	v.literal('done'),
+	v.literal('error')
+);
+
+export const MessageStatus = v.union(
+	v.literal('pending'),
+	v.literal('streaming'),
+	v.literal('done'),
+	v.literal('error')
+);
+
+export const StopReason = v.union(
+	v.literal('completed'),
+	v.literal('stopped'),
+	v.literal('error')
+);
+
 export default defineSchema({
 	users: defineTable({
 		name: v.string(),
@@ -17,28 +37,25 @@ export default defineSchema({
 		shareId: v.optional(v.string()),
 		currentModel: v.optional(v.string()),
 		pinned: v.optional(v.boolean()),
-		branchedFromMessageId: v.optional(v.id('messages')),
-		isStreaming: v.optional(v.boolean()),
+		parentThreadId: v.optional(v.id('threads')),
+		parentMessageId: v.optional(v.id('messages')),
+		status: ThreadStatus,
 	})
-		.index('by_user', ['userId'])
+		.index('by_user_id', ['userId'])
 		.index('by_share_id', ['shareId'])
-		.index('by_branch_source', ['branchedFromMessageId']),
+		.index('by_parent_thread_id', ['parentThreadId'])
+		.index('by_parent_message_id', ['parentMessageId']),
 
 	messages: defineTable({
+		userId: v.id('users'),
 		threadId: v.id('threads'),
-		parentId: v.optional(v.id('messages')),
+
 		role: v.union(v.literal('user'), v.literal('assistant')),
 		content: v.string(),
-		status: v.optional(
-			v.union(
-				v.literal('in_progress'),
-				v.literal('complete'),
-				v.literal('error')
-			)
-		),
+		status: MessageStatus,
 		modelUsed: v.string(),
-		stopReason: v.optional(
-			v.union(v.literal('completed'), v.literal('stopped'), v.literal('error'))
-		),
-	}).index('by_thread', ['threadId']),
+		stopReason: v.optional(StopReason),
+	})
+		.index('by_thread', ['threadId'])
+		.index('by_user_id', ['userId']),
 });
