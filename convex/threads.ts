@@ -10,6 +10,7 @@ import { api, internal } from './_generated/api';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { generateText } from 'ai';
 import { getUser } from './users';
+import { MessageRole, MessageStatus, StopReason, ThreadStatus } from './schema';
 
 const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY,
@@ -304,7 +305,9 @@ export const branchFromMessage = mutation({
 			title: sourceThread.title, // Copy title from parent
 			isPublic: false,
 			currentModel: sourceThread.currentModel, // Copy model from parent
-			branchedFromMessageId: messageId,
+			parentMessageId: messageId,
+			parentThreadId: sourceThread._id,
+			status: 'done',
 		});
 
 		// 3. Copy messages to the new thread
@@ -312,11 +315,11 @@ export const branchFromMessage = mutation({
 			// We intentionally don't copy the _id and _creationTime
 			await ctx.db.insert('messages', {
 				threadId: newThreadId,
-				parentId: message.parentId,
 				role: message.role,
 				content: message.content,
 				status: message.status,
 				modelUsed: message.modelUsed,
+				userId: user._id,
 			});
 		}
 
@@ -328,10 +331,12 @@ export const branchFromMessage = mutation({
  * Internal mutation to set streaming state on a thread
  */
 export const setStreaming = internalMutation({
-	args: { threadId: v.id('threads'), isStreaming: v.boolean() },
+	args: { threadId: v.id('threads'), status: ThreadStatus },
 	returns: v.null(),
-	handler: async (ctx, { threadId, isStreaming }) => {
-		await ctx.db.patch(threadId, { isStreaming });
+	handler: async (ctx, { threadId, status }) => {
+		await ctx.db.patch(threadId, {
+			status,
+		});
 		return null;
 	},
 });
@@ -343,7 +348,7 @@ export const stopStream = internalMutation({
 	args: { threadId: v.id('threads') },
 	returns: v.null(),
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.threadId, { isStreaming: false });
+		await ctx.db.patch(args.threadId, { status: 'done' });
 		return null;
 	},
 });
@@ -354,32 +359,6 @@ export const stopStream = internalMutation({
  */
 export const getStreamingMessage = query({
 	args: { threadId: v.id('threads') },
-	returns: v.union(
-		v.object({
-			_id: v.id('messages'),
-			_creationTime: v.number(),
-			threadId: v.id('threads'),
-			parentId: v.optional(v.id('messages')),
-			role: v.union(v.literal('user'), v.literal('assistant')),
-			content: v.string(),
-			status: v.optional(
-				v.union(
-					v.literal('in_progress'),
-					v.literal('complete'),
-					v.literal('error')
-				)
-			),
-			modelUsed: v.string(),
-			stopReason: v.optional(
-				v.union(
-					v.literal('completed'),
-					v.literal('stopped'),
-					v.literal('error')
-				)
-			),
-		}),
-		v.null()
-	),
 	handler: async (ctx, args) => {
 		const user = await getUser(ctx);
 		if (!user) {
@@ -394,7 +373,7 @@ export const getStreamingMessage = query({
 		return await ctx.db
 			.query('messages')
 			.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
-			.filter((q) => q.eq(q.field('status'), 'in_progress'))
+			.filter((q) => q.eq(q.field('status'), 'streaming'))
 			.first();
 	},
 });

@@ -10,7 +10,7 @@ import { api, internal } from './_generated/api';
 import { getUser } from './users';
 import { Doc, Id } from './_generated/dataModel';
 import { setStreamStopFlag } from './redis';
-import { MessageRole, MessageStatus } from './schema';
+import { MessageRole, MessageStatus, StopReason } from './schema';
 
 export const getMessagesByThread = query({
 	args: { threadId: v.id('threads') },
@@ -75,6 +75,7 @@ export const updateMessage = mutation({
 		messageId: v.id('messages'),
 		content: v.string(),
 		status: MessageStatus,
+		stopReason: v.optional(StopReason),
 	},
 	handler: async (ctx, args) => {
 		const user = await getUser(ctx);
@@ -91,6 +92,7 @@ export const updateMessage = mutation({
 		await ctx.db.patch(args.messageId, {
 			content: args.content,
 			status: args.status,
+			stopReason: args.stopReason,
 		});
 	},
 });
@@ -103,10 +105,8 @@ export const finalizeStream = internalMutation({
 	args: {
 		messageId: v.id('messages'),
 		content: v.string(),
-		status: v.union(v.literal('complete'), v.literal('error')),
-		stopReason: v.optional(
-			v.union(v.literal('completed'), v.literal('stopped'), v.literal('error'))
-		),
+		status: MessageStatus,
+		stopReason: StopReason,
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
@@ -115,19 +115,15 @@ export const finalizeStream = internalMutation({
 			throw new Error('Message not found');
 		}
 
-		// Use provided stopReason or derive from status
-		const stopReason =
-			args.stopReason || (args.status === 'complete' ? 'completed' : 'error');
-
 		await Promise.all([
 			// 1. Update message content with the FULL assembled content
 			ctx.db.patch(args.messageId, {
 				content: args.content,
 				status: args.status,
-				stopReason: stopReason,
+				stopReason: args.stopReason,
 			}),
 			// 2. Update thread streaming state
-			ctx.db.patch(message.threadId, { isStreaming: false }),
+			ctx.db.patch(message.threadId, { status: 'done' }),
 		]);
 
 		return null;
@@ -138,53 +134,28 @@ export const finalizeStream = internalMutation({
 // In the new architecture, we only write complete content once via finalizeStream
 // Edge Functions now call Convex via HTTP actions instead of public mutations
 
-// Marks the message as fully complete
-export const markComplete = internalMutation({
-	args: { messageId: v.id('messages') },
-	handler: async (ctx, args) => {
-		const message = await ctx.db.get(args.messageId);
-		if (!message) return;
-
-		await Promise.all([
-			ctx.db.patch(args.messageId, {
-				status: 'complete',
-				stopReason: 'completed',
-			}),
-			ctx.db.patch(message.threadId, { isStreaming: false }),
-		]);
+/**
+ * Internal mutation to mark a message with a given status and stopReason.
+ * Defaults status to 'done' if not provided.
+ */
+export const markMessageStatus = internalMutation({
+	args: {
+		messageId: v.id('messages'),
+		status: v.optional(MessageStatus), // Defaults to 'done'
+		stopReason: StopReason,
 	},
-});
-
-// Marks the message with an error status
-export const markError = internalMutation({
-	args: { messageId: v.id('messages') },
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
 		if (!message) return;
 
-		await Promise.all([
-			ctx.db.patch(args.messageId, {
-				status: 'error',
-				stopReason: 'error',
-			}),
-			ctx.db.patch(message.threadId, { isStreaming: false }),
-		]);
-	},
-});
-
-// Marks the message as stopped by user
-export const markStopped = internalMutation({
-	args: { messageId: v.id('messages') },
-	handler: async (ctx, args) => {
-		const message = await ctx.db.get(args.messageId);
-		if (!message) return;
+		const status = args.status ?? 'done';
 
 		await Promise.all([
 			ctx.db.patch(args.messageId, {
-				status: 'complete',
-				stopReason: 'stopped',
+				status,
+				stopReason: args.stopReason,
 			}),
-			ctx.db.patch(message.threadId, { isStreaming: false }),
+			ctx.db.patch(message.threadId, { status }),
 		]);
 	},
 });
@@ -230,18 +201,6 @@ export const requestStopStream = mutation({
 				}
 			);
 		}
-	},
-});
-
-export const create = internalMutation({
-	args: {
-		threadId: v.id('threads'),
-		role: v.union(v.literal('user'), v.literal('assistant')),
-		content: v.string(),
-		modelUsed: v.string(),
-	},
-	handler: async (ctx, args) => {
-		return await ctx.db.insert('messages', args);
 	},
 });
 
@@ -302,14 +261,15 @@ export const regenerateResponse = mutation({
 			.collect();
 
 		// Set thread as streaming
-		await ctx.db.patch(userMessage.threadId, { isStreaming: true });
+		await ctx.db.patch(userMessage.threadId, { status: 'pending' });
 
 		// Create a new placeholder message for the assistant
 		const newAssistantMessageId = await ctx.db.insert('messages', {
+			userId: user._id,
 			threadId: userMessage.threadId,
 			role: 'assistant',
 			content: '',
-			status: 'in_progress',
+			status: 'pending',
 			modelUsed: modelUsed,
 		});
 
@@ -362,14 +322,15 @@ export const editAndResubmit = mutation({
 			.collect();
 
 		// Set thread as streaming
-		await ctx.db.patch(userMessage.threadId, { isStreaming: true });
+		await ctx.db.patch(userMessage.threadId, { status: 'pending' });
 
 		// 3. Create a new placeholder message for the assistant
 		const newAssistantMessageId = await ctx.db.insert('messages', {
+			userId: user._id,
 			threadId: userMessage.threadId,
 			role: 'assistant',
 			content: '',
-			status: 'in_progress',
+			status: 'pending',
 			modelUsed: modelUsed,
 		});
 

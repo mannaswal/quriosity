@@ -58,18 +58,22 @@ export async function POST(request: NextRequest) {
 
 					const updateMessage = async (
 						content: string,
-						status: 'streaming' | 'done' | 'error'
+						status: 'streaming' | 'done' | 'error',
+						stopReason?: 'completed' | 'stopped' | 'error'
 					) => {
 						await convexClient.mutation(api.messages.updateMessage, {
 							messageId,
 							content,
 							status,
+							stopReason,
 						});
 					};
 
 					(async () => {
 						let content = '';
 						let lastSent = Date.now();
+						await updateMessage(content, 'streaming');
+
 						for await (const chunk of response.fullStream) {
 							if (chunk.type === 'text-delta') {
 								content += chunk.textDelta;
@@ -80,7 +84,7 @@ export async function POST(request: NextRequest) {
 								lastSent = now;
 							}
 						}
-						await updateMessage(content, 'done');
+						await updateMessage(content, 'done', 'completed');
 					})();
 				}
 			},
