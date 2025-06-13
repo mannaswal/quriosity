@@ -335,7 +335,7 @@ const ThreadItem = ({
 		}
 	};
 
-	const isStreaming = !!thread.isStreaming;
+	const isStreaming = thread.status === 'streaming';
 
 	return (
 		<SidebarMenuItem className="rounded-md overflow-hidden">
@@ -365,7 +365,7 @@ const ThreadItem = ({
 									/>
 								) : (
 									<>
-										{thread.branchedFromMessageId && (
+										{thread.parentThreadId && (
 											<SplitIcon className="size-3.5 shrink-0 text-muted-foreground rotate-180" />
 										)}
 										<span

@@ -10,15 +10,11 @@ import {
 /**
  * Get the user record for the currently authenticated user.
  */
-export async function getMe(ctx: QueryCtx) {
-	// TODO: Remove this once we have a proper auth system
-	// const identity = await ctx.auth.getUserIdentity();
-	// console.log('identity', identity);
-	// if (!identity) return null;
+export async function getUser(ctx: QueryCtx) {
+	const identity = await ctx.auth.getUserIdentity();
+	if (!identity) throw new Error('Not authenticated');
 
-	const authId =
-		(await ctx.auth.getUserIdentity())?.subject ??
-		'user_2yD7VhVnT6028ENlOxHkK4Mb7r8';
+	const authId = identity.subject;
 
 	const user = await ctx.db
 		.query('users')
@@ -36,19 +32,18 @@ export const storeUser = mutation({
 	args: {},
 	handler: async (ctx) => {
 		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error('Called storeUser without authentication present');
-		}
+		if (!identity) throw new Error('Not authenticated');
 
 		// Check if we've already stored this identity before.
-		const user = await getMe(ctx);
-		if (user !== null) {
-			// If we've seen this identity before but the name has changed, patch the value.
-			if (user.name !== identity.name) {
+		const user = await getUser(ctx);
+
+		if (user) {
+			if (user.name !== identity.name)
 				await ctx.db.patch(user._id, { name: identity.name });
-			}
+
 			return user._id;
 		}
+
 		// If it's a new identity, create a new user.
 		return await ctx.db.insert('users', {
 			name: identity.name!,
@@ -63,7 +58,7 @@ export const storeUser = mutation({
  */
 export const getCurrentUser = query({
 	handler: async (ctx) => {
-		return await getMe(ctx);
+		return await getUser(ctx);
 	},
 });
 
@@ -73,7 +68,7 @@ export const getCurrentUser = query({
 export const updateLastModelUsed = mutation({
 	args: { model: v.string() },
 	handler: async (ctx, { model }) => {
-		const user = await getMe(ctx);
+		const user = await getUser(ctx);
 		if (!user) {
 			throw new Error('User not found.');
 		}

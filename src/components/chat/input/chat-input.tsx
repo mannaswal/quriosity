@@ -21,7 +21,7 @@ export function ChatInput() {
 	const sendMessage = useSendMessage();
 	const requestStop = useRequestStopStream();
 
-	const isStreaming = thread?.isStreaming;
+	const isStreaming = thread?.status === 'streaming';
 
 	const handleStop = async () => {
 		try {

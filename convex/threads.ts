@@ -1,6 +1,7 @@
 import {
 	internalAction,
 	internalMutation,
+	internalQuery,
 	mutation,
 	query,
 } from './_generated/server';
@@ -8,10 +9,33 @@ import { v } from 'convex/values';
 import { api, internal } from './_generated/api';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { generateText } from 'ai';
-import { getMe } from './users';
+import { getUser } from './users';
 
 const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY,
+});
+
+export const getThreadById = query({
+	args: { threadId: v.id('threads') },
+	handler: async (ctx, args) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('User not authenticated');
+
+		return await ctx.db.get(args.threadId);
+	},
+});
+
+export const getUserThreads = query({
+	handler: async (ctx) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('User not found');
+
+		return await ctx.db
+			.query('threads')
+			.withIndex('by_user_id', (q) => q.eq('userId', user._id))
+			.order('desc')
+			.collect();
+	},
 });
 
 /**
@@ -21,7 +45,7 @@ const openrouter = createOpenRouter({
 export const generateThreadTitle = internalAction({
 	args: {
 		threadId: v.id('threads'),
-		firstMessage: v.string(),
+		content: v.string(),
 	},
 	handler: async (ctx, args) => {
 		try {
@@ -29,7 +53,7 @@ export const generateThreadTitle = internalAction({
 				model: openrouter.chat('google/gemini-2.0-flash-lite-001'),
 				system:
 					'Generate a concise, descriptive title (max 60 characters) for a chat conversation based on the first user message. Return only the title, no quotes or additional text.',
-				prompt: `Title the chat conversation based on the first user message: ${args.firstMessage}`,
+				prompt: `Title the chat conversation based on the first user message: ${args.content}`,
 				maxTokens: 20,
 				temperature: 0,
 			});
@@ -41,7 +65,6 @@ export const generateThreadTitle = internalAction({
 			});
 		} catch (error) {
 			console.error('Failed to generate thread title:', error);
-			// If title generation fails, we'll just keep the default "New Chat" title
 		}
 	},
 });
@@ -58,33 +81,6 @@ export const updateThreadTitle = internalMutation({
 		await ctx.db.patch(args.threadId, {
 			title: args.title,
 		});
-	},
-});
-
-export const getUserThreads = query({
-	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) throw new Error('Not authenticated');
-
-		const user = await ctx.db
-			.query('users')
-			.withIndex('by_auth_id', (q) => q.eq('authId', identity.subject))
-			.unique();
-
-		if (!user) throw new Error('User not found');
-
-		return await ctx.db
-			.query('threads')
-			.withIndex('by_user', (q) => q.eq('userId', user._id))
-			.order('desc')
-			.collect();
-	},
-});
-
-export const getThread = query({
-	args: { threadId: v.id('threads') },
-	handler: async (ctx, args) => {
-		return await ctx.db.get(args.threadId);
 	},
 });
 
@@ -117,26 +113,13 @@ export const updateThreadModel = mutation({
 	},
 });
 
-export const listByThread = query({
-	args: { threadId: v.id('threads') },
-	handler: async (ctx, args) => {
-		console.time('listByThread');
-		const messages = await ctx.db
-			.query('messages')
-			.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
-			.collect();
-		console.timeEnd('listByThread');
-		return messages;
-	},
-});
-
 export const createThread = mutation({
 	args: {
 		messageContent: v.string(),
 		model: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const user = await getMe(ctx);
+		const user = await getUser(ctx);
 		if (!user) throw new Error('Not authenticated');
 
 		// 1. Create the new thread with the initial model
@@ -145,12 +128,13 @@ export const createThread = mutation({
 			title: 'New Chat',
 			isPublic: false,
 			currentModel: args.model,
+			status: 'pending',
 		});
 
 		// 2. Schedule title generation to run concurrently (non-blocking)
 		await ctx.scheduler.runAfter(0, internal.threads.generateThreadTitle, {
 			threadId: threadId,
-			firstMessage: args.messageContent,
+			content: args.messageContent,
 		});
 
 		// 3. Return the new thread's ID to the client
@@ -165,7 +149,7 @@ export const createThread = mutation({
 export const deleteThread = mutation({
 	args: { threadId: v.id('threads') },
 	handler: async (ctx, { threadId }) => {
-		const user = await getMe(ctx);
+		const user = await getUser(ctx);
 		if (!user) {
 			throw new Error('User not authenticated.');
 		}
@@ -185,13 +169,13 @@ export const deleteThread = mutation({
 		for (const message of messages) {
 			const childBranches = await ctx.db
 				.query('threads')
-				.withIndex('by_branch_source', (q) =>
-					q.eq('branchedFromMessageId', message._id)
+				.withIndex('by_parent_message_id', (q) =>
+					q.eq('parentMessageId', message._id)
 				)
 				.collect();
 
 			for (const branch of childBranches) {
-				await ctx.db.patch(branch._id, { branchedFromMessageId: undefined });
+				await ctx.db.patch(branch._id, { parentMessageId: undefined });
 			}
 		}
 
@@ -289,7 +273,7 @@ export const renameThread = mutation({
 export const branchFromMessage = mutation({
 	args: { messageId: v.id('messages') },
 	handler: async (ctx, { messageId }) => {
-		const user = await getMe(ctx);
+		const user = await getUser(ctx);
 		if (!user) {
 			throw new Error('User not authenticated.');
 		}
@@ -397,7 +381,7 @@ export const getStreamingMessage = query({
 		v.null()
 	),
 	handler: async (ctx, args) => {
-		const user = await getMe(ctx);
+		const user = await getUser(ctx);
 		if (!user) {
 			return null;
 		}

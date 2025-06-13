@@ -7,89 +7,66 @@ import {
 	internalAction,
 } from './_generated/server';
 import { api, internal } from './_generated/api';
-import { getMe } from './users';
-import { Doc } from './_generated/dataModel';
+import { getUser } from './users';
+import { Doc, Id } from './_generated/dataModel';
 import { setStreamStopFlag } from './redis';
+import { MessageRole, MessageStatus } from './schema';
 
-// Query to get messages for the UI
-export const listByThread = query({
+export const getMessagesByThread = query({
 	args: { threadId: v.id('threads') },
-	handler: async (ctx, { threadId }) => {
-		// Authorize
-		const user = await getMe(ctx);
-		if (!user) {
-			return [];
-		}
-
-		const thread = await ctx.db.get(threadId);
-		if (!thread || thread.userId !== user._id) {
-			return []; // Or throw an error if you want to be stricter
-		}
+	handler: async (ctx, args) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('User not authenticated');
 
 		return await ctx.db
 			.query('messages')
-			.withIndex('by_thread', (q) => q.eq('threadId', threadId))
+			.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
 			.collect();
 	},
 });
 
 /**
- * Prepare for streaming by creating user message and empty assistant message placeholder
- * Sets thread streaming state and returns assistant message ID for streaming
+ * Insert messages into the database
  */
-export const prepareForStream = mutation({
+export const insertMessages = mutation({
 	args: {
 		threadId: v.id('threads'),
-		messageContent: v.string(),
-		model: v.string(),
+		messages: v.array(
+			v.object({
+				content: v.string(),
+				modelUsed: v.string(),
+				role: MessageRole,
+				status: MessageStatus,
+			})
+		),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) throw new Error('Not authenticated');
-
-		// Verify user has access to this thread
-		const user = await getMe(ctx);
+		const user = await getUser(ctx);
 		if (!user) throw new Error('User not authenticated');
 
-		const thread = await ctx.db.get(args.threadId);
-		if (!thread || thread.userId !== user._id) {
-			throw new Error('Thread not found or user not authorized');
-		}
+		const insertedMessageIds: Id<'messages'>[] = [];
 
-		// 1. Save the user's message to the database
-		await ctx.db.insert('messages', {
-			threadId: args.threadId,
-			role: 'user',
-			content: args.messageContent,
-			modelUsed: args.model,
+		args.messages.forEach(async (message) => {
+			const insertedMessageId = await ctx.db.insert('messages', {
+				userId: user._id,
+				threadId: args.threadId,
+
+				content: message.content,
+				modelUsed: message.modelUsed,
+				role: message.role,
+				status: message.status,
+			});
+			insertedMessageIds.push(insertedMessageId);
 		});
 
-		// 2. Create the placeholder for the assistant's response
-		const assistantMessageId = await ctx.db.insert('messages', {
-			threadId: args.threadId,
-			role: 'assistant',
-			content: '', // Start with empty content
-			status: 'in_progress', // Set the status
-			modelUsed: args.model,
-		});
-
-		const [messages, assistantMessage, _] = await Promise.all([
-			// 3. Get the user's message from the database
-			ctx.db
+		return {
+			messages: await ctx.db
 				.query('messages')
 				.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
-				.filter((q) => q.neq(q.field('status'), 'in_progress'))
+				.filter((q) => q.neq(q.field('status'), 'pending'))
 				.collect(),
-			ctx.db.get(assistantMessageId),
-			// 4. Set thread as streaming
-			ctx.db.patch(args.threadId, { isStreaming: true }),
-		]);
-
-		if (!messages) throw new Error('User message not found');
-		if (!assistantMessage) throw new Error('Assistant message not found');
-
-		// 4. Return the assistant message ID for streaming
-		return { messages, assistantMessage };
+			insertedMessageIds,
+		};
 	},
 });
 
@@ -200,7 +177,7 @@ export const _requestStopStreamAction = internalAction({
 export const requestStopStream = mutation({
 	args: { threadId: v.id('threads') },
 	handler: async (ctx, args) => {
-		const user = await getMe(ctx);
+		const user = await getUser(ctx);
 		if (!user) {
 			throw new Error('User not authenticated.');
 		}
@@ -246,7 +223,7 @@ export const create = internalMutation({
 export const regenerateResponse = mutation({
 	args: { messageId: v.id('messages') },
 	handler: async (ctx, { messageId }) => {
-		const user = await getMe(ctx);
+		const user = await getUser(ctx);
 		if (!user) {
 			throw new Error('User not authenticated.');
 		}
@@ -323,7 +300,7 @@ export const regenerateResponse = mutation({
 export const editAndResubmit = mutation({
 	args: { userMessageId: v.id('messages'), newContent: v.string() },
 	handler: async (ctx, { userMessageId, newContent }) => {
-		const user = await getMe(ctx);
+		const user = await getUser(ctx);
 		if (!user) {
 			throw new Error('User not authenticated.');
 		}

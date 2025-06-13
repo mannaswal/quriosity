@@ -50,7 +50,7 @@ export function useThread() {
 	const { isAuthenticated } = useConvexAuth();
 
 	return useConvexQuery(
-		api.threads.getThread,
+		api.threads.getThreadById,
 		threadId && isAuthenticated ? { threadId } : 'skip'
 	);
 }
@@ -64,12 +64,12 @@ export function useUpdateThreadModel() {
 			const { threadId, model } = args;
 
 			// Optimistically update the specific thread
-			const currentThread = localStore.getQuery(api.threads.getThread, {
+			const currentThread = localStore.getQuery(api.threads.getThreadById, {
 				threadId,
 			});
 			if (currentThread) {
 				localStore.setQuery(
-					api.threads.getThread,
+					api.threads.getThreadById,
 					{ threadId },
 					{ ...currentThread, currentModel: model }
 				);
@@ -97,12 +97,12 @@ export function usePinThread() {
 		const { threadId, pinned } = args;
 
 		// Update specific thread
-		const currentThread = localStore.getQuery(api.threads.getThread, {
+		const currentThread = localStore.getQuery(api.threads.getThreadById, {
 			threadId,
 		});
 		if (currentThread) {
 			localStore.setQuery(
-				api.threads.getThread,
+				api.threads.getThreadById,
 				{ threadId },
 				{ ...currentThread, pinned }
 			);
@@ -171,12 +171,12 @@ export function useRenameThread() {
 		const { threadId, newTitle } = args;
 
 		// Update specific thread
-		const currentThread = localStore.getQuery(api.threads.getThread, {
+		const currentThread = localStore.getQuery(api.threads.getThreadById, {
 			threadId,
 		});
 		if (currentThread) {
 			localStore.setQuery(
-				api.threads.getThread,
+				api.threads.getThreadById,
 				{ threadId },
 				{ ...currentThread, title: newTitle }
 			);

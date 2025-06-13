@@ -1,6 +1,6 @@
 import { Doc } from 'convex/_generated/dataModel';
 
-export type ChatMessage = Doc<'messages'>;
+export type Message = Doc<'messages'>;
 
 // Future enhancements we could add:
 // finishReason?: 'stop' | 'length' | 'content_filter' | 'tool_calls';

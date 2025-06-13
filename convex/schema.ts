@@ -3,23 +3,23 @@ import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
 export const ThreadStatus = v.union(
-	v.literal('pending'),
-	v.literal('streaming'),
-	v.literal('done'),
-	v.literal('error')
+	v.literal('pending'), // Thread is waiting to be processed, created
+	v.literal('streaming'), // Thread is being processed, streaming
+	v.literal('done'), // Thread is done, all content has been received
+	v.literal('error') // Thread errored, something went wrong
 );
 
-const MessageRole = v.union(
+export const MessageRole = v.union(
 	v.literal('user'),
 	v.literal('assistant'),
 	v.literal('system')
 );
 
 export const MessageStatus = v.union(
-	v.literal('pending'),
-	v.literal('streaming'),
-	v.literal('done'),
-	v.literal('error')
+	v.literal('pending'), // Message is waiting to be processed, created
+	v.literal('streaming'), // Message is being processed, streaming
+	v.literal('done'), // Message is done, all content has been received
+	v.literal('error') // Message errored, something went wrong
 );
 
 export const StopReason = v.union(
@@ -56,10 +56,10 @@ export default defineSchema({
 		userId: v.id('users'),
 		threadId: v.id('threads'),
 
-		role: MessageRole,
 		content: v.string(),
-		status: MessageStatus,
 		modelUsed: v.string(),
+		role: MessageRole,
+		status: MessageStatus,
 		stopReason: v.optional(StopReason),
 	})
 		.index('by_thread', ['threadId'])
