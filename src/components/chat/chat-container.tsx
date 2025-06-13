@@ -11,7 +11,6 @@ import { ScrollButton } from '../ui/scroll-button';
 import { Magnetic } from '../ui/magnetic';
 import { MessageItem } from './message/message-item';
 import { useThreadId } from '@/hooks/use-threads';
-import { useStreamingStoreActions } from '@/stores/use-streaming-store';
 
 const ChatContainer = memo(function ChatContainer() {
 	const threadId = useThreadId();

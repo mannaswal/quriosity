@@ -5,13 +5,15 @@ import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { toast } from 'sonner';
 import { Message } from '@/lib/types';
-import { useStreamingStoreActions } from '@/stores/use-streaming-store';
+import {
+	useStreamingStoreActions,
+	useStreamingMessage,
+} from '@/stores/use-streaming-store';
 import { useThread } from './use-threads';
 import { useRouter } from 'next/navigation';
 import { useModel } from './use-model';
 import { ModelId } from '@/lib/models';
 import { processDataStream } from 'ai';
-import { useStreamingMessages } from '@/stores/use-streaming-store';
 
 /**
  * Hook to get messages for a thread - now subscribes to both DB and streaming store
@@ -19,9 +21,9 @@ import { useStreamingMessages } from '@/stores/use-streaming-store';
 export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
 	const { isAuthenticated } = useConvexAuth();
 
-	// Subscribe to the streaming store so we get re-renders when it updates
-	const streamingMessages = useStreamingMessages();
-	const { removeMessage } = useStreamingStoreActions();
+	// Subscribe to the streaming message for this thread
+	const streamingMessage = useStreamingMessage(threadId);
+	const { removeStreamingMessage } = useStreamingStoreActions();
 
 	const dbMessages =
 		useQuery(
@@ -29,20 +31,23 @@ export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
 			threadId && isAuthenticated ? { threadId } : 'skip'
 		) ?? [];
 
-	// Merge streaming store data for messages with pending/in_progress status
+	// Merge streaming store data for messages with pending/streaming status
 	return dbMessages.map((message) => {
 		if (message.status === 'pending' || message.status === 'streaming') {
-			const streamingData = streamingMessages[message._id];
-			if (streamingData) {
+			if (streamingMessage && streamingMessage.messageId === message._id) {
 				return {
 					...message,
-					content: streamingData.content,
+					content: streamingMessage.content,
 					status: message.status,
 				};
 			}
 		} else if (message.status === 'done') {
-			if (streamingMessages[message._id]) {
-				removeMessage(message._id);
+			if (
+				streamingMessage &&
+				streamingMessage.messageId === message._id &&
+				threadId
+			) {
+				removeStreamingMessage(threadId);
 			}
 		}
 		return message;
@@ -54,7 +59,8 @@ export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
  * Handles status updates, streaming store management, and error cleanup
  */
 function useStreamMessage() {
-	const { updateMessageBody, removeMessage } = useStreamingStoreActions();
+	const { updateStreamingContent, removeStreamingMessage } =
+		useStreamingStoreActions();
 	const updateMessage = useMutation(api.messages.updateMessage);
 
 	return async (
@@ -69,7 +75,7 @@ function useStreamMessage() {
 	) => {
 		try {
 			// Start with empty content in streaming store
-			updateMessageBody(assistantMessageId, { content: '' });
+			updateStreamingContent(threadId, '');
 
 			const response = await fetch('/api/chat', {
 				method: 'POST',
@@ -90,7 +96,7 @@ function useStreamMessage() {
 				stream: response.body!,
 				onTextPart: (text) => {
 					content += text;
-					updateMessageBody(assistantMessageId, { content });
+					updateStreamingContent(threadId, content);
 				},
 			});
 
@@ -125,7 +131,7 @@ export function useSendMessage(opts?: {
 	const createThread = useMutation(api.threads.createThread);
 	const streamMessage = useStreamMessage();
 	const insertMessages = useMutation(api.messages.insertMessages);
-	const { addMessage } = useStreamingStoreActions();
+	const { setStreamingMessage } = useStreamingStoreActions();
 
 	const sendMessage = async (messageContent: string) => {
 		if (thread?.status === 'streaming') return;
@@ -169,9 +175,7 @@ export function useSendMessage(opts?: {
 			const assistantMessageId = insertedMessageIds[1];
 
 			// Add to streaming store
-			addMessage(assistantMessageId, {
-				content: '',
-			});
+			setStreamingMessage(targetThreadId, assistantMessageId, '');
 
 			const messageHistory = messages.map((message) => ({
 				id: message._id,
@@ -211,7 +215,7 @@ export function useRegenerate(opts: {
 }) {
 	const regenerateMutation = useMutation(api.messages.regenerateResponse);
 	const streamMessage = useStreamMessage();
-	const { addMessage } = useStreamingStoreActions();
+	const { setStreamingMessage } = useStreamingStoreActions();
 
 	return async (args: {
 		messageId: Id<'messages'>;
@@ -224,9 +228,7 @@ export function useRegenerate(opts: {
 				});
 
 			// Add to streaming store
-			addMessage(assistantMessageId, {
-				content: '',
-			});
+			setStreamingMessage(threadId, assistantMessageId, '');
 
 			const messageHistory = messages.map((message) => ({
 				id: message._id,
@@ -265,7 +267,7 @@ export function useEditAndResubmit(opts: {
 }) {
 	const editMutation = useMutation(api.messages.editAndResubmit);
 	const streamMessage = useStreamMessage();
-	const { addMessage } = useStreamingStoreActions();
+	const { setStreamingMessage } = useStreamingStoreActions();
 
 	return async (args: {
 		userMessageId: Id<'messages'>;
@@ -280,9 +282,7 @@ export function useEditAndResubmit(opts: {
 				});
 
 			// Add to streaming store
-			addMessage(assistantMessageId, {
-				content: '',
-			});
+			setStreamingMessage(threadId, assistantMessageId, '');
 
 			const messageHistory = messages.map((message) => ({
 				id: message._id,

@@ -2,43 +2,63 @@ import { Id } from 'convex/_generated/dataModel';
 import { create } from 'zustand';
 
 type MessageId = Id<'messages'>;
-type MessageBody = { content: string };
+type ThreadId = Id<'threads'>;
+
+type StreamingMessage = {
+	messageId: MessageId;
+	content: string;
+};
 
 type StreamingStoreActions = {
-	addMessage: (id: MessageId, message: MessageBody) => void;
-	updateMessageBody: (id: MessageId, message: MessageBody) => void;
-	removeMessage: (id: MessageId) => void;
-	getMessage: (id: MessageId | undefined) => MessageBody | undefined;
+	setStreamingMessage: (
+		threadId: ThreadId,
+		messageId: MessageId,
+		content: string
+	) => void;
+	updateStreamingContent: (threadId: ThreadId, content: string) => void;
+	removeStreamingMessage: (threadId: ThreadId) => void;
+	getStreamingMessage: (
+		threadId: ThreadId | undefined
+	) => StreamingMessage | undefined;
 };
 
 type StreamingStore = {
-	messages: Record<MessageId, MessageBody>;
+	messages: Record<ThreadId, StreamingMessage>;
 	actions: StreamingStoreActions;
 };
 
 const useStreamingStore = create<StreamingStore>((set, get) => ({
 	messages: {},
 	actions: {
-		addMessage: (id, message) => {
-			set((state) => ({ messages: { ...state.messages, [id]: message } }));
+		setStreamingMessage: (threadId, messageId, content) => {
+			set((state) => ({
+				messages: {
+					...state.messages,
+					[threadId]: { messageId, content },
+				},
+			}));
 		},
-		updateMessageBody: (id, message) => {
+		updateStreamingContent: (threadId, content) => {
 			set((state) => {
-				if (!state.messages[id]) return state;
+				const existingMessage = state.messages[threadId];
+				if (!existingMessage) return state;
 
 				return {
-					messages: { ...state.messages, [id]: message },
+					messages: {
+						...state.messages,
+						[threadId]: { ...existingMessage, content },
+					},
 				};
 			});
 		},
-		removeMessage: (id) => {
+		removeStreamingMessage: (threadId) => {
 			set((state) => {
-				const { [id]: _, ...rest } = state.messages;
+				const { [threadId]: _, ...rest } = state.messages;
 				return { messages: rest };
 			});
 		},
-		getMessage: (id) => {
-			return id ? get().messages[id] : undefined;
+		getStreamingMessage: (threadId) => {
+			return threadId ? get().messages[threadId] : undefined;
 		},
 	},
 }));
@@ -46,5 +66,7 @@ const useStreamingStore = create<StreamingStore>((set, get) => ({
 export const useStreamingStoreActions = () =>
 	useStreamingStore((state) => state.actions);
 
-export const useStreamingMessages = () =>
-	useStreamingStore((state) => state.messages);
+export const useStreamingMessage = (threadId: ThreadId | undefined) =>
+	useStreamingStore((state) =>
+		threadId ? state.messages[threadId] : undefined
+	);

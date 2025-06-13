@@ -175,6 +175,7 @@ export const deleteThread = mutation({
 				)
 				.collect();
 
+			// Orphan child branches by clearing their parent reference
 			for (const branch of childBranches) {
 				await ctx.db.patch(branch._id, { parentMessageId: undefined });
 			}
@@ -306,7 +307,6 @@ export const branchFromMessage = mutation({
 			isPublic: false,
 			currentModel: sourceThread.currentModel, // Copy model from parent
 			parentMessageId: messageId,
-			parentThreadId: sourceThread._id,
 			status: 'done',
 		});
 
@@ -320,6 +320,7 @@ export const branchFromMessage = mutation({
 				status: message.status,
 				modelUsed: message.modelUsed,
 				userId: user._id,
+				stopReason: message.stopReason,
 			});
 		}
 

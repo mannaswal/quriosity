@@ -365,7 +365,7 @@ const ThreadItem = ({
 									/>
 								) : (
 									<>
-										{thread.parentThreadId && (
+										{thread.parentMessageId && (
 											<SplitIcon className="size-3.5 shrink-0 text-muted-foreground rotate-180" />
 										)}
 										<span

@@ -43,13 +43,11 @@ export default defineSchema({
 		shareId: v.optional(v.string()),
 		currentModel: v.optional(v.string()),
 		pinned: v.optional(v.boolean()),
-		parentThreadId: v.optional(v.id('threads')),
 		parentMessageId: v.optional(v.id('messages')),
 		status: ThreadStatus,
 	})
 		.index('by_user_id', ['userId'])
 		.index('by_share_id', ['shareId'])
-		.index('by_parent_thread_id', ['parentThreadId'])
 		.index('by_parent_message_id', ['parentMessageId']),
 
 	messages: defineTable({
