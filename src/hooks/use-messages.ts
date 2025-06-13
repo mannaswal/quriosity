@@ -14,45 +14,38 @@ import { useModel } from './use-model';
 import { getStreamConfig } from '@/lib/stream';
 import { ModelId } from '@/lib/models';
 import { processDataStream } from 'ai';
+import { useAuth } from '@clerk/nextjs';
+import { useStreamingMessages } from '@/stores/use-streaming-store';
 
 /**
- * Hook to get messages for a thread - simplified to just return Convex query
+ * Hook to get messages for a thread - now subscribes to both DB and streaming store
  */
-export function useOptimisticThreadMessages(
-	threadId?: Id<'threads'>
-): Message[] {
+export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
 	const { isAuthenticated } = useConvexAuth();
-	const { getMessage } = useStreamingStoreActions();
 
-	const messages =
+	// Subscribe to the streaming store so we get re-renders when it updates
+	const streamingMessages = useStreamingMessages();
+
+	const dbMessages =
 		useQuery(
 			api.messages.getMessagesByThread,
 			threadId && isAuthenticated ? { threadId } : 'skip'
 		) ?? [];
 
-	if (!messages.length) return [];
-
-	const latestMessage = messages.at(-1);
-
-	if (!latestMessage) return messages;
-
-	const streamingMessage = getMessage(latestMessage._id);
-
-	if (
-		streamingMessage &&
-		latestMessage.role === 'assistant' &&
-		latestMessage.status !== 'done'
-	) {
-		return [
-			...messages.slice(0, -1),
-			{
-				...latestMessage,
-				content: streamingMessage.content,
-			},
-		];
-	}
-
-	return messages;
+	// Merge streaming store data for messages with pending/in_progress status
+	return dbMessages.map((message) => {
+		if (message.status === 'pending' || message.status === 'streaming') {
+			const streamingData = streamingMessages[message._id];
+			if (streamingData) {
+				return {
+					...message,
+					content: streamingData.content,
+					status: 'streaming' as const,
+				};
+			}
+		}
+		return message;
+	});
 }
 
 function useCreateMessageStream() {
@@ -72,6 +65,7 @@ function useCreateMessageStream() {
 			method: 'POST',
 			body: JSON.stringify({
 				threadId,
+				messageId: assistantMessageId,
 				model,
 				messages: messageHistory,
 			}),
@@ -86,7 +80,6 @@ function useCreateMessageStream() {
 			stream: response.body!,
 			onTextPart: (text) => {
 				content += text;
-				console.log(content);
 				updateMessageBody(assistantMessageId, { content });
 			},
 		});
@@ -108,6 +101,7 @@ export function useSendMessage(opts?: {
 	const createThread = useMutation(api.threads.createThread);
 	const createMessageStream = useCreateMessageStream();
 	const insertMessages = useMutation(api.messages.insertMessages);
+	const { addMessage } = useStreamingStoreActions();
 
 	const sendMessage = async (messageContent: string) => {
 		if (thread?.status === 'streaming') return;
@@ -137,7 +131,7 @@ export function useSendMessage(opts?: {
 			// Create assistant message
 			const assistantMessage = {
 				role: 'assistant' as const,
-				content: 'HEY!',
+				content: '',
 				modelUsed: model,
 				status: 'pending' as const,
 			};
@@ -149,6 +143,12 @@ export function useSendMessage(opts?: {
 				messages: [userMessage, assistantMessage],
 			});
 
+			const assistantMessageId = insertedMessageIds[1];
+
+			addMessage(assistantMessageId, {
+				content: '',
+			});
+
 			const messageHistory = messages.map((message) => ({
 				id: message._id,
 				role: message.role,
@@ -158,7 +158,7 @@ export function useSendMessage(opts?: {
 			createMessageStream(
 				targetThreadId,
 				model,
-				insertedMessageIds[1],
+				assistantMessageId,
 				messageHistory
 			);
 

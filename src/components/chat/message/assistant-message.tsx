@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { ChatMessage } from '@/lib/types';
 import { useBranchThread } from '@/hooks/use-threads';
 import { models } from '@/lib/models';
 import { cn } from '@/lib/utils';
@@ -9,6 +8,7 @@ import { Message } from '@/components/ui/message';
 import { CheckIcon, CopyIcon, RefreshCcwIcon, SplitIcon } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
 import { useRegenerate } from '@/hooks/use-messages';
+import { Message as ChatMessage } from '@/lib/types';
 
 interface AssistantMessageProps {
 	message: ChatMessage;
@@ -25,8 +25,8 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 	const branch = useBranchThread();
 	const regenerate = useRegenerate({});
 
-	const isPending = message.status === 'in_progress';
-	const isStreaming = message.status === 'in_progress';
+	const isPending = message.status === 'pending';
+	const isStreaming = message.status === 'streaming';
 	const content = message.content;
 
 	const handleBranch = async () => {
@@ -81,7 +81,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 				</div>
 			)}
 
-			{(message.status === 'complete' || (!isStreaming && content)) && (
+			{(message.status === 'done' || (!isStreaming && content)) && (
 				<div className="flex items-center opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 -ml-0.5">
 					<Button
 						onClick={handleRegenerate}

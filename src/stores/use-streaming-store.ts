@@ -8,7 +8,7 @@ type StreamingStoreActions = {
 	addMessage: (id: MessageId, message: MessageBody) => void;
 	updateMessageBody: (id: MessageId, message: MessageBody) => void;
 	removeMessage: (id: MessageId) => void;
-	getMessage: (id: MessageId) => MessageBody | undefined;
+	getMessage: (id: MessageId | undefined) => MessageBody | undefined;
 };
 
 type StreamingStore = {
@@ -35,10 +35,13 @@ const useStreamingStore = create<StreamingStore>((set, get) => ({
 			set((state) => ({ messages: { ...state.messages, [id]: undefined } }));
 		},
 		getMessage: (id) => {
-			return get().messages[id];
+			return id ? get().messages[id] : undefined;
 		},
 	},
 }));
 
 export const useStreamingStoreActions = () =>
 	useStreamingStore((state) => state.actions);
+
+export const useStreamingMessages = () =>
+	useStreamingStore((state) => state.messages);

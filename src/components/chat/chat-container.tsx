@@ -5,16 +5,17 @@ import {
 	ChatContainerRoot,
 	ChatContainerContent,
 } from '@/components/ui/chat-container';
-import { useOptimisticThreadMessages } from '@/hooks/use-messages';
+import { useThreadMessages } from '@/hooks/use-messages';
 import { ProgressiveBlur } from '../ui/progressive-blur';
 import { ScrollButton } from '../ui/scroll-button';
 import { Magnetic } from '../ui/magnetic';
 import { MessageItem } from './message/message-item';
 import { useThreadId } from '@/hooks/use-threads';
+import { useStreamingStoreActions } from '@/stores/use-streaming-store';
 
 const ChatContainer = memo(function ChatContainer() {
 	const threadId = useThreadId();
-	const messages = useOptimisticThreadMessages(threadId);
+	const messages = useThreadMessages(threadId);
 
 	return (
 		<div className="flex h-screen w-full flex-col overflow-hidden justify-end pb-2 relative">

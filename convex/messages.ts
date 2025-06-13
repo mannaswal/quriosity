@@ -70,6 +70,31 @@ export const insertMessages = mutation({
 	},
 });
 
+export const updateMessage = mutation({
+	args: {
+		messageId: v.id('messages'),
+		content: v.string(),
+		status: MessageStatus,
+	},
+	handler: async (ctx, args) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('User not authenticated');
+
+		const message = await ctx.db
+			.query('messages')
+			.withIndex('by_user_id', (q) => q.eq('userId', user._id))
+			.filter((q) => q.eq(q.field('_id'), args.messageId))
+			.first();
+
+		if (!message) throw new Error('Message not found');
+
+		await ctx.db.patch(args.messageId, {
+			content: args.content,
+			status: args.status,
+		});
+	},
+});
+
 /**
  * Finalize a streaming message with complete content and final status
  * This is the ONLY time the assistant message gets its content - when the stream is complete

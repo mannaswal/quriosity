@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { streamText, CoreMessage, createDataStreamResponse } from 'ai';
-import {
-	addChunkToBuffer,
-	checkStreamStopFlag,
-	markStreamComplete,
-} from '@/lib/redis';
 import { auth } from '@clerk/nextjs/server';
+import { api } from 'convex/_generated/api';
+import { ConvexHttpClient } from 'convex/browser';
 
 const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY!,
@@ -20,17 +17,22 @@ const openrouter = createOpenRouter({
 export async function POST(request: NextRequest) {
 	try {
 		// 1. Authenticate request
-		const { getToken } = await auth.protect();
-		const token = await getToken();
+		const { getToken, userId } = await auth.protect();
+		const token = await getToken({ template: 'convex' });
 
 		if (!token) {
 			return new NextResponse('Unauthorized', { status: 401 });
 		}
 
-		// 2. Extract request payload
-		const { threadId, model, messages } = await request.json();
+		const convexClient = new ConvexHttpClient(
+			process.env.NEXT_PUBLIC_CONVEX_URL!
+		);
+		convexClient.setAuth(token);
 
-		if (!threadId || !model || !messages) {
+		// 2. Extract request payload
+		const { threadId, model, messages, messageId } = await request.json();
+
+		if (!threadId || !model || !messages || !messageId || !userId) {
 			return new NextResponse('Missing required fields', { status: 400 });
 		}
 
@@ -53,8 +55,34 @@ export async function POST(request: NextRequest) {
 			execute: async (dataStream) => {
 				if (response) {
 					response.mergeIntoDataStream(dataStream);
+
+					const updateMessage = async (
+						content: string,
+						status: 'streaming' | 'done' | 'error'
+					) => {
+						await convexClient.mutation(api.messages.updateMessage, {
+							messageId,
+							content,
+							status,
+						});
+					};
+
+					(async () => {
+						let content = '';
+						let lastSent = Date.now();
+						for await (const chunk of response.fullStream) {
+							if (chunk.type === 'text-delta') {
+								content += chunk.textDelta;
+							}
+							const now = Date.now();
+							if (now - lastSent > 500) {
+								await updateMessage(content, 'streaming');
+								lastSent = now;
+							}
+						}
+						await updateMessage(content, 'done');
+					})();
 				}
-				console.log(dataStream);
 			},
 		});
 	} catch (error) {
