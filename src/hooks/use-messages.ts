@@ -63,18 +63,8 @@ function useStreamMessage() {
 		}[]
 	) => {
 		try {
-			// Update thread status to streaming
-			// Note: The convex mutations in messages.ts already handle thread status updates
-
 			// Start with empty content in streaming store
 			updateMessageBody(assistantMessageId, { content: '' });
-
-			// // Update message status to streaming
-			// await updateMessage({
-			// 	messageId: assistantMessageId,
-			// 	content: '',
-			// 	status: 'pending',
-			// });
 
 			const response = await fetch('/api/chat', {
 				method: 'POST',
@@ -97,13 +87,6 @@ function useStreamMessage() {
 					content += text;
 					updateMessageBody(assistantMessageId, { content });
 				},
-			});
-
-			// Update final message status to done
-			await updateMessage({
-				messageId: assistantMessageId,
-				content,
-				status: 'done',
 			});
 
 			// Clean up streaming store

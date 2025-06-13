@@ -69,22 +69,50 @@ export async function POST(request: NextRequest) {
 						});
 					};
 
-					(async () => {
-						let content = '';
-						let lastSent = Date.now();
-						await updateMessage(content, 'streaming');
+					const updateThreadStatus = async (
+						status: 'streaming' | 'done' | 'error'
+					) => {
+						await convexClient.mutation(api.threads.updateThreadStatus, {
+							threadId,
+							status,
+						});
+					};
 
-						for await (const chunk of response.fullStream) {
-							if (chunk.type === 'text-delta') {
-								content += chunk.textDelta;
+					(async () => {
+						try {
+							let content = '';
+							let lastSent = Date.now();
+
+							// Set thread and message status to streaming when we start
+							await Promise.all([
+								updateMessage(content, 'streaming'),
+								updateThreadStatus('streaming'),
+							]);
+
+							for await (const chunk of response.fullStream) {
+								if (chunk.type === 'text-delta') {
+									content += chunk.textDelta;
+								}
+								const now = Date.now();
+								if (now - lastSent > 500) {
+									await updateMessage(content, 'streaming');
+									lastSent = now;
+								}
 							}
-							const now = Date.now();
-							if (now - lastSent > 500) {
-								await updateMessage(content, 'streaming');
-								lastSent = now;
-							}
+
+							// Set both message and thread status to done when complete
+							await Promise.all([
+								updateMessage(content, 'done', 'completed'),
+								updateThreadStatus('done'),
+							]);
+						} catch (error) {
+							console.error('Streaming error:', error);
+							// Set both message and thread status to error on failure
+							await Promise.all([
+								updateMessage('Error generating response', 'error', 'error'),
+								updateThreadStatus('error'),
+							]);
 						}
-						await updateMessage(content, 'done', 'completed');
 					})();
 				}
 			},

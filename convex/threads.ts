@@ -10,7 +10,7 @@ import { api, internal } from './_generated/api';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { generateText } from 'ai';
 import { getUser } from './users';
-import { MessageRole, MessageStatus, StopReason, ThreadStatus } from './schema';
+import { ThreadStatus } from './schema';
 
 const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY,
@@ -328,16 +328,33 @@ export const branchFromMessage = mutation({
 });
 
 /**
+ * Public mutation to update thread status
+ * Only the thread owner can update their thread status
+ */
+export const updateThreadStatus = mutation({
+	args: { threadId: v.id('threads'), status: ThreadStatus },
+	handler: async (ctx, { threadId, status }) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('User not authenticated');
+
+		const thread = await ctx.db.get(threadId);
+		if (!thread || thread.userId !== user._id) {
+			throw new Error('Thread not found or user not authorized');
+		}
+
+		await ctx.db.patch(threadId, { status });
+	},
+});
+
+/**
  * Internal mutation to set streaming state on a thread
  */
 export const setStreaming = internalMutation({
 	args: { threadId: v.id('threads'), status: ThreadStatus },
-	returns: v.null(),
 	handler: async (ctx, { threadId, status }) => {
 		await ctx.db.patch(threadId, {
 			status,
 		});
-		return null;
 	},
 });
 
@@ -346,10 +363,8 @@ export const setStreaming = internalMutation({
  */
 export const stopStream = internalMutation({
 	args: { threadId: v.id('threads') },
-	returns: v.null(),
 	handler: async (ctx, args) => {
 		await ctx.db.patch(args.threadId, { status: 'done' });
-		return null;
 	},
 });
 
