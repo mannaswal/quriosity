@@ -4,10 +4,10 @@ Made for the T3 Chat Cloneathon
 
 ## Core Requirements
 
-- [ ] Chat with Various LLMs
+- [-] Chat with Various LLMs
 - [x] Authentication & Sync
-- [ ] Browser Friendly
-- [ ] Easy to Try
+- [x] Browser Friendly
+- [-] Easy to Try
 
 ---
 
@@ -15,11 +15,16 @@ Made for the T3 Chat Cloneathon
 
 - [ ] Attachment Support
 - [ ] Image Generation Support
-- [ ] Syntax Highlighting
+- [-] Syntax Highlighting
 - [x] Resumable Streams
 - [x] Chat Branching
 - [ ] Chat Sharing
 - [ ] Web Search
 - [ ] Bring Your Own Key
+
 - [ ] Temporary chats
 - [ ] Projects
+- [ ] Experts
+- [ ] Archive
+- [ ] Memory
+- [ ] Summarise and start a new thread

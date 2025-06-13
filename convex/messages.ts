@@ -89,11 +89,15 @@ export const updateMessage = mutation({
 
 		if (!message) throw new Error('Message not found');
 
-		await ctx.db.patch(args.messageId, {
-			content: args.content,
+		// Only update content if it's not empty; always update status and stopReason
+		const patchData: any = {
 			status: args.status,
 			stopReason: args.stopReason,
-		});
+		};
+		if (args.content && args.content.length > 0) {
+			patchData.content = args.content;
+		}
+		await ctx.db.patch(args.messageId, patchData);
 	},
 });
 

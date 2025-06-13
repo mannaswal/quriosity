@@ -115,6 +115,16 @@ export async function POST(request: NextRequest) {
 					})();
 				}
 			},
+			onError: (error) => {
+				console.error('Streaming error:', error);
+				(async () => {
+					await Promise.all([
+						updateMessage('', 'error', 'error'),
+						updateThreadStatus('error'),
+					]);
+				})();
+				return 'Error generating response';
+			},
 		});
 	} catch (error) {
 		console.error('Error in chat endpoint:', error);

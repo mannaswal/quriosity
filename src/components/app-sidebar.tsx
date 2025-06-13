@@ -156,7 +156,7 @@ export function AppSidebar() {
 		<Sidebar variant="floating">
 			<SidebarHeader>
 				<Link href="/">
-					<h1 className="text-2xl font-medium p-2 tracking-tight">M3 Chat</h1>
+					<h1 className="text-2xl font-medium p-2 tracking-tight">Quriosity</h1>
 				</Link>
 			</SidebarHeader>
 			<SidebarContent>

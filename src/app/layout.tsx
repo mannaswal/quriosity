@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-	title: 'M3 Chat',
+	title: 'Quriosity',
 	description: 'Made for the T3 Chat Cloneathon',
 };
 

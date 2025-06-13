@@ -34,12 +34,12 @@ export function ChatInput() {
 	const handleSendMessage = async () => {
 		if (!message.trim() || isStreaming) return;
 
-		try {
-			await sendMessage(message);
-			setMessage('');
-		} catch (error) {
+		const messageContent = message;
+		sendMessage(message).catch((error) => {
 			console.error('Failed to send message:', error);
-		}
+			setMessage(messageContent);
+		});
+		setMessage('');
 	};
 
 	return (
