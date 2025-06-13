@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ChatMessage } from '@/lib/types';
+import { useState, useEffect } from 'react';
+import { Message as ChatMessage } from '@/lib/types';
 import { useRegenerate, useEditAndResubmit } from '@/hooks/use-messages';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,6 +36,13 @@ export function UserMessage({ message }: UserMessageProps) {
 	});
 
 	const isPending = isRegenerating || isEditingAndResubmitting;
+
+	// Sync editedContent when message.content changes and we're not editing
+	useEffect(() => {
+		if (!isEditing) {
+			setEditedContent(message.content);
+		}
+	}, [message.content, isEditing]);
 
 	// If the edited content is the same as the original content, regenerate the message
 	// If the edited content is different, edit and resubmit the message
