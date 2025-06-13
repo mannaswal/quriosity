@@ -122,7 +122,7 @@ export function UserMessage({ message }: UserMessageProps) {
 				</Message>
 			)}
 
-			<div className="flex items-center opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 mb-1">
+			<div className="w-full flex items-center justify-end opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 mb-1">
 				<Button
 					onClick={handleRegenerate}
 					disabled={isPending}

@@ -157,7 +157,6 @@ export function useDeleteThread() {
 	return async (threadId: Id<'threads'>) => {
 		try {
 			await deleteMutation({ threadId });
-			toast.success('Thread deleted');
 		} catch (error) {
 			toast.error('Failed to delete thread');
 			throw error;
@@ -199,7 +198,6 @@ export function useRenameThread() {
 	return async (args: { threadId: Id<'threads'>; newTitle: string }) => {
 		try {
 			await renameMutation(args);
-			toast.success('Thread renamed');
 		} catch (error) {
 			toast.error('Failed to rename thread');
 			throw error;

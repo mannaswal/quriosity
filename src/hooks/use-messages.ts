@@ -41,14 +41,6 @@ export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
 					status: message.status,
 				};
 			}
-		} else if (message.status === 'done') {
-			if (
-				streamingMessage &&
-				streamingMessage.messageId === message._id &&
-				threadId
-			) {
-				removeStreamingMessage(threadId);
-			}
 		}
 		return message;
 	});
