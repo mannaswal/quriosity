@@ -21,6 +21,7 @@ export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
 
 	// Subscribe to the streaming store so we get re-renders when it updates
 	const streamingMessages = useStreamingMessages();
+	const { removeMessage } = useStreamingStoreActions();
 
 	const dbMessages =
 		useQuery(
@@ -38,6 +39,10 @@ export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
 					content: streamingData.content,
 					status: message.status,
 				};
+			}
+		} else if (message.status === 'done') {
+			if (streamingMessages[message._id]) {
+				removeMessage(message._id);
 			}
 		}
 		return message;
@@ -89,14 +94,8 @@ function useStreamMessage() {
 				},
 			});
 
-			// Clean up streaming store
-			removeMessage(assistantMessageId);
-
 			return content;
 		} catch (error) {
-			// Clean up on error
-			removeMessage(assistantMessageId);
-
 			// Update message status to error
 			try {
 				await updateMessage({

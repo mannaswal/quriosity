@@ -46,6 +46,28 @@ export async function POST(request: NextRequest) {
 
 		const abortController = new AbortController();
 
+		const updateMessage = async (
+			content: string,
+			status: 'streaming' | 'done' | 'error',
+			stopReason?: 'completed' | 'stopped' | 'error'
+		) => {
+			await convexClient.mutation(api.messages.updateMessage, {
+				messageId,
+				content,
+				status,
+				stopReason,
+			});
+		};
+
+		const updateThreadStatus = async (
+			status: 'streaming' | 'done' | 'error'
+		) => {
+			await convexClient.mutation(api.threads.updateThreadStatus, {
+				threadId,
+				status,
+			});
+		};
+
 		const response = streamText({
 			model: openrouter(model),
 			messages: formattedHistory,
@@ -54,40 +76,17 @@ export async function POST(request: NextRequest) {
 		return createDataStreamResponse({
 			execute: async (dataStream) => {
 				if (response) {
+					(async () => {
+						await updateThreadStatus('streaming');
+						await updateMessage('', 'streaming');
+					})();
+
 					response.mergeIntoDataStream(dataStream);
-
-					const updateMessage = async (
-						content: string,
-						status: 'streaming' | 'done' | 'error',
-						stopReason?: 'completed' | 'stopped' | 'error'
-					) => {
-						await convexClient.mutation(api.messages.updateMessage, {
-							messageId,
-							content,
-							status,
-							stopReason,
-						});
-					};
-
-					const updateThreadStatus = async (
-						status: 'streaming' | 'done' | 'error'
-					) => {
-						await convexClient.mutation(api.threads.updateThreadStatus, {
-							threadId,
-							status,
-						});
-					};
 
 					(async () => {
 						try {
 							let content = '';
 							let lastSent = Date.now();
-
-							// Set thread and message status to streaming when we start
-							await Promise.all([
-								updateMessage(content, 'streaming'),
-								updateThreadStatus('streaming'),
-							]);
 
 							for await (const chunk of response.fullStream) {
 								if (chunk.type === 'text-delta') {

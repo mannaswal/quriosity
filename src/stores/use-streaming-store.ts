@@ -32,7 +32,10 @@ const useStreamingStore = create<StreamingStore>((set, get) => ({
 			});
 		},
 		removeMessage: (id) => {
-			set((state) => ({ messages: { ...state.messages, [id]: undefined } }));
+			set((state) => {
+				const { [id]: _, ...rest } = state.messages;
+				return { messages: rest };
+			});
 		},
 		getMessage: (id) => {
 			return id ? get().messages[id] : undefined;
