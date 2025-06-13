@@ -332,9 +332,16 @@ export const branchFromMessage = mutation({
  * Public mutation to update thread status
  * Only the thread owner can update their thread status
  */
-export const updateThreadStatus = mutation({
+export const updateThreadStatus = internalMutation({
 	args: { threadId: v.id('threads'), status: ThreadStatus },
 	handler: async (ctx, { threadId, status }) => {
+		await ctx.db.patch(threadId, { status });
+	},
+});
+
+export const stopThread = mutation({
+	args: { threadId: v.id('threads') },
+	handler: async (ctx, { threadId }) => {
 		const user = await getUser(ctx);
 		if (!user) throw new Error('User not authenticated');
 
@@ -343,7 +350,21 @@ export const updateThreadStatus = mutation({
 			throw new Error('Thread not found or user not authorized');
 		}
 
-		await ctx.db.patch(threadId, { status });
+		await ctx.db.patch(threadId, { status: 'done' });
+
+		const message = await ctx.db
+			.query('messages')
+			.withIndex('by_thread_and_status', (q) =>
+				q.eq('threadId', threadId).eq('status', 'streaming')
+			)
+			.first();
+
+		if (message) {
+			await ctx.db.patch(message._id, {
+				status: 'done',
+				stopReason: 'stopped',
+			});
+		}
 	},
 });
 

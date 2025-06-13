@@ -9,8 +9,8 @@ import {
 import { api, internal } from './_generated/api';
 import { getUser } from './users';
 import { Doc, Id } from './_generated/dataModel';
-import { setStreamStopFlag } from './redis';
 import { MessageRole, MessageStatus, StopReason } from './schema';
+import { updateThreadStatus } from './threads';
 
 export const getMessagesByThread = query({
 	args: { threadId: v.id('threads') },
@@ -70,13 +70,23 @@ export const insertMessages = mutation({
 	},
 });
 
+/**
+ * Updates a message, and optionally the thread status.
+ * Returns true if the update was successful, false if the message is already done or error.
+ * @param args.messageId - The ID of the message to update.
+ * @param args.content - The content to update the message with (optional).
+ * @param args.status - The status to update the message with (optional).
+ * @param args.stopReason - The stop reason to update the message with (optional).
+ * @returns True if the update was successful, false if the message is already done or error.
+ */
 export const updateMessage = mutation({
 	args: {
 		messageId: v.id('messages'),
-		content: v.string(),
-		status: MessageStatus,
+		content: v.optional(v.string()),
+		status: v.optional(MessageStatus),
 		stopReason: v.optional(StopReason),
 	},
+	returns: v.boolean(),
 	handler: async (ctx, args) => {
 		const user = await getUser(ctx);
 		if (!user) throw new Error('User not authenticated');
@@ -89,122 +99,22 @@ export const updateMessage = mutation({
 
 		if (!message) throw new Error('Message not found');
 
-		// Only update content if it's not empty; always update status and stopReason
-		const patchData: any = {
-			status: args.status,
-			stopReason: args.stopReason,
-		};
-		if (args.content && args.content.length > 0) {
-			patchData.content = args.content;
+		if (message.status === 'done' || message.status === 'error') {
+			return false;
 		}
+
+		const patchData: any = {};
+		if (args.status) patchData.status = args.status;
+		if (args.stopReason) patchData.stopReason = args.stopReason;
+		if (args.content) patchData.content = args.content;
+
 		await ctx.db.patch(args.messageId, patchData);
-	},
-});
 
-/**
- * Finalize a streaming message with complete content and final status
- * This is the ONLY time the assistant message gets its content - when the stream is complete
- */
-export const finalizeStream = internalMutation({
-	args: {
-		messageId: v.id('messages'),
-		content: v.string(),
-		status: MessageStatus,
-		stopReason: StopReason,
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		const message = await ctx.db.get(args.messageId);
-		if (!message) {
-			throw new Error('Message not found');
+		if (args.status) {
+			await ctx.db.patch(message.threadId, { status: args.status });
 		}
 
-		await Promise.all([
-			// 1. Update message content with the FULL assembled content
-			ctx.db.patch(args.messageId, {
-				content: args.content,
-				status: args.status,
-				stopReason: args.stopReason,
-			}),
-			// 2. Update thread streaming state
-			ctx.db.patch(message.threadId, { status: 'done' }),
-		]);
-
-		return null;
-	},
-});
-
-// Note: The old appendContent function has been removed
-// In the new architecture, we only write complete content once via finalizeStream
-// Edge Functions now call Convex via HTTP actions instead of public mutations
-
-/**
- * Internal mutation to mark a message with a given status and stopReason.
- * Defaults status to 'done' if not provided.
- */
-export const markMessageStatus = internalMutation({
-	args: {
-		messageId: v.id('messages'),
-		status: v.optional(MessageStatus), // Defaults to 'done'
-		stopReason: StopReason,
-	},
-	handler: async (ctx, args) => {
-		const message = await ctx.db.get(args.messageId);
-		if (!message) return;
-
-		const status = args.status ?? 'done';
-
-		await Promise.all([
-			ctx.db.patch(args.messageId, {
-				status,
-				stopReason: args.stopReason,
-			}),
-			ctx.db.patch(message.threadId, { status }),
-		]);
-	},
-});
-
-// Action to set the stop flag in Redis.
-// This is an action because it performs a side effect (calling an external service).
-export const _requestStopStreamAction = internalAction({
-	args: { messageId: v.id('messages') },
-	handler: async (_, { messageId }) => {
-		await setStreamStopFlag(messageId);
-	},
-});
-
-// Public mutation to stop a stream
-export const requestStopStream = mutation({
-	args: { threadId: v.id('threads') },
-	handler: async (ctx, args) => {
-		const user = await getUser(ctx);
-		if (!user) {
-			throw new Error('User not authenticated.');
-		}
-
-		const thread = await ctx.db.get(args.threadId);
-		if (!thread || thread.userId !== user._id) {
-			throw new Error('Thread not found or user not authorized.');
-		}
-
-		// Find the in-progress message for the thread
-		const inProgressMessage = await ctx.db
-			.query('messages')
-			.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
-			.filter((q) => q.eq(q.field('status'), 'in_progress'))
-			.first();
-
-		if (inProgressMessage) {
-			// Schedule an action to set the Redis stop flag.
-			// We use an action because mutations can't have side effects.
-			await ctx.scheduler.runAfter(
-				0,
-				internal.messages._requestStopStreamAction,
-				{
-					messageId: inProgressMessage._id,
-				}
-			);
-		}
+		return true;
 	},
 });
 
@@ -264,8 +174,10 @@ export const regenerateResponse = mutation({
 			.withIndex('by_thread', (q) => q.eq('threadId', userMessage.threadId))
 			.collect();
 
-		// Set thread as streaming
-		await ctx.db.patch(userMessage.threadId, { status: 'pending' });
+		await ctx.runMutation(internal.threads.updateThreadStatus, {
+			threadId: userMessage.threadId,
+			status: 'pending',
+		});
 
 		// Create a new placeholder message for the assistant
 		const newAssistantMessageId = await ctx.db.insert('messages', {
@@ -325,8 +237,10 @@ export const editAndResubmit = mutation({
 			.withIndex('by_thread', (q) => q.eq('threadId', userMessage.threadId))
 			.collect();
 
-		// Set thread as streaming
-		await ctx.db.patch(userMessage.threadId, { status: 'pending' });
+		await ctx.runMutation(internal.threads.updateThreadStatus, {
+			threadId: userMessage.threadId,
+			status: 'pending',
+		});
 
 		// 3. Create a new placeholder message for the assistant
 		const newAssistantMessageId = await ctx.db.insert('messages', {

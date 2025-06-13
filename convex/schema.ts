@@ -9,17 +9,12 @@ export const ThreadStatus = v.union(
 	v.literal('error') // Thread errored, something went wrong
 );
 
+export const MessageStatus = ThreadStatus;
+
 export const MessageRole = v.union(
 	v.literal('user'),
 	v.literal('assistant'),
 	v.literal('system')
-);
-
-export const MessageStatus = v.union(
-	v.literal('pending'), // Message is waiting to be processed, created
-	v.literal('streaming'), // Message is being processed, streaming
-	v.literal('done'), // Message is done, all content has been received
-	v.literal('error') // Message errored, something went wrong
 );
 
 export const StopReason = v.union(
@@ -60,6 +55,7 @@ export default defineSchema({
 		status: MessageStatus,
 		stopReason: v.optional(StopReason),
 	})
+		.index('by_user_id', ['userId'])
 		.index('by_thread', ['threadId'])
-		.index('by_user_id', ['userId']),
+		.index('by_thread_and_status', ['threadId', 'status']),
 });

@@ -9,6 +9,10 @@ import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { toast } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
+import {
+	useStreamingMessage,
+	useStreamingStoreActions,
+} from '@/stores/use-streaming-store';
 
 /**
  * Hook to get all user threads
@@ -226,20 +230,42 @@ export function useBranchThread() {
 
 /**
  * Hook for stopping an active stream
+ * Handles both local streams (with optimistic UX) and remote streams
+ * Now uses stopThread mutation for both cases to properly abort AI stream server-side
  */
-export function useRequestStopStream() {
+export function useStopStream() {
 	const threadId = useThreadId();
-	const requestStopMutation = useConvexMutation(api.messages.requestStopStream);
+	const { getStreamingMessage, removeStreamingMessage, blockStreaming } =
+		useStreamingStoreActions();
+	const stopThread = useConvexMutation(api.threads.stopThread);
+	const updateMessage = useConvexMutation(api.messages.updateMessage);
 
-	const requestStop = async () => {
+	return async () => {
 		if (!threadId) return;
+
 		try {
-			await requestStopMutation({ threadId });
+			// PATH A: This client is streaming (has optimistic data)
+			const localStreamingData = getStreamingMessage(threadId);
+			if (localStreamingData) {
+				// Block updating optimistic data to prevent race condition
+				blockStreaming(threadId);
+				// Patch message with current optimistic content
+				await updateMessage({
+					messageId: localStreamingData.messageId,
+					content: localStreamingData.content,
+					status: 'done',
+					stopReason: 'stopped',
+				});
+
+				// Clean up store
+				removeStreamingMessage(threadId);
+				return;
+			} else {
+				await stopThread({ threadId });
+			}
 		} catch (error) {
-			toast.error('Failed to request stream stop');
-			// We don't re-throw here as it's not a critical client-side failure
+			toast.error('Failed to stop stream');
+			console.error('Stop stream error:', error);
 		}
 	};
-
-	return requestStop;
 }

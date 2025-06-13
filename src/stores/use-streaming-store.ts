@@ -7,10 +7,11 @@ type ThreadId = Id<'threads'>;
 type StreamingMessage = {
 	messageId: MessageId;
 	content: string;
+	block: boolean;
 };
 
 type StreamingStoreActions = {
-	setStreamingMessage: (
+	addStreamingMessage: (
 		threadId: ThreadId,
 		messageId: MessageId,
 		content: string
@@ -20,6 +21,7 @@ type StreamingStoreActions = {
 	getStreamingMessage: (
 		threadId: ThreadId | undefined
 	) => StreamingMessage | undefined;
+	blockStreaming: (threadId: ThreadId) => void;
 };
 
 type StreamingStore = {
@@ -30,7 +32,7 @@ type StreamingStore = {
 const useStreamingStore = create<StreamingStore>((set, get) => ({
 	messages: {},
 	actions: {
-		setStreamingMessage: (threadId, messageId, content) => {
+		addStreamingMessage: (threadId, messageId, content) => {
 			set((state) => ({
 				messages: {
 					...state.messages,
@@ -42,7 +44,7 @@ const useStreamingStore = create<StreamingStore>((set, get) => ({
 			set((state) => {
 				const existingMessage = state.messages[threadId];
 				if (!existingMessage) return state;
-
+				if (existingMessage.block) return state;
 				return {
 					messages: {
 						...state.messages,
@@ -59,6 +61,17 @@ const useStreamingStore = create<StreamingStore>((set, get) => ({
 		},
 		getStreamingMessage: (threadId) => {
 			return threadId ? get().messages[threadId] : undefined;
+		},
+		blockStreaming: (threadId) => {
+			set((state) => ({
+				messages: {
+					...state.messages,
+					[threadId]: {
+						...state.messages[threadId],
+						block: true,
+					},
+				},
+			}));
 		},
 	},
 }));

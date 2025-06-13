@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { useSendMessage } from '@/hooks/use-messages';
-import { useRequestStopStream } from '@/hooks/use-threads';
+import { useStopStream } from '@/hooks/use-threads';
 import { ModelSelector } from './model-selector';
 import { useThread } from '@/hooks/use-threads';
 
@@ -19,15 +19,15 @@ export function ChatInput() {
 	const [message, setMessage] = useState('');
 
 	const sendMessage = useSendMessage();
-	const requestStop = useRequestStopStream();
+	const stopStream = useStopStream();
 
 	const isStreaming = thread?.status === 'streaming';
 
 	const handleStop = async () => {
 		try {
-			await requestStop();
+			await stopStream();
 		} catch (error) {
-			console.error('Failed to request stream stop:', error);
+			console.error('Failed to stop stream:', error);
 		}
 	};
 

@@ -18,6 +18,7 @@ Made for the T3 Chat Cloneathon
 - [-] Syntax Highlighting
 - [x] Resumable Streams
 - [x] Chat Branching
+- [ ] Stop messages mid-stream losslessly
 - [ ] Chat Sharing
 - [ ] Web Search
 - [ ] Bring Your Own Key

@@ -12,7 +12,7 @@ const openrouter = createOpenRouter({
 /**
  * Main chat endpoint for streaming AI responses
  * Handles initial stream requests from the client who sent the message
- * Implements dual streaming: direct to client + Redis buffering for other clients
+ * Creates its own AbortController to properly stop AI token generation when requested
  */
 export async function POST(request: NextRequest) {
 	try {
@@ -44,14 +44,15 @@ export async function POST(request: NextRequest) {
 				content: msg.content,
 			}));
 
+		// 4. Create our own AbortController to properly stop AI token generation
 		const abortController = new AbortController();
 
 		const updateMessage = async (
-			content: string,
-			status: 'streaming' | 'done' | 'error',
+			content?: string,
+			status?: 'streaming' | 'done' | 'error',
 			stopReason?: 'completed' | 'stopped' | 'error'
 		) => {
-			await convexClient.mutation(api.messages.updateMessage, {
+			return await convexClient.mutation(api.messages.updateMessage, {
 				messageId,
 				content,
 				status,
@@ -59,25 +60,16 @@ export async function POST(request: NextRequest) {
 			});
 		};
 
-		const updateThreadStatus = async (
-			status: 'streaming' | 'done' | 'error'
-		) => {
-			await convexClient.mutation(api.threads.updateThreadStatus, {
-				threadId,
-				status,
-			});
-		};
-
 		const response = streamText({
 			model: openrouter(model),
 			messages: formattedHistory,
+			abortSignal: abortController.signal, // Use our own signal, not request.signal
 		});
 
 		return createDataStreamResponse({
 			execute: async (dataStream) => {
 				if (response) {
 					(async () => {
-						await updateThreadStatus('streaming');
 						await updateMessage('', 'streaming');
 					})();
 
@@ -94,34 +86,38 @@ export async function POST(request: NextRequest) {
 								}
 								const now = Date.now();
 								if (now - lastSent > 500) {
-									await updateMessage(content, 'streaming');
+									const updateAccepted = await updateMessage(content);
 									lastSent = now;
+
+									if (!updateAccepted) {
+										abortController.abort(); // Actually stop the AI stream to save tokens
+										break;
+									}
 								}
 							}
 
-							// Set both message and thread status to done when complete
-							await Promise.all([
-								updateMessage(content, 'done', 'completed'),
-								updateThreadStatus('done'),
-							]);
+							await updateMessage(content, 'done', 'completed');
 						} catch (error) {
+							if (error instanceof DOMException && error.name === 'AbortError')
+								return;
+
 							console.error('Streaming error:', error);
-							// Set both message and thread status to error on failure
-							await Promise.all([
-								updateMessage('Error generating response', 'error', 'error'),
-								updateThreadStatus('error'),
-							]);
+							await updateMessage(
+								'Error generating response',
+								'error',
+								'error'
+							);
 						}
 					})();
 				}
 			},
 			onError: (error) => {
-				console.error('Streaming error:', error);
+				if (error instanceof DOMException && error.name === 'AbortError') {
+					return 'Stream aborted by user';
+				}
+				console.error('Streaming error onError:', error);
 				(async () => {
-					await Promise.all([
-						updateMessage('', 'error', 'error'),
-						updateThreadStatus('error'),
-					]);
+					await updateMessage('', 'error', 'error');
 				})();
 				return 'Error generating response';
 			},
