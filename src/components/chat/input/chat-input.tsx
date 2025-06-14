@@ -44,7 +44,7 @@ export function ChatInput() {
 	};
 
 	return (
-		<div className="w-full absolute bottom-2 left-1/2 -translate-x-1/2 max-w-3xl">
+		<div className="w-full absolute bottom-2 left-1/2 -translate-x-1/2 max-w-3xl px-2">
 			<PromptInput
 				onSubmit={handleSendMessage}
 				onValueChange={setMessage}

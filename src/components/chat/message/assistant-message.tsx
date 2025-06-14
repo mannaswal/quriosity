@@ -32,11 +32,16 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 	const branch = useBranchThread();
 	const regenerate = useRegenerate({});
 
-	const isPending = message.status === 'pending';
-	const isComplete = message.status === 'done' || message.status === 'error';
-
 	const content = message.content;
 	const reasoning = message.reasoning;
+
+	const isComplete = message.status === 'done' || message.status === 'error';
+	const isPending = message.status === 'pending';
+	const isReasoning = reasoning && !content && !isComplete;
+	const isLoading = isPending && !content && !reasoning && !isComplete;
+
+	const isError = message.status === 'error' || message.stopReason === 'error';
+	const isStopped = message.stopReason === 'stopped';
 
 	const handleBranch = async () => {
 		try {
@@ -67,8 +72,8 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 	return (
 		<div
 			data-id={message._id}
-			className="w-full flex flex-col gap-2">
-			{message.status === 'pending' && !content && !reasoning && (
+			className="w-full flex flex-col">
+			{isLoading && (
 				<Loader
 					variant="pulse-dot"
 					className="mt-2.5"
@@ -76,15 +81,11 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 			)}
 			<Message
 				key={message._id}
-				className="peer/message flex flex-col w-full text-neutral-100 space-y-4">
+				className="peer/message flex flex-col w-full text-neutral-100">
 				{reasoning && (
 					<Reasoning className="w-full bg-neutral-900/50 rounded-xl p-4">
 						<ReasoningTrigger>
-							{reasoning && !content ? (
-								<TextShimmer>Reasoning</TextShimmer>
-							) : (
-								'Reasoning'
-							)}
+							{isReasoning ? <TextShimmer>Reasoning</TextShimmer> : 'Reasoning'}
 						</ReasoningTrigger>
 						<ReasoningContent
 							className="w-full max-w-full"
@@ -93,26 +94,27 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 						</ReasoningContent>
 					</Reasoning>
 				)}
-				<div className="flex flex-col items-start gap-4">
-					{isComplete && !content ? (
-						<div className="text-sm text-neutral-500">No content generated</div>
-					) : (
+				{isComplete && !content ? (
+					!reasoning && (
+						<div className="text-sm text-neutral-500">No content generated</div> // No content, no reasoning
+					)
+				) : (
+					<div className="mt-4">
 						<Markdown
 							id={message._id}
 							className="max-w-full prose dark:prose-invert flex-1">
 							{content}
 						</Markdown>
-					)}
-				</div>
+					</div>
+				)}
+				{(isError || isStopped) && (
+					<div className="text-sm text-rose-400/80">
+						{isError && 'An error occurred'}
+						{isStopped && 'Stopped by user'}
+					</div>
+				)}
 			</Message>
-			{(message.status === 'error' || message.stopReason === 'error') && (
-				<div className="text-sm text-rose-400/80">An error occurred</div>
-			)}
-			{message.stopReason === 'stopped' && (
-				<div className="text-sm text-rose-400/80">Stopped by user</div>
-			)}
-
-			<div className="h-8 opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100">
+			<div className="h-10 opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 pt-2">
 				{(message.status === 'error' || message.status === 'done') && (
 					<div className="flex items-center -ml-0.5">
 						<Button

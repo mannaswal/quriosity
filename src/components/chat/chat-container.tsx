@@ -21,15 +21,15 @@ const ChatContainer = memo(function ChatContainer() {
 	useEffect(() => {}, [messages]);
 
 	return (
-		<div className="flex h-screen w-full flex-col overflow-hidden justify-end pb-2 relative">
+		<div className="flex h-screen flex-col overflow-hidden justify-end pb-3 relative">
 			<ProgressiveBlur
 				className="pointer-events-none absolute top-0 left-0 h-14 w-full"
 				blurIntensity={0.4}
 				blurLayers={12}
 				direction="top"
 			/>
-			<div className="absolute top-0 left-0 h-14 w-full bg-gradient-to-t from-transparent to-background/95" />
-			<ChatContainerRoot className="flex-1">
+			<div className="absolute top-0 left-0 h-16 w-full bg-gradient-to-t from-transparent to-background/95" />
+			<ChatContainerRoot className="flex-1 sm:mx-2 mx-0 transition-[margin]">
 				<ChatContainerContent
 					data-tall={tallerThanScreen}
 					className={cn('p-4 max-w-3xl mx-auto pt-14 pb-32 space-y-4 group')}>
