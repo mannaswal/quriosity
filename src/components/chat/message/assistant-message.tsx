@@ -57,7 +57,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 
 	return (
 		<div className="w-full flex flex-col gap-2">
-			{isPending && !content && (
+			{(isPending || !content) && (
 				<Loader
 					variant="pulse-dot"
 					className="mt-2.5"

@@ -232,13 +232,12 @@ export function useBranchThread() {
  * Now uses stopThread mutation for both cases to properly abort AI stream server-side
  */
 export function useStopStream() {
-	const threadId = useThreadId();
 	const { getStreamingMessage, removeStreamingMessage, blockStreaming } =
 		useStreamingStoreActions();
 	const stopThread = useConvexMutation(api.threads.stopThread);
 	const updateMessage = useConvexMutation(api.messages.updateMessage);
 
-	return async () => {
+	return async (threadId: Id<'threads'> | undefined) => {
 		if (!threadId) return;
 
 		try {
@@ -247,6 +246,7 @@ export function useStopStream() {
 			if (localStreamingData) {
 				// Block updating optimistic data to prevent race condition
 				blockStreaming(threadId);
+
 				// Patch message with current optimistic content
 				await updateMessage({
 					messageId: localStreamingData.messageId,
@@ -255,8 +255,8 @@ export function useStopStream() {
 					stopReason: 'stopped',
 				});
 
-				// Clean up store
 				removeStreamingMessage(threadId);
+
 				return;
 			} else {
 				await stopThread({ threadId });

@@ -25,7 +25,7 @@ export function ChatInput() {
 
 	const handleStop = async () => {
 		try {
-			await stopStream();
+			await stopStream(thread?._id);
 		} catch (error) {
 			console.error('Failed to stop stream:', error);
 		}

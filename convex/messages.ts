@@ -97,7 +97,7 @@ export const updateMessage = mutation({
 			.filter((q) => q.eq(q.field('_id'), args.messageId))
 			.first();
 
-		if (!message) throw new Error('Message not found');
+		if (!message) return false;
 
 		if (message.status === 'done' || message.status === 'error') {
 			return false;
@@ -130,7 +130,7 @@ export const regenerateResponse = mutation({
 
 		const message = await ctx.db.get(messageId);
 
-		if (!message) {
+		if (!message || message.userId !== user._id) {
 			throw new Error('Message not found.');
 		}
 

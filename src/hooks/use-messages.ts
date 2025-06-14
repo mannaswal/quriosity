@@ -9,7 +9,7 @@ import {
 	useStreamingStoreActions,
 	useStreamingMessage,
 } from '@/stores/use-streaming-store';
-import { useThread } from './use-threads';
+import { useStopStream, useThread } from './use-threads';
 import { useRouter } from 'next/navigation';
 import { useModel } from './use-model';
 import { ModelId } from '@/lib/models';
@@ -23,7 +23,6 @@ export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
 
 	// Subscribe to the streaming message for this thread
 	const streamingMessage = useStreamingMessage(threadId);
-	const { removeStreamingMessage } = useStreamingStoreActions();
 
 	const dbMessages =
 		useQuery(
@@ -51,11 +50,8 @@ export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
  * Handles status updates, streaming store management, and error cleanup
  */
 function useStreamMessage() {
-	const {
-		updateStreamingContent,
-		removeStreamingMessage,
-		addStreamingMessage,
-	} = useStreamingStoreActions();
+	const { updateStreamingContent, addStreamingMessage } =
+		useStreamingStoreActions();
 	const updateMessage = useMutation(api.messages.updateMessage);
 
 	return async (
@@ -68,16 +64,11 @@ function useStreamMessage() {
 			content: string;
 		}[]
 	) => {
-		// Create AbortController for this stream
-		const abortController = new AbortController();
+		addStreamingMessage(threadId, assistantMessageId, '');
 
 		try {
-			// Start with empty content and store AbortController in streaming store
-			addStreamingMessage(threadId, assistantMessageId, '');
-
 			const response = await fetch('/api/chat', {
 				method: 'POST',
-				signal: abortController.signal, // NEW: Pass AbortSignal to fetch
 				body: JSON.stringify({
 					threadId,
 					messageId: assistantMessageId,
@@ -95,7 +86,7 @@ function useStreamMessage() {
 				stream: response.body!,
 				onTextPart: (text) => {
 					content += text;
-					updateStreamingContent(threadId, content);
+					updateStreamingContent(threadId, assistantMessageId, content);
 				},
 			});
 
@@ -135,10 +126,11 @@ export function useSendMessage(opts?: {
 	const createThread = useMutation(api.threads.createThread);
 	const streamMessage = useStreamMessage();
 	const insertMessages = useMutation(api.messages.insertMessages);
-	const { addStreamingMessage } = useStreamingStoreActions();
+	const { getStreamingMessage } = useStreamingStoreActions();
 
 	const sendMessage = async (messageContent: string) => {
-		if (thread?.status === 'streaming') return;
+		if (thread?.status === 'streaming' || getStreamingMessage(thread?._id))
+			return;
 
 		try {
 			let targetThreadId = thread?._id;
@@ -178,9 +170,6 @@ export function useSendMessage(opts?: {
 
 			const assistantMessageId = insertedMessageIds[1];
 
-			// Add to streaming store
-			addStreamingMessage(targetThreadId, assistantMessageId, '');
-
 			const messageHistory = messages.map((message) => ({
 				id: message._id,
 				role: message.role,
@@ -213,26 +202,35 @@ export function useSendMessage(opts?: {
 /**
  * Hook to regenerate an assistant's response.
  */
-export function useRegenerate(opts: {
+export function useRegenerate(opts?: {
 	onSuccess?: () => void;
 	onError?: (error: Error) => void;
 }) {
 	const regenerateMutation = useMutation(api.messages.regenerateResponse);
 	const streamMessage = useStreamMessage();
-	const { addStreamingMessage } = useStreamingStoreActions();
+	const {
+		getStreamingMessage,
+		removeStreamingMessage,
+		updateStreamingContent,
+		blockStreaming,
+	} = useStreamingStoreActions();
 
 	return async (args: {
 		messageId: Id<'messages'>;
 		threadId: Id<'threads'>;
 	}) => {
 		try {
+			if (getStreamingMessage(args.threadId)) {
+				updateStreamingContent(args.threadId, args.messageId, '');
+				blockStreaming(args.threadId);
+			}
+
 			const { assistantMessageId, model, threadId, messages } =
 				await regenerateMutation({
 					messageId: args.messageId,
 				});
 
-			// Add to streaming store
-			addStreamingMessage(threadId, assistantMessageId, '');
+			removeStreamingMessage(args.threadId);
 
 			const messageHistory = messages.map((message) => ({
 				id: message._id,
@@ -248,7 +246,7 @@ export function useRegenerate(opts: {
 				messageHistory
 			);
 
-			opts.onSuccess?.();
+			opts?.onSuccess?.();
 			return { assistantMessageId, messages };
 		} catch (error) {
 			if (error instanceof DOMException && error.name === 'AbortError') {
@@ -256,7 +254,7 @@ export function useRegenerate(opts: {
 				return;
 			}
 			toast.error('Failed to regenerate response');
-			opts.onError?.(error as Error);
+			opts?.onError?.(error as Error);
 			throw error;
 		}
 	};
@@ -265,13 +263,18 @@ export function useRegenerate(opts: {
 /**
  * Hook to edit a user message and regenerate the assistant's response.
  */
-export function useEditAndResubmit(opts: {
+export function useEditAndResubmit(opts?: {
 	onSuccess?: () => void;
 	onError?: (error: Error) => void;
 }) {
 	const editMutation = useMutation(api.messages.editAndResubmit);
 	const streamMessage = useStreamMessage();
-	const { addStreamingMessage } = useStreamingStoreActions();
+	const {
+		getStreamingMessage,
+		removeStreamingMessage,
+		updateStreamingContent,
+		blockStreaming,
+	} = useStreamingStoreActions();
 
 	return async (args: {
 		userMessageId: Id<'messages'>;
@@ -279,14 +282,23 @@ export function useEditAndResubmit(opts: {
 		newContent: string;
 	}) => {
 		try {
+			const currentStreamingMessage = getStreamingMessage(args.threadId);
+			if (currentStreamingMessage) {
+				updateStreamingContent(
+					args.threadId,
+					currentStreamingMessage.messageId,
+					''
+				);
+				blockStreaming(args.threadId);
+			}
+
 			const { assistantMessageId, model, threadId, messages } =
 				await editMutation({
 					userMessageId: args.userMessageId,
 					newContent: args.newContent,
 				});
 
-			// Add to streaming store
-			addStreamingMessage(threadId, assistantMessageId, '');
+			removeStreamingMessage(args.threadId);
 
 			const messageHistory = messages.map((message) => ({
 				id: message._id,
@@ -302,7 +314,7 @@ export function useEditAndResubmit(opts: {
 				messageHistory
 			);
 
-			opts.onSuccess?.();
+			opts?.onSuccess?.();
 			return { assistantMessageId, messages };
 		} catch (error) {
 			if (error instanceof DOMException && error.name === 'AbortError') {
@@ -310,7 +322,7 @@ export function useEditAndResubmit(opts: {
 				return;
 			}
 			toast.error('Failed to edit message');
-			opts.onError?.(error as Error);
+			opts?.onError?.(error as Error);
 			throw error;
 		}
 	};

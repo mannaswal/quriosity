@@ -16,7 +16,11 @@ type StreamingStoreActions = {
 		messageId: MessageId,
 		content: string
 	) => void;
-	updateStreamingContent: (threadId: ThreadId, content: string) => void;
+	updateStreamingContent: (
+		threadId: ThreadId,
+		messageId: MessageId,
+		content: string
+	) => void;
 	removeStreamingMessage: (threadId: ThreadId) => void;
 	getStreamingMessage: (
 		threadId: ThreadId | undefined
@@ -36,15 +40,18 @@ const useStreamingStore = create<StreamingStore>((set, get) => ({
 			set((state) => ({
 				messages: {
 					...state.messages,
-					[threadId]: { messageId, content },
+					[threadId]: { messageId, content, block: false },
 				},
 			}));
 		},
-		updateStreamingContent: (threadId, content) => {
+		updateStreamingContent: (threadId, messageId, content) => {
 			set((state) => {
 				const existingMessage = state.messages[threadId];
 				if (!existingMessage) return state;
 				if (existingMessage.block) return state;
+
+				if (existingMessage.messageId !== messageId) return state;
+
 				return {
 					messages: {
 						...state.messages,

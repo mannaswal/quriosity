@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Markdown } from '@/components/ui/markdown';
 import { Message } from '@/components/ui/message';
 import { CheckIcon, CopyIcon, RefreshCcwIcon, PencilIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface UserMessageProps {
 	message: ChatMessage;
@@ -18,68 +19,46 @@ export function UserMessage({ message }: UserMessageProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editedContent, setEditedContent] = useState(message.content);
 	const [copied, setCopied] = useState(false);
-	const [isRegenerating, setIsRegenerating] = useState(false);
-	const [isEditingAndResubmitting, setIsEditingAndResubmitting] =
-		useState(false);
 
-	const regenerate = useRegenerate({
-		onSuccess: () => setIsRegenerating(false),
-		onError: () => setIsRegenerating(false),
-	});
+	const regenerate = useRegenerate();
+	const editAndResubmit = useEditAndResubmit();
 
-	const editAndResubmit = useEditAndResubmit({
-		onSuccess: () => {
-			setIsEditing(false);
-			setIsEditingAndResubmitting(false);
-		},
-		onError: () => setIsEditingAndResubmitting(false),
-	});
-
-	const isPending = isRegenerating || isEditingAndResubmitting;
-
-	// Sync editedContent when message.content changes and we're not editing
 	useEffect(() => {
-		if (!isEditing) {
-			setEditedContent(message.content);
-		}
+		if (!isEditing) setEditedContent(message.content);
 	}, [message.content, isEditing]);
 
-	// If the edited content is the same as the original content, regenerate the message
-	// If the edited content is different, edit and resubmit the message
 	const handleRegenerate = async () => {
 		try {
+			setIsEditing(false);
 			if (editedContent === message.content) {
-				setIsRegenerating(true);
+				// If the edited content is the same as the original content, regenerate the message
 				await regenerate({
 					messageId: message._id,
 					threadId: message.threadId,
 				});
 			} else if (editedContent.trim()) {
-				setIsEditingAndResubmitting(true);
+				// If the edited content is different, edit and resubmit the message
 				await editAndResubmit({
 					userMessageId: message._id,
 					threadId: message.threadId,
 					newContent: editedContent,
 				});
 			}
-			setIsEditing(false);
 		} catch (error) {
-			setIsRegenerating(false);
-			setIsEditingAndResubmitting(false);
+			toast.error('Failed to regenerate message');
 		}
 	};
 
 	const handleSaveEdit = async () => {
 		if (editedContent.trim()) {
 			try {
-				setIsEditingAndResubmitting(true);
 				await editAndResubmit({
 					userMessageId: message._id,
 					threadId: message.threadId,
 					newContent: editedContent,
 				});
 			} catch (error) {
-				setIsEditingAndResubmitting(false);
+				toast.error('Failed to edit message');
 			}
 		}
 	};
@@ -125,7 +104,6 @@ export function UserMessage({ message }: UserMessageProps) {
 			<div className="w-full flex items-center justify-end opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 mb-1">
 				<Button
 					onClick={handleRegenerate}
-					disabled={isPending}
 					variant="ghost"
 					size="icon"
 					className="size-8">
@@ -133,7 +111,6 @@ export function UserMessage({ message }: UserMessageProps) {
 				</Button>
 				<Button
 					onClick={() => setIsEditing((prev) => !prev)}
-					disabled={isPending}
 					variant="ghost"
 					size="icon"
 					className="size-8">
