@@ -33,11 +33,16 @@ export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
 
 	// Merge streaming store data for messages with pending/streaming status
 	return dbMessages.map((message) => {
-		if (message.status === 'pending' || message.status === 'streaming') {
+		if (
+			message.status === 'pending' ||
+			message.status === 'streaming' ||
+			message.status === 'reasoning'
+		) {
 			if (streamingMessage && streamingMessage.messageId === message._id) {
 				return {
 					...message,
 					content: streamingMessage.content,
+					reasoning: streamingMessage.reasoning,
 					status: message.status,
 				};
 			}
@@ -51,11 +56,8 @@ export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
  * Handles status updates, streaming store management, and error cleanup
  */
 function useStreamMessage() {
-	const {
-		updateStreamingContent,
-		addStreamingMessage,
-		removeStreamingMessage,
-	} = useStreamingStoreActions();
+	const { updateStreamingContent, addStreamingMessage } =
+		useStreamingStoreActions();
 	const updateMessage = useMutation(api.messages.updateMessage);
 
 	return async (
@@ -68,7 +70,7 @@ function useStreamMessage() {
 			content: string;
 		}[]
 	) => {
-		addStreamingMessage(threadId, assistantMessageId, '');
+		addStreamingMessage(threadId, assistantMessageId, '', '');
 
 		try {
 			const response = await fetch('/api/chat', {
@@ -86,15 +88,41 @@ function useStreamMessage() {
 			}
 
 			let content = '';
+			let reasoning = '';
 			await processDataStream({
 				stream: response.body!,
+
 				onTextPart: (text) => {
 					content += text;
-					updateStreamingContent(threadId, assistantMessageId, content);
+					updateStreamingContent({
+						threadId,
+						messageId: assistantMessageId,
+						content,
+						reasoning,
+						status: 'streaming',
+					});
+				},
+				onReasoningPart: (text) => {
+					reasoning += text;
+					updateStreamingContent({
+						threadId,
+						messageId: assistantMessageId,
+						content,
+						reasoning,
+						status: 'reasoning',
+					});
+				},
+				onFinishStepPart: (part) => {
+					console.log(part);
+					updateStreamingContent({
+						threadId,
+						messageId: assistantMessageId,
+						content,
+						reasoning,
+						status: 'done',
+					});
 				},
 			});
-
-			return content;
 		} catch (error) {
 			// Handle abort gracefully - don't treat as error
 			if (error instanceof DOMException && error.name === 'AbortError') {
@@ -204,7 +232,12 @@ export function useRegenerate(opts?: {
 	}) => {
 		try {
 			if (getStreamingMessage(args.threadId)) {
-				updateStreamingContent(args.threadId, args.messageId, '');
+				updateStreamingContent({
+					threadId: args.threadId,
+					messageId: args.messageId,
+					content: '',
+					reasoning: '',
+				});
 				blockStreaming(args.threadId);
 			}
 
@@ -267,11 +300,12 @@ export function useEditAndResubmit(opts?: {
 		try {
 			const currentStreamingMessage = getStreamingMessage(args.threadId);
 			if (currentStreamingMessage) {
-				updateStreamingContent(
-					args.threadId,
-					currentStreamingMessage.messageId,
-					''
-				);
+				updateStreamingContent({
+					threadId: args.threadId,
+					messageId: currentStreamingMessage.messageId,
+					content: '',
+					reasoning: '',
+				});
 				blockStreaming(args.threadId);
 			}
 

@@ -21,9 +21,7 @@ export async function POST(request: NextRequest) {
 		const { getToken, userId } = await auth.protect();
 		const token = await getToken({ template: 'convex' });
 
-		if (!token) {
-			return new NextResponse('Unauthorized', { status: 401 });
-		}
+		if (!token) return new NextResponse('Unauthorized', { status: 401 });
 
 		const convexClient = new ConvexHttpClient(
 			process.env.NEXT_PUBLIC_CONVEX_URL!
@@ -48,21 +46,25 @@ export async function POST(request: NextRequest) {
 		// 4. Create our own AbortController to properly stop AI token generation
 		const abortController = new AbortController();
 
-		const updateMessage = async (
-			content?: string,
-			status?: 'streaming' | 'done' | 'error',
-			stopReason?: 'completed' | 'stopped' | 'error'
-		) => {
+		const updateMessage = async (input: {
+			content?: string;
+			reasoning?: string;
+			status?: 'streaming' | 'done' | 'error' | 'reasoning';
+			stopReason?: 'completed' | 'stopped' | 'error';
+		}) => {
 			return await convexClient.mutation(api.messages.updateMessage, {
 				messageId,
-				content,
-				status,
-				stopReason,
+				content: input.content,
+				reasoning: input.reasoning,
+				status: input.status,
+				stopReason: input.stopReason,
 			});
 		};
 
 		const response = streamText({
-			model: openrouter(model),
+			model: openrouter.chat(model, {
+				reasoning: { effort: 'low' },
+			}),
 			messages: formattedHistory,
 			abortSignal: abortController.signal,
 			experimental_transform: markdownJoinerTransform(),
@@ -71,24 +73,36 @@ export async function POST(request: NextRequest) {
 		return createDataStreamResponse({
 			execute: async (dataStream) => {
 				if (response) {
-					(async () => {
-						await updateMessage('', 'streaming');
-					})();
-
-					response.mergeIntoDataStream(dataStream);
+					response.mergeIntoDataStream(dataStream, {
+						sendReasoning: true,
+						sendUsage: true,
+					});
 
 					(async () => {
 						try {
 							let content = '';
+							let reasoning = '';
 							let lastSent = Date.now();
 
 							for await (const chunk of response.fullStream) {
 								if (chunk.type === 'text-delta') {
+									if (content === '') {
+										await updateMessage({ status: 'streaming' });
+									}
 									content += chunk.textDelta;
+								} else if (chunk.type === 'reasoning') {
+									if (reasoning === '') {
+										await updateMessage({ status: 'reasoning' });
+									}
+									reasoning += chunk.textDelta;
 								}
+
 								const now = Date.now();
 								if (now - lastSent > 250) {
-									const updateAccepted = await updateMessage(content);
+									const updateAccepted = await updateMessage({
+										content,
+										reasoning,
+									});
 									lastSent = now;
 
 									if (!updateAccepted) {
@@ -98,17 +112,22 @@ export async function POST(request: NextRequest) {
 								}
 							}
 
-							await updateMessage(content, 'done', 'completed');
+							await updateMessage({
+								content,
+								reasoning,
+								status: 'done',
+								stopReason: 'completed',
+							});
 						} catch (error) {
 							if (error instanceof DOMException && error.name === 'AbortError')
 								return;
 
 							console.error('Streaming error:', error);
-							await updateMessage(
-								'Error generating response',
-								'error',
-								'error'
-							);
+							await updateMessage({
+								content: 'Error generating response',
+								status: 'error',
+								stopReason: 'error',
+							});
 						}
 					})();
 				}
@@ -119,7 +138,10 @@ export async function POST(request: NextRequest) {
 				}
 				console.error('Streaming error onError:', error);
 				(async () => {
-					await updateMessage('', 'error', 'error');
+					await updateMessage({
+						status: 'error',
+						stopReason: 'error',
+					});
 				})();
 				return 'Error generating response';
 			},

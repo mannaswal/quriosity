@@ -9,7 +9,13 @@ export const ThreadStatus = v.union(
 	v.literal('error') // Thread errored, something went wrong
 );
 
-export const MessageStatus = ThreadStatus;
+export const MessageStatus = v.union(
+	v.literal('pending'),
+	v.literal('streaming'),
+	v.literal('done'),
+	v.literal('error'),
+	v.literal('reasoning')
+);
 
 export const MessageRole = v.union(
 	v.literal('user'),

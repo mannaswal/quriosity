@@ -7,10 +7,10 @@ export const models = [
 	// 	id: 'google/gemini-2.5-flash-preview-05-20',
 	// 	name: 'Gemini 2.5 Flash',
 	// },
-	// {
-	// 	id: 'google/gemini-2.5-flash-preview-05-20:thinking',
-	// 	name: 'Gemini 2.5 Flash Thinking',
-	// },
+	{
+		id: 'google/gemini-2.5-flash-preview-05-20:thinking',
+		name: 'Gemini 2.5 Flash Thinking',
+	},
 	{
 		id: 'google/gemini-2.0-flash-001',
 		name: 'Gemini 2.0 Flash',

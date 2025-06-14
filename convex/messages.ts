@@ -115,6 +115,7 @@ export const updateMessage = mutation({
 	args: {
 		messageId: v.id('messages'),
 		content: v.optional(v.string()),
+		reasoning: v.optional(v.string()),
 		status: v.optional(MessageStatus),
 		stopReason: v.optional(StopReason),
 	},
@@ -139,11 +140,14 @@ export const updateMessage = mutation({
 		if (args.status) patchData.status = args.status;
 		if (args.stopReason) patchData.stopReason = args.stopReason;
 		if (args.content) patchData.content = args.content;
+		if (args.reasoning) patchData.reasoning = args.reasoning;
 
 		await ctx.db.patch(args.messageId, patchData);
 
 		if (args.status) {
-			await ctx.db.patch(message.threadId, { status: args.status });
+			const threadStatus =
+				args.status === 'reasoning' ? 'streaming' : args.status;
+			await ctx.db.patch(message.threadId, { status: threadStatus });
 		}
 
 		return true;

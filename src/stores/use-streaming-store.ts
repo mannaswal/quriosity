@@ -7,20 +7,25 @@ type ThreadId = Id<'threads'>;
 type StreamingMessage = {
 	messageId: MessageId;
 	content: string;
+	reasoning: string;
 	block: boolean;
+	status?: 'done' | 'error' | 'streaming' | 'pending' | 'reasoning';
 };
 
 type StreamingStoreActions = {
 	addStreamingMessage: (
 		threadId: ThreadId,
 		messageId: MessageId,
-		content: string
+		content: string,
+		reasoning?: string
 	) => void;
-	updateStreamingContent: (
-		threadId: ThreadId,
-		messageId: MessageId,
-		content: string
-	) => void;
+	updateStreamingContent: (update: {
+		threadId: ThreadId;
+		messageId: MessageId;
+		content: string;
+		reasoning?: string;
+		status?: 'done' | 'error' | 'streaming' | 'pending' | 'reasoning';
+	}) => void;
 	removeStreamingMessage: (threadId: ThreadId) => void;
 	getStreamingMessage: (
 		threadId: ThreadId | undefined
@@ -40,22 +45,33 @@ const useStreamingStore = create<StreamingStore>((set, get) => ({
 			set((state) => ({
 				messages: {
 					...state.messages,
-					[threadId]: { messageId, content, block: false },
+					[threadId]: {
+						messageId,
+						content,
+						reasoning: '',
+						block: false,
+						status: 'pending',
+					},
 				},
 			}));
 		},
-		updateStreamingContent: (threadId, messageId, content) => {
+		updateStreamingContent: (update) => {
 			set((state) => {
-				const existingMessage = state.messages[threadId];
-				if (!existingMessage) return state;
-				if (existingMessage.block) return state;
-
-				if (existingMessage.messageId !== messageId) return state;
+				const existingMessage = state.messages[update.threadId];
+				if (
+					!existingMessage ||
+					existingMessage.block ||
+					existingMessage.messageId !== update.messageId
+				)
+					return state;
 
 				return {
 					messages: {
 						...state.messages,
-						[threadId]: { ...existingMessage, content },
+						[update.threadId]: {
+							...existingMessage,
+							...update,
+						},
 					},
 				};
 			});

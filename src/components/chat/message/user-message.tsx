@@ -72,7 +72,9 @@ export function UserMessage({ message }: UserMessageProps) {
 	};
 
 	return (
-		<div className="w-full flex flex-col gap-2 items-end">
+		<div
+			data-id={message._id}
+			className="w-full flex flex-col gap-2 items-end">
 			{isEditing ? (
 				<Textarea
 					value={editedContent}
@@ -101,7 +103,7 @@ export function UserMessage({ message }: UserMessageProps) {
 				</Message>
 			)}
 
-			<div className="w-full flex items-center justify-end opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 mb-1">
+			<div className="flex items-center justify-end opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 h-8">
 				<Button
 					onClick={handleRegenerate}
 					variant="ghost"

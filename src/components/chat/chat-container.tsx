@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useRef, useEffect, useState } from 'react';
 import {
 	ChatContainerRoot,
 	ChatContainerContent,
@@ -11,10 +11,14 @@ import { ScrollButton } from '../ui/scroll-button';
 import { Magnetic } from '../ui/magnetic';
 import { MessageItem } from './message/message-item';
 import { useThreadId } from '@/hooks/use-threads';
+import { cn } from '@/lib/utils';
 
 const ChatContainer = memo(function ChatContainer() {
+	const [tallerThanScreen, setTallerThanScreen] = useState(false);
 	const threadId = useThreadId();
 	const messages = useThreadMessages(threadId);
+
+	useEffect(() => {}, [messages]);
 
 	return (
 		<div className="flex h-screen w-full flex-col overflow-hidden justify-end pb-2 relative">
@@ -26,7 +30,9 @@ const ChatContainer = memo(function ChatContainer() {
 			/>
 			<div className="absolute top-0 left-0 h-14 w-full bg-gradient-to-t from-transparent to-background/95" />
 			<ChatContainerRoot className="flex-1">
-				<ChatContainerContent className="p-4 max-w-3xl mx-auto pt-14 pb-32 space-y-1">
+				<ChatContainerContent
+					data-tall={tallerThanScreen}
+					className={cn('p-4 max-w-3xl mx-auto pt-14 pb-32 space-y-4 group')}>
 					{messages.map((message, index) => {
 						return (
 							<MessageItem

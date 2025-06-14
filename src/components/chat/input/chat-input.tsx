@@ -21,7 +21,8 @@ export function ChatInput() {
 	const sendMessage = useSendMessage();
 	const stopStream = useStopStream();
 
-	const isStreaming = thread?.status === 'streaming';
+	const isProcessing =
+		thread?.status === 'streaming' || thread?.status === 'pending';
 
 	const handleStop = async () => {
 		try {
@@ -32,7 +33,7 @@ export function ChatInput() {
 	};
 
 	const handleSendMessage = async () => {
-		if (!message.trim() || isStreaming) return;
+		if (!message.trim() || isProcessing) return;
 
 		const messageContent = message;
 		sendMessage(message).catch((error) => {
@@ -63,8 +64,8 @@ export function ChatInput() {
 					</PromptInputAction>
 					<PromptInputAction
 						delayDuration={300}
-						tooltip={isStreaming ? 'Stop' : 'Send'}>
-						{isStreaming ? (
+						tooltip={isProcessing ? 'Stop' : 'Send'}>
+						{isProcessing ? (
 							<Button
 								onClick={handleStop}
 								variant="ghost"
