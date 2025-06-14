@@ -10,7 +10,11 @@ import { api, internal } from './_generated/api';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { generateText } from 'ai';
 import { getUser } from './users';
-import { ThreadStatus } from './schema';
+import {
+	DefaultAssistantMessage,
+	DefaultUserMessage,
+	ThreadStatus,
+} from './schema';
 
 const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY,
@@ -140,6 +144,51 @@ export const createThread = mutation({
 
 		// 3. Return the new thread's ID to the client
 		return threadId;
+	},
+});
+
+/**
+ * Insert a new user and assistant message into a thread to prepare it for new message generation
+ */
+export const setupThread = mutation({
+	args: {
+		threadId: v.id('threads'),
+		model: v.string(),
+		messageContent: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('Not authenticated');
+
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread || thread.userId !== user._id) throw new Error('Unauthorized');
+
+		const userMessageId = await ctx.db.insert('messages', {
+			...DefaultUserMessage,
+			userId: user._id,
+			threadId: args.threadId,
+			modelUsed: args.model,
+			content: args.messageContent,
+		});
+
+		const assistantMessageId = await ctx.db.insert('messages', {
+			...DefaultAssistantMessage,
+			userId: user._id,
+			threadId: args.threadId,
+			modelUsed: args.model,
+		});
+
+		const allMessages = await ctx.db
+			.query('messages')
+			.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
+			.filter((q) => q.neq(q.field('status'), 'pending'))
+			.collect();
+
+		return {
+			userMessageId,
+			assistantMessageId,
+			allMessages,
+		};
 	},
 });
 

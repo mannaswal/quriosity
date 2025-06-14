@@ -9,7 +9,13 @@ import {
 import { api, internal } from './_generated/api';
 import { getUser } from './users';
 import { Doc, Id } from './_generated/dataModel';
-import { MessageRole, MessageStatus, StopReason } from './schema';
+import {
+	DefaultAssistantMessage,
+	DefaultUserMessage,
+	MessageRole,
+	MessageStatus,
+	StopReason,
+} from './schema';
 import { updateThreadStatus } from './threads';
 
 export const getMessagesByThread = query({
@@ -25,18 +31,46 @@ export const getMessagesByThread = query({
 	},
 });
 
+export const insertMessage = internalMutation({
+	args: {
+		threadId: v.id('threads'),
+		role: MessageRole,
+		modelUsed: v.string(),
+		content: v.optional(v.string()),
+		reasoning: v.optional(v.string()),
+		status: v.optional(MessageStatus),
+		stopReason: v.optional(StopReason),
+	},
+	handler: async (ctx, args) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('User not authenticated');
+
+		const message = {
+			...(args.role === 'user' ? DefaultUserMessage : DefaultAssistantMessage),
+			userId: user._id,
+			threadId: args.threadId,
+			modelUsed: args.modelUsed,
+		};
+
+		return await ctx.db.insert('messages', message);
+	},
+});
+
 /**
  * Insert messages into the database
+ * @returns The array of inserted message IDs
  */
 export const insertMessages = mutation({
 	args: {
 		threadId: v.id('threads'),
 		messages: v.array(
 			v.object({
-				content: v.string(),
-				modelUsed: v.string(),
 				role: MessageRole,
-				status: MessageStatus,
+				modelUsed: v.string(),
+				content: v.optional(v.string()),
+				reasoning: v.optional(v.string()),
+				status: v.optional(MessageStatus),
+				stopReason: v.optional(StopReason),
 			})
 		),
 	},
@@ -47,26 +81,24 @@ export const insertMessages = mutation({
 		const insertedMessageIds: Id<'messages'>[] = [];
 
 		args.messages.forEach(async (message) => {
-			const insertedMessageId = await ctx.db.insert('messages', {
-				userId: user._id,
-				threadId: args.threadId,
-
-				content: message.content,
-				modelUsed: message.modelUsed,
-				role: message.role,
-				status: message.status,
-			});
+			const insertedMessageId = await ctx.runMutation(
+				internal.messages.insertMessage,
+				{
+					// Required fields
+					threadId: args.threadId,
+					role: message.role,
+					modelUsed: message.modelUsed,
+					// Optional fields
+					content: message.content,
+					reasoning: message.reasoning,
+					status: message.status,
+					stopReason: message.stopReason,
+				}
+			);
 			insertedMessageIds.push(insertedMessageId);
 		});
 
-		return {
-			messages: await ctx.db
-				.query('messages')
-				.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
-				.filter((q) => q.neq(q.field('status'), 'pending'))
-				.collect(),
-			insertedMessageIds,
-		};
+		return insertedMessageIds;
 	},
 });
 
@@ -181,11 +213,9 @@ export const regenerateResponse = mutation({
 
 		// Create a new placeholder message for the assistant
 		const newAssistantMessageId = await ctx.db.insert('messages', {
+			...DefaultAssistantMessage,
 			userId: user._id,
 			threadId: userMessage.threadId,
-			role: 'assistant',
-			content: '',
-			status: 'pending',
 			modelUsed: modelUsed,
 		});
 
@@ -247,6 +277,7 @@ export const editAndResubmit = mutation({
 			userId: user._id,
 			threadId: userMessage.threadId,
 			role: 'assistant',
+			reasoning: '',
 			content: '',
 			status: 'pending',
 			modelUsed: modelUsed,

@@ -50,6 +50,7 @@ export default defineSchema({
 		threadId: v.id('threads'),
 
 		content: v.string(),
+		reasoning: v.optional(v.string()),
 		modelUsed: v.string(),
 		role: MessageRole,
 		status: MessageStatus,
@@ -59,3 +60,16 @@ export default defineSchema({
 		.index('by_thread', ['threadId'])
 		.index('by_thread_and_status', ['threadId', 'status']),
 });
+
+export const DefaultUserMessage = {
+	role: 'user' as const,
+	content: '',
+	status: 'done' as const,
+};
+
+export const DefaultAssistantMessage = {
+	role: 'assistant' as const,
+	content: '',
+	reasoning: '',
+	status: 'pending' as const,
+};

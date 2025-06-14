@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { useModel } from './use-model';
 import { ModelId } from '@/lib/models';
 import { processDataStream } from 'ai';
+import { getMessagesByThread } from 'convex/messages';
 
 /**
  * Hook to get messages for a thread - now subscribes to both DB and streaming store
@@ -50,8 +51,11 @@ export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
  * Handles status updates, streaming store management, and error cleanup
  */
 function useStreamMessage() {
-	const { updateStreamingContent, addStreamingMessage } =
-		useStreamingStoreActions();
+	const {
+		updateStreamingContent,
+		addStreamingMessage,
+		removeStreamingMessage,
+	} = useStreamingStoreActions();
 	const updateMessage = useMutation(api.messages.updateMessage);
 
 	return async (
@@ -123,54 +127,33 @@ export function useSendMessage(opts?: {
 	const model = useModel();
 	const router = useRouter();
 	const thread = useThread();
-	const createThread = useMutation(api.threads.createThread);
 	const streamMessage = useStreamMessage();
-	const insertMessages = useMutation(api.messages.insertMessages);
-	const { getStreamingMessage } = useStreamingStoreActions();
+	const createThread = useMutation(api.threads.createThread);
+	const setupThread = useMutation(api.threads.setupThread);
 
 	const sendMessage = async (messageContent: string) => {
-		if (thread?.status === 'streaming' || getStreamingMessage(thread?._id))
-			return;
+		if (thread?.status === 'streaming') return;
 
 		try {
 			let targetThreadId = thread?._id;
 
 			// If there is no thread, we create a new one
 			if (!targetThreadId) {
-				const newThreadId = await createThread({
+				targetThreadId = await createThread({
 					messageContent: messageContent,
 					model: model,
 				});
-				targetThreadId = newThreadId;
+
+				router.push(`/chat/${targetThreadId}`); // Redirect to the new thread
 			}
 
-			// If there is no thread, need to redirect to the new thread using the threadId we just created
-			if (!thread) router.push(`/chat/${targetThreadId}`);
-
-			const userMessage = {
-				role: 'user' as const,
-				content: messageContent,
-				modelUsed: model,
-				status: 'done' as const,
-			};
-
-			// Create assistant message
-			const assistantMessage = {
-				role: 'assistant' as const,
-				content: '',
-				modelUsed: model,
-				status: 'pending' as const,
-			};
-
-			// Insert messages into the database to prepare thread
-			const { messages, insertedMessageIds } = await insertMessages({
+			const { assistantMessageId, allMessages } = await setupThread({
 				threadId: targetThreadId,
-				messages: [userMessage, assistantMessage],
+				model: model,
+				messageContent: messageContent,
 			});
 
-			const assistantMessageId = insertedMessageIds[1];
-
-			const messageHistory = messages.map((message) => ({
+			const messageHistory = allMessages.map((message) => ({
 				id: message._id,
 				role: message.role,
 				content: message.content,
