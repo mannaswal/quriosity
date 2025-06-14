@@ -34,7 +34,10 @@ export type Thread = Doc<'threads'>;
 
 export type User = Doc<'users'>;
 
-export type OptimisticMessage = {
-	role: 'user' | 'assistant';
-	content: string;
-};
+export type ModelReasoningOptions =
+	| {
+			effort: 'low' | 'medium' | 'high';
+	  }
+	| {
+			max_tokens: number;
+	  };
