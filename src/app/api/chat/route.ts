@@ -4,6 +4,7 @@ import { streamText, CoreMessage, createDataStreamResponse } from 'ai';
 import { auth } from '@clerk/nextjs/server';
 import { api } from 'convex/_generated/api';
 import { ConvexHttpClient } from 'convex/browser';
+import { markdownJoinerTransform } from '@/utils/markdown-joiner-transform';
 
 const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY!,
@@ -63,7 +64,8 @@ export async function POST(request: NextRequest) {
 		const response = streamText({
 			model: openrouter(model),
 			messages: formattedHistory,
-			abortSignal: abortController.signal, // Use our own signal, not request.signal
+			abortSignal: abortController.signal,
+			experimental_transform: markdownJoinerTransform(),
 		});
 
 		return createDataStreamResponse({
@@ -85,7 +87,7 @@ export async function POST(request: NextRequest) {
 									content += chunk.textDelta;
 								}
 								const now = Date.now();
-								if (now - lastSent > 500) {
+								if (now - lastSent > 250) {
 									const updateAccepted = await updateMessage(content);
 									lastSent = now;
 
