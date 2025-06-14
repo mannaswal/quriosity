@@ -10,12 +10,13 @@ import { toast } from 'sonner';
 
 interface UserMessageProps {
 	message: ChatMessage;
+	index: number;
 }
 
 /**
  * Component for rendering user messages with edit, regenerate, and copy functionality
  */
-export function UserMessage({ message }: UserMessageProps) {
+export function UserMessage({ message, index }: UserMessageProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editedContent, setEditedContent] = useState(message.content);
 	const [copied, setCopied] = useState(false);

@@ -19,18 +19,19 @@ import { TextShimmer } from '@/components/ui/text-shimmer';
 
 interface AssistantMessageProps {
 	message: ChatMessage;
+	index: number;
 }
 
 /**
  * Component for rendering assistant messages with copy and branch functionality
  * Now supports real-time streaming content
  */
-export function AssistantMessage({ message }: AssistantMessageProps) {
+export function AssistantMessage({ message, index }: AssistantMessageProps) {
 	const [copied, setCopied] = useState(false);
 	const [isBranching, setIsBranching] = useState(false);
 
 	const branch = useBranchThread();
-	const regenerate = useRegenerate({});
+	const regenerate = useRegenerate();
 
 	const content = message.content;
 	const reasoning = message.reasoning;
@@ -72,7 +73,10 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 	return (
 		<div
 			data-id={message._id}
-			className="w-full flex flex-col">
+			className={cn(
+				'w-full flex flex-col',
+				index > 2 && 'last:min-h-[calc(100vh-19rem)]'
+			)}>
 			{isLoading && (
 				<Loader
 					variant="pulse-dot"
@@ -109,7 +113,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 				)}
 				{(isError || isStopped) && (
 					<div className="text-sm text-rose-400/80">
-						{isError && 'An error occurred'}
+						{isError && 'Failed to generate message. Please try regenerating.'}
 						{isStopped && 'Stopped by user'}
 					</div>
 				)}
@@ -147,9 +151,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
 						</Button>
 						<div className="flex gap-2 text-xs ml-2">
 							<div className="text-neutral-500">
-								<div>
-									{models.find((m) => m.id === message.modelUsed)?.name}
-								</div>
+								{models.find((m) => m.id === message.modelUsed)?.name}
 							</div>
 						</div>
 					</div>
