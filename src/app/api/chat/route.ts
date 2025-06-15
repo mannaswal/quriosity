@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
 		convexClient.setAuth(token);
 
 		// 2. Extract request payload
-		const { threadId, model, messages, messageId } = await request.json();
+		const { threadId, model, messages, messageId, reasoningEffort } =
+			await request.json();
 
 		if (!threadId || !model || !messages || !messageId || !userId) {
 			return new NextResponse('Missing required fields', { status: 400 });
@@ -61,14 +62,19 @@ export async function POST(request: NextRequest) {
 			});
 		};
 
+		console.log(model, reasoningEffort);
+
 		const response = streamText({
 			model: openrouter.chat(model, {
-				reasoning: { effort: 'low' },
+				reasoning: { effort: reasoningEffort ?? 'medium' },
 			}),
 			messages: formattedHistory,
 			abortSignal: abortController.signal,
 			experimental_transform: markdownJoinerTransform(),
 		});
+
+		let content = '';
+		let reasoning = '';
 
 		return createDataStreamResponse({
 			execute: async (dataStream) => {
@@ -80,8 +86,6 @@ export async function POST(request: NextRequest) {
 
 					(async () => {
 						try {
-							let content = '';
-							let reasoning = '';
 							let lastSent = Date.now();
 
 							for await (const chunk of response.fullStream) {
@@ -124,7 +128,8 @@ export async function POST(request: NextRequest) {
 
 							console.error('Streaming error:', error);
 							await updateMessage({
-								content: 'Error generating response',
+								content: content,
+								reasoning: reasoning,
 								status: 'error',
 								stopReason: 'error',
 							});

@@ -34,10 +34,4 @@ export type Thread = Doc<'threads'>;
 
 export type User = Doc<'users'>;
 
-export type ModelReasoningOptions =
-	| {
-			effort: 'low' | 'medium' | 'high';
-	  }
-	| {
-			max_tokens: number;
-	  };
+export type ReasoningEffort = 'low' | 'medium' | 'high';

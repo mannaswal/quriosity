@@ -4,7 +4,7 @@ import { useConvexAuth, useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { toast } from 'sonner';
-import { Message } from '@/lib/types';
+import { Message, ReasoningEffort } from '@/lib/types';
 import {
 	useStreamingStoreActions,
 	useStreamingMessage,
@@ -60,16 +60,24 @@ function useStreamMessage() {
 		useStreamingStoreActions();
 	const updateMessage = useMutation(api.messages.updateMessage);
 
-	return async (
-		threadId: Id<'threads'>,
-		model: ModelId,
-		assistantMessageId: Id<'messages'>,
+	return async (input: {
+		threadId: Id<'threads'>;
+		model: ModelId;
+		reasoningEffort: ReasoningEffort | undefined;
+		assistantMessageId: Id<'messages'>;
 		messageHistory: {
 			id: Id<'messages'>;
 			role: 'user' | 'assistant' | 'system';
 			content: string;
-		}[]
-	) => {
+		}[];
+	}) => {
+		const {
+			threadId,
+			model,
+			reasoningEffort,
+			assistantMessageId,
+			messageHistory,
+		} = input;
 		addStreamingMessage(threadId, assistantMessageId, '', '');
 
 		try {
@@ -79,6 +87,7 @@ function useStreamMessage() {
 					threadId,
 					messageId: assistantMessageId,
 					model,
+					reasoningEffort,
 					messages: messageHistory,
 				}),
 			});
@@ -152,7 +161,7 @@ export function useSendMessage(opts?: {
 	onSuccess?: () => void;
 	onError?: (error: Error) => void;
 }) {
-	const model = useModel();
+	const { model, reasoningEffort, modelData } = useModel();
 	const router = useRouter();
 	const thread = useThread();
 	const streamMessage = useStreamMessage();
@@ -168,8 +177,9 @@ export function useSendMessage(opts?: {
 			// If there is no thread, we create a new one
 			if (!targetThreadId) {
 				targetThreadId = await createThread({
-					messageContent: messageContent,
-					model: model,
+					messageContent,
+					model,
+					reasoningEffort,
 				});
 
 				router.push(`/chat/${targetThreadId}`); // Redirect to the new thread
@@ -177,8 +187,9 @@ export function useSendMessage(opts?: {
 
 			const { assistantMessageId, allMessages } = await setupThread({
 				threadId: targetThreadId,
-				model: model,
-				messageContent: messageContent,
+				model,
+				reasoningEffort,
+				messageContent,
 			});
 
 			const messageHistory = allMessages.map((message) => ({
@@ -188,12 +199,13 @@ export function useSendMessage(opts?: {
 			}));
 
 			// Start streaming
-			await streamMessage(
-				targetThreadId,
+			await streamMessage({
+				threadId: targetThreadId,
 				model,
+				reasoningEffort,
 				assistantMessageId,
-				messageHistory
-			);
+				messageHistory,
+			});
 
 			opts?.onSuccess?.();
 		} catch (error) {
@@ -241,7 +253,7 @@ export function useRegenerate(opts?: {
 				blockStreaming(args.threadId);
 			}
 
-			const { assistantMessageId, model, threadId, messages } =
+			const { assistantMessageId, assistantMessage, messages } =
 				await regenerateMutation({
 					messageId: args.messageId,
 				});
@@ -255,12 +267,13 @@ export function useRegenerate(opts?: {
 			}));
 
 			// Start streaming
-			await streamMessage(
-				threadId,
-				model as ModelId,
+			await streamMessage({
+				threadId: assistantMessage.threadId,
+				model: assistantMessage.model as ModelId,
+				reasoningEffort: assistantMessage.reasoningEffort,
 				assistantMessageId,
-				messageHistory
-			);
+				messageHistory,
+			});
 
 			opts?.onSuccess?.();
 			return { assistantMessageId, messages };
@@ -309,7 +322,7 @@ export function useEditAndResubmit(opts?: {
 				blockStreaming(args.threadId);
 			}
 
-			const { assistantMessageId, model, threadId, messages } =
+			const { assistantMessageId, assistantMessage, messages } =
 				await editMutation({
 					userMessageId: args.userMessageId,
 					newContent: args.newContent,
@@ -324,12 +337,13 @@ export function useEditAndResubmit(opts?: {
 			}));
 
 			// Start streaming
-			await streamMessage(
-				threadId,
-				model as ModelId,
+			await streamMessage({
+				threadId: assistantMessage.threadId,
+				model: assistantMessage.model as ModelId,
+				reasoningEffort: assistantMessage.reasoningEffort,
 				assistantMessageId,
-				messageHistory
-			);
+				messageHistory,
+			});
 
 			opts?.onSuccess?.();
 			return { assistantMessageId, messages };

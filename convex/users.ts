@@ -6,6 +6,7 @@ import {
 	mutation,
 	query,
 } from './_generated/server';
+import { ReasoningEffort } from './schema';
 
 /**
  * Get the user record for the currently authenticated user.
@@ -66,12 +67,21 @@ export const getCurrentUser = query({
  * Update the last model used by the user.
  */
 export const updateLastModelUsed = mutation({
-	args: { model: v.string() },
-	handler: async (ctx, { model }) => {
+	args: {
+		model: v.optional(v.string()),
+		reasoningEffort: v.optional(ReasoningEffort),
+	},
+	handler: async (ctx, { model, reasoningEffort }) => {
+		if (!model && !reasoningEffort) return;
 		const user = await getUser(ctx);
-		if (!user) {
-			throw new Error('User not found.');
-		}
-		return await ctx.db.patch(user._id, { lastModelUsed: model });
+		if (!user) throw new Error('User not found.');
+
+		const patch: Record<string, string | typeof ReasoningEffort> = {};
+		if (model) patch.lastModelUsed = model;
+		if (reasoningEffort) patch.lastReasoningEffortUsed = reasoningEffort;
+
+		return await ctx.db.patch(user._id, {
+			...patch,
+		});
 	},
 });

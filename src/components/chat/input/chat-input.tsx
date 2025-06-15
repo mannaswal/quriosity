@@ -13,6 +13,9 @@ import { useSendMessage } from '@/hooks/use-messages';
 import { useStopStream } from '@/hooks/use-threads';
 import { ModelSelector } from './model-selector';
 import { useThread } from '@/hooks/use-threads';
+import { ReasoningSelector } from './reasoning-selector';
+import { useTempModel } from '@/stores/use-temp-data-store';
+import { canReason } from '@/lib/utils';
 
 export function ChatInput() {
 	const thread = useThread();
@@ -20,6 +23,7 @@ export function ChatInput() {
 
 	const sendMessage = useSendMessage();
 	const stopStream = useStopStream();
+	const modelId = useTempModel();
 
 	const isProcessing =
 		thread?.status === 'streaming' || thread?.status === 'pending';
@@ -57,11 +61,20 @@ export function ChatInput() {
 					className="md:text-base"
 				/>
 				<PromptInputActions className="w-full flex items-center justify-between pt-2">
-					<PromptInputAction
-						delayDuration={300}
-						tooltip="Model">
-						<ModelSelector />
-					</PromptInputAction>
+					<div className="flex items-center gap-0">
+						<PromptInputAction
+							delayDuration={300}
+							tooltip="Model">
+							<ModelSelector />
+						</PromptInputAction>
+						{canReason(modelId) && (
+							<PromptInputAction
+								delayDuration={300}
+								tooltip="Reasoning">
+								<ReasoningSelector />
+							</PromptInputAction>
+						)}
+					</div>
 					<PromptInputAction
 						delayDuration={300}
 						tooltip={isProcessing ? 'Stop' : 'Send'}>

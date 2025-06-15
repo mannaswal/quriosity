@@ -1,4 +1,5 @@
 // convex/schema.ts
+import { metadata } from '@/app/layout';
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
@@ -29,12 +30,20 @@ export const StopReason = v.union(
 	v.literal('error')
 );
 
+export const ReasoningEffort = v.union(
+	v.literal('low'),
+	v.literal('medium'),
+	v.literal('high')
+);
+
 export default defineSchema({
 	users: defineTable({
 		name: v.string(),
 		email: v.optional(v.string()),
 		authId: v.string(),
+
 		lastModelUsed: v.optional(v.string()),
+		lastReasoningEffortUsed: v.optional(ReasoningEffort),
 	}).index('by_auth_id', ['authId']),
 
 	threads: defineTable({
@@ -42,7 +51,8 @@ export default defineSchema({
 		title: v.string(),
 		isPublic: v.boolean(),
 		shareId: v.optional(v.string()),
-		currentModel: v.optional(v.string()),
+		model: v.string(),
+		reasoningEffort: v.optional(ReasoningEffort),
 		pinned: v.optional(v.boolean()),
 		parentMessageId: v.optional(v.id('messages')),
 		status: ThreadStatus,
@@ -57,10 +67,12 @@ export default defineSchema({
 
 		content: v.string(),
 		reasoning: v.optional(v.string()),
-		modelUsed: v.string(),
 		role: MessageRole,
 		status: MessageStatus,
 		stopReason: v.optional(StopReason),
+
+		model: v.string(),
+		reasoningEffort: v.optional(ReasoningEffort),
 	})
 		.index('by_user_id', ['userId'])
 		.index('by_thread', ['threadId'])

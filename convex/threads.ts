@@ -13,6 +13,7 @@ import { getUser } from './users';
 import {
 	DefaultAssistantMessage,
 	DefaultUserMessage,
+	ReasoningEffort,
 	ThreadStatus,
 } from './schema';
 
@@ -92,7 +93,8 @@ export const updateThreadTitle = internalMutation({
 export const updateThreadModel = mutation({
 	args: {
 		threadId: v.id('threads'),
-		model: v.string(),
+		model: v.optional(v.string()),
+		reasoningEffort: v.optional(ReasoningEffort),
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -111,10 +113,12 @@ export const updateThreadModel = mutation({
 			throw new Error('Unauthorized');
 		}
 
+		const patch: Record<string, string | typeof ReasoningEffort> = {};
+		if (args.model) patch.model = args.model;
+		if (args.reasoningEffort) patch.reasoningEffort = args.reasoningEffort;
+
 		// Update the thread's current model
-		await ctx.db.patch(args.threadId, {
-			currentModel: args.model,
-		});
+		await ctx.db.patch(args.threadId, patch);
 	},
 });
 
@@ -122,6 +126,7 @@ export const createThread = mutation({
 	args: {
 		messageContent: v.string(),
 		model: v.string(),
+		reasoningEffort: v.optional(ReasoningEffort),
 	},
 	handler: async (ctx, args) => {
 		const user = await getUser(ctx);
@@ -132,7 +137,8 @@ export const createThread = mutation({
 			userId: user._id,
 			title: 'New Chat',
 			isPublic: false,
-			currentModel: args.model,
+			model: args.model,
+			reasoningEffort: args.reasoningEffort,
 			status: 'pending',
 		});
 
@@ -154,6 +160,7 @@ export const setupThread = mutation({
 	args: {
 		threadId: v.id('threads'),
 		model: v.string(),
+		reasoningEffort: v.optional(ReasoningEffort),
 		messageContent: v.string(),
 	},
 	handler: async (ctx, args) => {
@@ -167,7 +174,8 @@ export const setupThread = mutation({
 			...DefaultUserMessage,
 			userId: user._id,
 			threadId: args.threadId,
-			modelUsed: args.model,
+			model: args.model,
+			reasoningEffort: args.reasoningEffort,
 			content: args.messageContent,
 		});
 
@@ -175,7 +183,8 @@ export const setupThread = mutation({
 			...DefaultAssistantMessage,
 			userId: user._id,
 			threadId: args.threadId,
-			modelUsed: args.model,
+			model: args.model,
+			reasoningEffort: args.reasoningEffort,
 		});
 
 		const allMessages = await ctx.db
@@ -354,7 +363,8 @@ export const branchFromMessage = mutation({
 			userId: user._id,
 			title: sourceThread.title, // Copy title from parent
 			isPublic: false,
-			currentModel: sourceThread.currentModel, // Copy model from parent
+			model: sourceThread.model, // Copy model from parent
+			reasoningEffort: sourceThread.reasoningEffort, // Copy reasoning from parent
 			parentMessageId: messageId,
 			status: 'done',
 		});
@@ -367,7 +377,8 @@ export const branchFromMessage = mutation({
 				role: message.role,
 				content: message.content,
 				status: message.status,
-				modelUsed: message.modelUsed,
+				model: message.model,
+				reasoningEffort: message.reasoningEffort,
 				userId: user._id,
 				stopReason: message.stopReason,
 			});

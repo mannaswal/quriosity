@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useBranchThread } from '@/hooks/use-threads';
-import { models } from '@/lib/models';
-import { cn } from '@/lib/utils';
+import { ModelId, modelsData } from '@/lib/models';
+import { canReason, cap, cn } from '@/lib/utils';
 import { Button } from '../../ui/button';
 import { Markdown } from '../../ui/markdown';
 import { Message } from '@/components/ui/message';
@@ -122,23 +122,6 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 				{(message.status === 'error' || message.status === 'done') && (
 					<div className="flex items-center -ml-0.5">
 						<Button
-							onClick={handleRegenerate}
-							disabled={isPending}
-							variant="ghost"
-							size="icon"
-							className="size-8">
-							<RefreshCcwIcon className="size-4" />
-						</Button>
-
-						<Button
-							variant="ghost"
-							size="icon"
-							className="size-8"
-							disabled={isBranching}
-							onClick={handleBranch}>
-							<SplitIcon className="size-4 rotate-180" />
-						</Button>
-						<Button
 							variant="ghost"
 							size="icon"
 							className="size-8"
@@ -149,10 +132,35 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 								<CopyIcon className="w-4 h-4" />
 							)}
 						</Button>
-						<div className="flex gap-2 text-xs ml-2">
+
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-8"
+							disabled={isBranching}
+							onClick={handleBranch}>
+							<SplitIcon className="size-4 rotate-180" />
+						</Button>
+
+						<Button
+							onClick={handleRegenerate}
+							disabled={isPending}
+							variant="ghost"
+							size="icon"
+							className="size-8">
+							<RefreshCcwIcon className="size-4" />
+						</Button>
+
+						<div className="flex gap-1 text-xs ml-2">
 							<div className="text-neutral-500">
-								{models.find((m) => m.id === message.modelUsed)?.name}
+								{modelsData[message.model as ModelId].name}
 							</div>
+							{message.reasoningEffort &&
+								canReason(message.model as ModelId) && (
+									<div className="text-neutral-500">
+										({cap(message.reasoningEffort)})
+									</div>
+								)}
 						</div>
 					</div>
 				)}

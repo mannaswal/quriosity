@@ -32,9 +32,7 @@ const ChatContainer = memo(function ChatContainer() {
 			<ChatContainerRoot className="flex-1">
 				<ChatContainerContent
 					data-tall={tallerThanScreen}
-					className={cn(
-						'p-4 sm:px-6 max-w-3xl mx-auto pt-14 pb-32 space-y-4 group'
-					)}>
+					className={cn('px-6 max-w-3xl mx-auto pt-14 pb-32 space-y-4 group')}>
 					{messages.map((message, index) => {
 						return (
 							<MessageItem

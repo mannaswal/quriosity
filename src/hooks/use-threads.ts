@@ -13,6 +13,8 @@ import {
 	useStreamingMessage,
 	useStreamingStoreActions,
 } from '@/stores/use-streaming-store';
+import { ModelId } from '@/lib/models';
+import { ReasoningEffort } from '@/lib/types';
 
 /**
  * Hook to get all user threads
@@ -63,32 +65,56 @@ export function useThread() {
  * Hook for updating thread model with optimistic updates
  */
 export function useUpdateThreadModel() {
-	return useConvexMutation(api.threads.updateThreadModel).withOptimisticUpdate(
-		(localStore, args) => {
-			const { threadId, model } = args;
+	const threadId = useThreadId();
 
-			// Optimistically update the specific thread
-			const currentThread = localStore.getQuery(api.threads.getThreadById, {
-				threadId,
-			});
-			if (currentThread) {
-				localStore.setQuery(
-					api.threads.getThreadById,
-					{ threadId },
-					{ ...currentThread, currentModel: model }
-				);
-			}
+	const updateThreadModelMutation = useConvexMutation(
+		api.threads.updateThreadModel
+	).withOptimisticUpdate((localStore, args) => {
+		const { threadId, model, reasoningEffort } = args;
 
-			// Also update in the threads list
-			const threadsList = localStore.getQuery(api.threads.getUserThreads, {});
-			if (threadsList) {
-				const updatedList = threadsList.map((thread) =>
-					thread._id === threadId ? { ...thread, currentModel: model } : thread
-				);
-				localStore.setQuery(api.threads.getUserThreads, {}, updatedList);
-			}
+		// Optimistically update the specific thread
+		const currentThread = localStore.getQuery(api.threads.getThreadById, {
+			threadId,
+		});
+		if (currentThread) {
+			localStore.setQuery(
+				api.threads.getThreadById,
+				{ threadId },
+				{
+					...currentThread,
+					...(model ? { model } : {}),
+					...(reasoningEffort ? { reasoningEffort } : {}),
+				}
+			);
 		}
-	);
+
+		// Also update in the threads list
+		const threadsList = localStore.getQuery(api.threads.getUserThreads, {});
+		if (threadsList) {
+			const updatedList = threadsList.map((thread) =>
+				thread._id === threadId
+					? {
+							...thread,
+							...(model && { model }),
+							...(reasoningEffort && { reasoningEffort }),
+					  }
+					: thread
+			);
+			localStore.setQuery(api.threads.getUserThreads, {}, updatedList);
+		}
+	});
+
+	return async (args: {
+		model?: ModelId;
+		reasoningEffort?: ReasoningEffort;
+	}) => {
+		if (!threadId) return;
+
+		await updateThreadModelMutation({
+			threadId,
+			...args,
+		});
+	};
 }
 
 /**

@@ -3,6 +3,7 @@
 import { useConvexAuth, useMutation as useConvexMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useQuery as useConvexQuery } from 'convex/react';
+import { ReasoningEffort } from '@/lib/types';
 
 /**
  * Hook to get the current user's data.
@@ -21,7 +22,10 @@ export function useCurrentUser() {
 export function useUpdateLastModelUsed() {
 	const mutation = useConvexMutation(api.users.updateLastModelUsed);
 
-	return async (args: { model: string }) => {
+	return async (args: {
+		model?: string;
+		reasoningEffort?: ReasoningEffort;
+	}) => {
 		try {
 			return await mutation(args);
 		} catch (error) {

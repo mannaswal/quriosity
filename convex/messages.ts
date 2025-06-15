@@ -14,6 +14,7 @@ import {
 	DefaultUserMessage,
 	MessageRole,
 	MessageStatus,
+	ReasoningEffort,
 	StopReason,
 } from './schema';
 import { updateThreadStatus } from './threads';
@@ -35,7 +36,8 @@ export const insertMessage = internalMutation({
 	args: {
 		threadId: v.id('threads'),
 		role: MessageRole,
-		modelUsed: v.string(),
+		model: v.string(),
+		reasoningEffort: v.optional(ReasoningEffort),
 		content: v.optional(v.string()),
 		reasoning: v.optional(v.string()),
 		status: v.optional(MessageStatus),
@@ -47,9 +49,10 @@ export const insertMessage = internalMutation({
 
 		const message = {
 			...(args.role === 'user' ? DefaultUserMessage : DefaultAssistantMessage),
+			...args,
 			userId: user._id,
 			threadId: args.threadId,
-			modelUsed: args.modelUsed,
+			model: args.model,
 		};
 
 		return await ctx.db.insert('messages', message);
@@ -66,7 +69,8 @@ export const insertMessages = mutation({
 		messages: v.array(
 			v.object({
 				role: MessageRole,
-				modelUsed: v.string(),
+				model: v.string(),
+				reasoningEffort: v.optional(ReasoningEffort),
 				content: v.optional(v.string()),
 				reasoning: v.optional(v.string()),
 				status: v.optional(MessageStatus),
@@ -87,8 +91,9 @@ export const insertMessages = mutation({
 					// Required fields
 					threadId: args.threadId,
 					role: message.role,
-					modelUsed: message.modelUsed,
+					model: message.model,
 					// Optional fields
+					reasoningEffort: message.reasoningEffort,
 					content: message.content,
 					reasoning: message.reasoning,
 					status: message.status,
@@ -192,7 +197,8 @@ export const regenerateResponse = mutation({
 			throw new Error('User not authorized to access this thread.');
 		}
 
-		const modelUsed = userMessage.modelUsed;
+		const modelUsed = userMessage.model;
+		const reasoningEffortUsed = userMessage.reasoningEffort;
 
 		// Find and delete all messages that came after the user's message
 		const subsequentMessages = await ctx.db
@@ -215,20 +221,21 @@ export const regenerateResponse = mutation({
 			status: 'pending',
 		});
 
-		// Create a new placeholder message for the assistant
-		const newAssistantMessageId = await ctx.db.insert('messages', {
+		let assistantMessage = {
 			...DefaultAssistantMessage,
 			userId: user._id,
 			threadId: userMessage.threadId,
-			modelUsed: modelUsed,
-		});
-
-		return {
-			assistantMessageId: newAssistantMessageId,
-			threadId: userMessage.threadId,
 			model: modelUsed,
-			messages,
+			reasoningEffort: reasoningEffortUsed,
 		};
+
+		// Create a new placeholder message for the assistant
+		const assistantMessageId = await ctx.db.insert(
+			'messages',
+			assistantMessage
+		);
+
+		return { assistantMessageId, assistantMessage, messages };
 	},
 });
 
@@ -253,7 +260,8 @@ export const editAndResubmit = mutation({
 		// 1. Update the user's message content
 		await ctx.db.patch(userMessage._id, { content: newContent });
 
-		const modelUsed = userMessage.modelUsed;
+		const modelUsed = userMessage.model;
+		const reasoningEffortUsed = userMessage.reasoningEffort;
 
 		// 2. Find and delete all messages that came after the user's message
 		const subsequentMessages = await ctx.db
@@ -277,21 +285,20 @@ export const editAndResubmit = mutation({
 		});
 
 		// 3. Create a new placeholder message for the assistant
-		const newAssistantMessageId = await ctx.db.insert('messages', {
+		let assistantMessage = {
+			...DefaultAssistantMessage,
 			userId: user._id,
 			threadId: userMessage.threadId,
-			role: 'assistant',
-			reasoning: '',
-			content: '',
-			status: 'pending',
-			modelUsed: modelUsed,
-		});
-
-		return {
-			assistantMessageId: newAssistantMessageId,
-			threadId: userMessage.threadId,
 			model: modelUsed,
-			messages,
+			reasoningEffort: reasoningEffortUsed,
 		};
+
+		// Create a new placeholder message for the assistant
+		const assistantMessageId = await ctx.db.insert(
+			'messages',
+			assistantMessage
+		);
+
+		return { assistantMessageId, assistantMessage, messages };
 	},
 });
