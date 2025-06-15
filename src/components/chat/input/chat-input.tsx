@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { useSendMessage } from '@/hooks/use-messages';
 import { useStopStream } from '@/hooks/use-threads';
 import { ModelSelector } from './model-selector';
+import { ModelSelectorAdvanced } from './model-selector-advanced';
 import { useThread } from '@/hooks/use-threads';
 import { ReasoningSelector } from './reasoning-selector';
 import { useTempModel } from '@/stores/use-temp-data-store';
@@ -63,7 +64,7 @@ export function ChatInput() {
 						<PromptInputAction
 							delayDuration={300}
 							tooltip="Model">
-							<ModelSelector />
+							<ModelSelectorAdvanced />
 						</PromptInputAction>
 						{canReason(modelId) && (
 							<PromptInputAction

@@ -7,6 +7,16 @@ export type ModelProvider =
 	| 'xai'
 	| 'alibaba';
 
+export const providerModelNames: Record<ModelProvider, string> = {
+	google: 'Gemini',
+	openai: 'GPT',
+	anthropic: 'Claude',
+	meta: 'Llama',
+	deepseek: 'DeepSeek',
+	xai: 'Grok',
+	alibaba: 'Qwen',
+};
+
 /**
  * Describes the properties and capabilities of a single AI model.
  */
@@ -94,17 +104,6 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		vision: true,
 		webSearch: false,
 		attachments: true,
-		reasoning: true,
-		fast: false,
-		experimental: false,
-	},
-	'deepseek/deepseek-r1': {
-		provider: 'deepseek' as ModelProvider,
-		name: 'DeepSeek R1 (Llama Distilled)',
-		id: 'deepseek/deepseek-r1' as const,
-		vision: false,
-		webSearch: false,
-		attachments: false,
 		reasoning: true,
 		fast: false,
 		experimental: false,
@@ -298,7 +297,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 	},
 	'deepseek/deepseek-chat-v3-0324': {
 		provider: 'deepseek' as ModelProvider,
-		name: 'DeepSeek v3 (Fireworks)',
+		name: 'DeepSeek v3',
 		id: 'deepseek/deepseek-chat-v3-0324' as const,
 		vision: false,
 		webSearch: false,
@@ -318,16 +317,27 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		fast: false,
 		experimental: true,
 	},
-	'deepseek/deepseek-r1:qwen-distilled': {
+	'deepseek/deepseek-r1-distill-qwen-32b': {
 		provider: 'deepseek' as ModelProvider,
 		name: 'DeepSeek R1 (Qwen Distilled)',
-		id: 'deepseek/deepseek-r1:qwen-distilled' as const,
+		id: 'deepseek/deepseek-r1-distill-qwen-32b' as const,
 		vision: false,
 		webSearch: false,
 		attachments: false,
 		reasoning: true,
 		fast: false,
 		experimental: true,
+	},
+	'deepseek/deepseek-r1-distill-llama-70b': {
+		provider: 'deepseek' as ModelProvider,
+		name: 'DeepSeek R1 (Llama Distilled)',
+		id: 'deepseek/deepseek-r1-distill-llama-70b' as const,
+		vision: false,
+		webSearch: false,
+		attachments: false,
+		reasoning: true,
+		fast: false,
+		experimental: false,
 	},
 	'x-ai/grok-3-beta': {
 		provider: 'xai' as ModelProvider,
@@ -395,7 +405,6 @@ export type ModelId =
 	| 'openai/o4-mini'
 	| 'anthropic/claude-sonnet-4'
 	| 'anthropic/claude-sonnet-4:reasoning'
-	| 'deepseek/deepseek-r1'
 	| 'google/gemini-2.0-flash'
 	| 'google/gemini-2.0-flash-lite'
 	| 'openai/gpt-4o-mini'
@@ -415,7 +424,8 @@ export type ModelId =
 	| 'meta-llama/llama-4-maverick'
 	| 'deepseek/deepseek-chat-v3-0324'
 	| 'deepseek/deepseek-r1-0528'
-	| 'deepseek/deepseek-r1:qwen-distilled'
+	| 'deepseek/deepseek-r1-distill-llama-70b'
+	| 'deepseek/deepseek-r1-distill-qwen-32b'
 	| 'x-ai/grok-3-beta'
 	| 'x-ai/grok-3-mini-beta'
 	| 'alibaba/qwen-qwa-32b'

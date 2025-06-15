@@ -19,7 +19,7 @@ Made for the T3 Chat Cloneathon
 - [x] Resumable Streams
 - [x] Chat Branching
 - [x] Stop messages mid-stream losslessly
-- [ ] Handle mid-stream errors losslessly
+- [x] Handle mid-stream errors losslessly
 - [ ] Chat Sharing
 - [ ] Web Search
 - [ ] Bring Your Own Key

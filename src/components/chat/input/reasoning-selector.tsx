@@ -7,20 +7,28 @@ import {
 } from '@/components/ui/select';
 import { useModel, useUpdateModel } from '@/hooks/use-model';
 import { ReasoningEffort } from '@/lib/types';
+import { useMemo } from 'react';
 
 const reasoningOptions = [
-	{ label: 'Low', value: 'low' },
-	{ label: 'Medium', value: 'medium' },
 	{ label: 'High', value: 'high' },
-] as const;
+	{ label: 'Medium', value: 'medium' },
+	{ label: 'Low', value: 'low' },
+];
 
 export const ReasoningSelector = () => {
-	const { reasoningEffort } = useModel();
+	const { reasoningEffort, model } = useModel();
 	const updateModel = useUpdateModel();
 
 	const handleReasoningChange = (reasoningEffort: ReasoningEffort) => {
 		updateModel({ reasoningEffort });
 	};
+
+	const options = useMemo(() => {
+		if (model === 'x-ai/grok-3-mini-beta') {
+			return [reasoningOptions[0], reasoningOptions[2]];
+		}
+		return reasoningOptions;
+	}, [model]);
 
 	return (
 		<Select
@@ -32,7 +40,7 @@ export const ReasoningSelector = () => {
 				<SelectValue defaultValue={'medium'} />
 			</SelectTrigger>
 			<SelectContent>
-				{reasoningOptions.map((m) => (
+				{options.map((m) => (
 					<SelectItem
 						key={m.value}
 						value={m.value}>
