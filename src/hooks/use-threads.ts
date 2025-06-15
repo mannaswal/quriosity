@@ -275,6 +275,7 @@ export function useStopStream() {
 				// Block updating optimistic data to prevent race condition
 				blockStreaming(threadId);
 
+				console.log('[HOOK] Marking message as stopped');
 				// Patch message with current optimistic content
 				await markMessageAsStopped({
 					messageId: localStreamingData.messageId,

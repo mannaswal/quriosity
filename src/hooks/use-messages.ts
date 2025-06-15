@@ -11,11 +11,11 @@ import {
 } from '@/stores/use-streaming-store';
 import { useStopStream, useThread } from './use-threads';
 import { useRouter } from 'next/navigation';
-import { useModel } from './use-model';
+import { useModel, useReasoningEffort } from './use-model';
 import { ModelId } from '@/lib/models';
 import { processDataStream } from 'ai';
 import { getMessagesByThread } from 'convex/messages';
-import { getEffortControl } from '@/lib/utils';
+import { useMemo, useCallback, useRef } from 'react';
 
 /**
  * Hook to get messages for a thread - now subscribes to both DB and streaming store
@@ -32,24 +32,40 @@ export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
 			threadId && isAuthenticated ? { threadId } : 'skip'
 		) ?? [];
 
-	// Merge streaming store data for messages with pending/streaming status
-	return dbMessages.map((message) => {
-		if (
-			message.status === 'pending' ||
-			message.status === 'streaming' ||
-			message.status === 'reasoning'
-		) {
-			if (streamingMessage && streamingMessage.messageId === message._id) {
-				return {
-					...message,
-					content: streamingMessage.content,
-					reasoning: streamingMessage.reasoning,
-					status: message.status,
-				};
-			}
+	// Memoize the merged messages array to prevent infinite re-renders
+	// This is crucial for XAI models that send rapid reasoning updates
+	return useMemo(() => {
+		// Early return if no messages
+		if (dbMessages.length === 0) return dbMessages;
+
+		const lastMessage = dbMessages[dbMessages.length - 1];
+
+		// Early return if last message is already complete
+		if (lastMessage.status === 'done' || lastMessage.status === 'error') {
+			return dbMessages;
 		}
-		return message;
-	});
+
+		// Only check the last message since only the most recent assistant message can be streaming
+		if (
+			streamingMessage &&
+			streamingMessage.messageId === lastMessage._id &&
+			(lastMessage.status === 'pending' ||
+				lastMessage.status === 'streaming' ||
+				lastMessage.status === 'reasoning')
+		) {
+			// Create new array with updated last message
+			const updatedMessages = [...dbMessages];
+			updatedMessages[updatedMessages.length - 1] = {
+				...lastMessage,
+				content: streamingMessage.content,
+				reasoning: streamingMessage.reasoning,
+				status: lastMessage.status,
+			};
+			return updatedMessages;
+		}
+
+		return dbMessages;
+	}, [dbMessages, streamingMessage]);
 }
 
 /**
@@ -60,6 +76,51 @@ function useStreamMessage() {
 	const { updateStreamingContent, addStreamingMessage } =
 		useStreamingStoreActions();
 	const markMessageAsError = useMutation(api.messages.markMessageAsError);
+
+	// Throttle updates to prevent React update depth exceeded errors
+	// XAI models send reasoning chunks very rapidly
+	const lastUpdateTime = useRef(0);
+	const pendingUpdate = useRef<any>(null);
+	const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+
+	const throttledUpdate = useCallback(
+		(updateData: {
+			threadId: Id<'threads'>;
+			messageId: Id<'messages'>;
+			content: string;
+			reasoning: string;
+			status: 'streaming' | 'reasoning' | 'done';
+		}) => {
+			const now = Date.now();
+
+			// Store the latest update
+			pendingUpdate.current = updateData;
+
+			// Throttle frequent updates
+			if (now - lastUpdateTime.current > 15) {
+				lastUpdateTime.current = now;
+				updateStreamingContent(updateData);
+
+				// Clear any pending debounced update since we just sent one
+				if (debounceTimeout.current) {
+					clearTimeout(debounceTimeout.current);
+					debounceTimeout.current = null;
+				}
+			} else {
+				// Schedule a debounced update to ensure we don't miss the final chunk
+				if (debounceTimeout.current) {
+					clearTimeout(debounceTimeout.current);
+				}
+				debounceTimeout.current = setTimeout(() => {
+					if (pendingUpdate.current) {
+						updateStreamingContent(pendingUpdate.current);
+						pendingUpdate.current = null;
+					}
+				}, 100);
+			}
+		},
+		[updateStreamingContent]
+	);
 
 	return async (input: {
 		threadId: Id<'threads'>;
@@ -94,7 +155,9 @@ function useStreamMessage() {
 			});
 
 			if (!response.ok) {
-				throw new Error('Failed to create message stream');
+				throw new Error(
+					`Failed to create message stream: ${response.status} ${response.statusText}`
+				);
 			}
 
 			let content = '';
@@ -104,7 +167,7 @@ function useStreamMessage() {
 
 				onTextPart: (text) => {
 					content += text;
-					updateStreamingContent({
+					throttledUpdate({
 						threadId,
 						messageId: assistantMessageId,
 						content,
@@ -114,7 +177,7 @@ function useStreamMessage() {
 				},
 				onReasoningPart: (text) => {
 					reasoning += text;
-					updateStreamingContent({
+					throttledUpdate({
 						threadId,
 						messageId: assistantMessageId,
 						content,
@@ -136,7 +199,6 @@ function useStreamMessage() {
 		} catch (error) {
 			// Handle abort gracefully - don't treat as error
 			if (error instanceof DOMException && error.name === 'AbortError') {
-				console.log('Stream was aborted');
 				return; // Don't update message status - client will handle
 			}
 
@@ -165,6 +227,7 @@ export function useSendMessage(opts?: {
 	const router = useRouter();
 	const thread = useThread();
 	const streamMessage = useStreamMessage();
+	const getReasoningEffort = useReasoningEffort();
 	const createThread = useMutation(api.threads.createThread);
 	const setupThread = useMutation(api.threads.setupThread);
 
@@ -179,7 +242,7 @@ export function useSendMessage(opts?: {
 				targetThreadId = await createThread({
 					messageContent,
 					model,
-					reasoningEffort: getEffortControl(model, reasoningEffort),
+					reasoningEffort: getReasoningEffort(model, reasoningEffort),
 				});
 
 				router.push(`/chat/${targetThreadId}`); // Redirect to the new thread
@@ -188,7 +251,7 @@ export function useSendMessage(opts?: {
 			const { assistantMessageId, allMessages } = await setupThread({
 				threadId: targetThreadId,
 				model,
-				reasoningEffort: getEffortControl(model, reasoningEffort),
+				reasoningEffort: getReasoningEffort(model, reasoningEffort),
 				messageContent,
 			});
 
@@ -202,7 +265,7 @@ export function useSendMessage(opts?: {
 			await streamMessage({
 				threadId: targetThreadId,
 				model,
-				reasoningEffort: getEffortControl(model, reasoningEffort),
+				reasoningEffort: getReasoningEffort(model, reasoningEffort),
 				assistantMessageId,
 				messageHistory,
 			});
@@ -231,6 +294,7 @@ export function useRegenerate(opts?: {
 }) {
 	const regenerateMutation = useMutation(api.messages.regenerateResponse);
 	const streamMessage = useStreamMessage();
+	const getReasoningEffort = useReasoningEffort();
 	const {
 		getStreamingMessage,
 		removeStreamingMessage,
@@ -241,6 +305,8 @@ export function useRegenerate(opts?: {
 	return async (args: {
 		messageId: Id<'messages'>;
 		threadId: Id<'threads'>;
+		model?: ModelId;
+		reasoningEffort?: ReasoningEffort;
 	}) => {
 		try {
 			if (getStreamingMessage(args.threadId)) {
@@ -253,9 +319,16 @@ export function useRegenerate(opts?: {
 				blockStreaming(args.threadId);
 			}
 
+			const effort = getReasoningEffort(
+				args.model as ModelId,
+				args.reasoningEffort
+			);
+
 			const { assistantMessageId, assistantMessage, messages } =
 				await regenerateMutation({
 					messageId: args.messageId,
+					updatedModel: args.model,
+					updatedReasoningEffort: effort,
 				});
 
 			removeStreamingMessage(args.threadId);
@@ -270,10 +343,7 @@ export function useRegenerate(opts?: {
 			await streamMessage({
 				threadId: assistantMessage.threadId,
 				model: assistantMessage.model as ModelId,
-				reasoningEffort: getEffortControl(
-					assistantMessage.model as ModelId,
-					assistantMessage.reasoningEffort
-				),
+				reasoningEffort: effort,
 				assistantMessageId,
 				messageHistory,
 			});
@@ -293,7 +363,7 @@ export function useRegenerate(opts?: {
 }
 
 /**
- * Hook to edit a user message and regenerate the assistant's response.
+ * Hook to edit and resubmit a user message with a new response.
  */
 export function useEditAndResubmit(opts?: {
 	onSuccess?: () => void;
@@ -301,6 +371,7 @@ export function useEditAndResubmit(opts?: {
 }) {
 	const editMutation = useMutation(api.messages.editAndResubmit);
 	const streamMessage = useStreamMessage();
+	const getReasoningEffort = useReasoningEffort();
 	const {
 		getStreamingMessage,
 		removeStreamingMessage,
@@ -312,6 +383,8 @@ export function useEditAndResubmit(opts?: {
 		userMessageId: Id<'messages'>;
 		threadId: Id<'threads'>;
 		newContent: string;
+		model?: ModelId;
+		reasoningEffort?: ReasoningEffort;
 	}) => {
 		try {
 			const currentStreamingMessage = getStreamingMessage(args.threadId);
@@ -325,10 +398,17 @@ export function useEditAndResubmit(opts?: {
 				blockStreaming(args.threadId);
 			}
 
+			const effort = getReasoningEffort(
+				args.model as ModelId,
+				args.reasoningEffort
+			);
+
 			const { assistantMessageId, assistantMessage, messages } =
 				await editMutation({
 					userMessageId: args.userMessageId,
 					newContent: args.newContent,
+					updatedModel: args.model,
+					updatedReasoningEffort: effort,
 				});
 
 			removeStreamingMessage(args.threadId);
@@ -343,7 +423,7 @@ export function useEditAndResubmit(opts?: {
 			await streamMessage({
 				threadId: assistantMessage.threadId,
 				model: assistantMessage.model as ModelId,
-				reasoningEffort: assistantMessage.reasoningEffort,
+				reasoningEffort: effort,
 				assistantMessageId,
 				messageHistory,
 			});

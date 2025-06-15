@@ -62,13 +62,16 @@ export async function POST(request: NextRequest) {
 			status?: 'streaming' | 'done' | 'error' | 'reasoning';
 			stopReason?: 'completed' | 'stopped' | 'error';
 		}) => {
-			return await convexClient.mutation(api.messages.updateMessage, {
+			console.log('[API] About to update message with status:', input.status);
+			const result = await convexClient.mutation(api.messages.updateMessage, {
 				messageId,
 				content: input.content,
 				reasoning: input.reasoning,
 				status: input.status,
 				stopReason: input.stopReason,
 			});
+			console.log('[API] Update message result:', result);
+			return result;
 		};
 
 		let content = '';
@@ -87,25 +90,24 @@ export async function POST(request: NextRequest) {
 					});
 
 					(async () => {
-						try {
-							let lastSent = Date.now();
+						let lastSent = Date.now();
 
+						try {
 							for await (const chunk of response.fullStream) {
 								if (chunk.type === 'text-delta') {
 									content += chunk.textDelta;
 									if (status !== 'streaming') {
 										status = 'streaming';
-										needsUpdate = true;
 									}
 									needsUpdate = true;
 								} else if (chunk.type === 'reasoning') {
 									reasoning += chunk.textDelta;
 									if (status !== 'reasoning') {
 										status = 'reasoning';
-										needsUpdate = true;
 									}
 									needsUpdate = true;
 								} else if (chunk.type === 'error') {
+									console.log('[API] Error chunk received:', chunk.error);
 									break;
 								}
 
@@ -138,27 +140,53 @@ export async function POST(request: NextRequest) {
 								status: 'done',
 								stopReason: 'completed',
 							});
-						} catch (error) {
-							if (error instanceof DOMException && error.name === 'AbortError')
-								return;
+						} catch (streamError) {
+							console.error(
+								'[API] Error in stream processing loop:',
+								streamError
+							);
+							console.error(
+								'[API] Stream error type:',
+								(streamError as Error)?.constructor?.name || typeof streamError
+							);
+							console.error(
+								'[API] Stream error message:',
+								(streamError as Error)?.message || 'Unknown stream error'
+							);
 
-							console.error('Streaming error:', error);
-							await updateMessage({
-								content: content,
-								reasoning: reasoning,
-								status: 'error',
-								stopReason: 'error',
-							});
+							// Don't call updateMessage here as it might cause the onError handler to be called
+							// which would be redundant. The onError handler should catch this.
+							throw streamError;
 						}
 					})();
 				}
 			},
 			onError: (error) => {
 				if (error instanceof DOMException && error.name === 'AbortError') {
+					console.log(
+						'[API] onError: AbortError detected, not updating message'
+					);
 					return 'Stream aborted by user';
 				}
-				console.error('Streaming error onError:', error);
+				console.error('[API] onError triggered - Streaming error:', error);
+				console.error(
+					'[API] onError - Error type:',
+					(error as Error)?.constructor?.name || typeof error
+				);
+				console.error(
+					'[API] onError - Error message:',
+					(error as Error)?.message || 'Unknown error'
+				);
+				console.error(
+					'[API] onError - Full error object:',
+					JSON.stringify(error, Object.getOwnPropertyNames(error))
+				);
+
 				(async () => {
+					console.log(
+						'[API] onError: Updating message to error state due to:',
+						(error as Error)?.message || 'Unknown error'
+					);
 					await updateMessage({
 						status: 'error',
 						stopReason: 'error',

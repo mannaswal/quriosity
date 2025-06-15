@@ -125,12 +125,30 @@ export const updateMessage = mutation({
 
 		const message = await ctx.db.get(args.messageId);
 
-		if (!message) return false; // Message may have been deleted during the update
+		if (!message) {
+			console.log('[CONVEX] Message not found, returning false');
+			return false; // Message may have been deleted during the update
+		}
 
-		if (message.userId !== user._id)
-			throw new Error('User not authorized to access this message.');
+		if (message.userId !== user._id) {
+			console.log('[CONVEX] User not authorized to access this message.');
+			return false;
+		}
 
-		if (message.status === 'done' || message.status === 'error') return false;
+		console.log(
+			'[CONVEX] Current message status:',
+			message.status,
+			'Attempting to set status to:',
+			args.status
+		);
+
+		if (message.status === 'done' || message.status === 'error') {
+			// console.log(
+			// 	'[CONVEX] Message is done or error, returning false. Current status:',
+			// 	message.status
+			// );
+			return false;
+		}
 
 		const patchData = {
 			...(args.status && { status: args.status }),
@@ -139,6 +157,7 @@ export const updateMessage = mutation({
 			...(args.reasoning && { reasoning: args.reasoning }),
 		};
 
+		// console.log('[CONVEX] Patching message with data', patchData.status);
 		await ctx.db.patch(args.messageId, patchData);
 
 		if (args.status) {
@@ -157,13 +176,18 @@ export const updateMessage = mutation({
 });
 
 export const regenerateResponse = mutation({
-	args: { messageId: v.id('messages') },
-	handler: async (ctx, { messageId }) => {
+	args: {
+		messageId: v.id('messages'),
+		updatedModel: v.optional(v.string()),
+		updatedReasoningEffort: v.optional(ReasoningEffort),
+	},
+	handler: async (ctx, { messageId, updatedModel, updatedReasoningEffort }) => {
 		const user = await getUser(ctx);
 		if (!user) {
 			throw new Error('User not authenticated.');
 		}
 
+		// will store the user message
 		let userMessage: Doc<'messages'>;
 
 		const message = await ctx.db.get(messageId);
@@ -172,31 +196,47 @@ export const regenerateResponse = mutation({
 		if (message.userId !== user._id)
 			throw new Error('User not authorized to access this message.');
 
+		// if there is an updated model, use it, otherwise use the original model
+		const modelUsed = updatedModel ? updatedModel : message.model;
+
+		// if there is an updated model, but no updated reasoning effort, that must be intentional
+		// needs to be set to a new value or unset
+		const reasoningEffortUsed = updatedModel
+			? updatedReasoningEffort
+			: message.reasoningEffort;
+
 		if (message.role === 'user') {
+			// if the message that initiated this mutation is a user message, use it
 			userMessage = message;
 		} else {
-			// Meaning an assistant triggered this mutation, so we must get the previous message which is the user message
+			// Meaning an assistant triggered this mutation,
+			// so we must get the previous message which is the user message
 			const messages = await ctx.db
 				.query('messages')
 				.withIndex('by_thread', (q) => q.eq('threadId', message.threadId))
-				.filter((q) => q.lt(q.field('_creationTime'), message._creationTime))
+				.filter(
+					(q) =>
+						q.eq(q.field('role'), 'user') &&
+						q.lt(q.field('_creationTime'), message._creationTime)
+				)
 				.collect();
 
 			userMessage = messages[messages.length - 1];
 
-			if (!userMessage || userMessage.role !== 'user') {
-				throw new Error('User message not found.');
-			}
+			if (!userMessage) throw new Error('User message not found.');
+			if (userMessage.role !== 'user') throw new Error('Invalid user message.');
 		}
 
-		const thread = await ctx.db.get(message.threadId);
-
-		if (!thread) throw new Error('Thread not found.');
-		if (thread.userId !== user._id)
-			throw new Error('User not authorized to access this thread.');
-
-		const modelUsed = userMessage.model;
-		const reasoningEffortUsed = userMessage.reasoningEffort;
+		// if the model or reasoning effort has been updated, update the user message
+		if (
+			userMessage.model !== modelUsed ||
+			userMessage.reasoningEffort !== reasoningEffortUsed
+		) {
+			await ctx.db.patch(userMessage._id, {
+				model: modelUsed,
+				reasoningEffort: reasoningEffortUsed,
+			});
+		}
 
 		// Find and delete all messages that came after the user's message
 		const subsequentMessages = await ctx.db
@@ -238,12 +278,21 @@ export const regenerateResponse = mutation({
 });
 
 export const editAndResubmit = mutation({
-	args: { userMessageId: v.id('messages'), newContent: v.string() },
-	handler: async (ctx, { userMessageId, newContent }) => {
+	args: {
+		userMessageId: v.id('messages'),
+		newContent: v.string(),
+		updatedModel: v.optional(v.string()),
+		updatedReasoningEffort: v.optional(ReasoningEffort),
+	},
+	handler: async (
+		ctx,
+		{ userMessageId, newContent, updatedModel, updatedReasoningEffort }
+	) => {
 		const user = await getUser(ctx);
 		if (!user) throw new Error('User not authenticated.');
 
 		const userMessage = await ctx.db.get(userMessageId);
+
 		if (!userMessage) throw new Error('Invalid user message ID.');
 		if (userMessage.role !== 'user')
 			throw new Error('Invalid user message ID.');
@@ -254,11 +303,21 @@ export const editAndResubmit = mutation({
 		if (thread.userId !== user._id)
 			throw new Error('User not authorized to access this thread.');
 
-		// 1. Update the user's message content
-		await ctx.db.patch(userMessage._id, { content: newContent });
+		// if there is an updated model, use it, otherwise use the original model
+		const modelUsed = updatedModel ? updatedModel : userMessage.model;
 
-		const modelUsed = userMessage.model;
-		const reasoningEffortUsed = userMessage.reasoningEffort;
+		// if there is an updated model, but no updated reasoning effort, that must be intentional
+		// needs to be set to a new value or unset
+		const reasoningEffortUsed = updatedModel
+			? updatedReasoningEffort
+			: userMessage.reasoningEffort;
+
+		// 1. Update the user's message content
+		await ctx.db.patch(userMessage._id, {
+			content: newContent,
+			model: modelUsed,
+			reasoningEffort: reasoningEffortUsed,
+		});
 
 		// 2. Find and delete all messages that came after the user's message
 		const subsequentMessages = await ctx.db
@@ -332,6 +391,8 @@ export const markMessageAsStopped = mutation({
 export const markMessageAsError = mutation({
 	args: { messageId: v.id('messages') },
 	handler: async (ctx, { messageId }) => {
+		console.log('[CONVEX] markMessageAsError called for messageId:', messageId);
+
 		const user = await getUser(ctx);
 		if (!user) throw new Error('User not authenticated');
 
@@ -340,6 +401,10 @@ export const markMessageAsError = mutation({
 		if (message.userId !== user._id)
 			throw new Error('User not authorized to access this message.');
 
+		console.log(
+			'[CONVEX] markMessageAsError: Setting message to error status. Previous status was:',
+			message.status
+		);
 		await ctx.db.patch(messageId, { status: 'error', stopReason: 'error' });
 
 		const thread = await ctx.db.get(message.threadId);

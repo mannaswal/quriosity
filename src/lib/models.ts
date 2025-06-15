@@ -70,6 +70,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		webSearch: true,
 		attachments: true,
 		reasoning: true,
+		effortControl: true,
 		experimental: true,
 	},
 	'openai/o4-mini': {
@@ -86,6 +87,8 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		id: 'anthropic/claude-sonnet-4' as const,
 		vision: true,
 		attachments: true,
+		reasoning: true,
+		effortControl: true,
 	},
 	// 'anthropic/claude-sonnet-4:reasoning': {
 	// 	provider: 'anthropic' as ModelProvider,
@@ -111,6 +114,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		vision: true,
 		attachments: true,
 		fast: true,
+		experimental: true,
 	},
 	'openai/gpt-4o-mini': {
 		provider: 'openai' as ModelProvider,

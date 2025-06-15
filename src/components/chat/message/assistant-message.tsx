@@ -8,7 +8,7 @@ import { Message } from '@/components/ui/message';
 import { CheckIcon, CopyIcon, RefreshCcwIcon, SplitIcon } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
 import { useRegenerate } from '@/hooks/use-messages';
-import { Message as ChatMessage } from '@/lib/types';
+import { Message as ChatMessage, ReasoningEffort } from '@/lib/types';
 import {
 	Reasoning,
 	ReasoningContent,
@@ -16,6 +16,8 @@ import {
 	ReasoningTrigger,
 } from '@/components/ui/reasoning';
 import { TextShimmer } from '@/components/ui/text-shimmer';
+import { RetryButtonAdvanced } from '../input/retry-button-advanced';
+import { toast } from 'sonner';
 
 interface AssistantMessageProps {
 	message: ChatMessage;
@@ -29,6 +31,7 @@ interface AssistantMessageProps {
 export function AssistantMessage({ message, index }: AssistantMessageProps) {
 	const [copied, setCopied] = useState(false);
 	const [isBranching, setIsBranching] = useState(false);
+	const [isRetryMenuOpen, setIsRetryMenuOpen] = useState(false);
 
 	const branch = useBranchThread();
 	const regenerate = useRegenerate();
@@ -61,13 +64,20 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 		}, 2000);
 	};
 
-	const handleRegenerate = async () => {
+	const handleRegenerate = async (
+		model?: ModelId,
+		reasoningEffort?: ReasoningEffort
+	) => {
 		try {
 			await regenerate({
 				messageId: message._id,
 				threadId: message.threadId,
+				model,
+				reasoningEffort,
 			});
-		} catch (error) {}
+		} catch (error) {
+			toast.error('Failed to regenerate message');
+		}
 	};
 
 	return (
@@ -118,7 +128,12 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 					</div>
 				)}
 			</Message>
-			<div className="h-10 opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 pt-2">
+			<div
+				className={`flex items-center justify-start transition-opacity duration-300 h-10 pt-2 focus-within:opacity-100 ${
+					isRetryMenuOpen
+						? 'opacity-100'
+						: 'opacity-0 peer-hover/message:opacity-100 hover:opacity-100'
+				}`}>
 				{(message.status === 'error' || message.status === 'done') && (
 					<div className="flex items-center -ml-0.5">
 						<Button
@@ -142,14 +157,10 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 							<SplitIcon className="size-4 rotate-180" />
 						</Button>
 
-						<Button
-							onClick={handleRegenerate}
-							disabled={isPending}
-							variant="ghost"
-							size="icon"
-							className="size-8">
-							<RefreshCcwIcon className="size-4" />
-						</Button>
+						<RetryButtonAdvanced
+							handleRegenerate={handleRegenerate}
+							onOpenChange={setIsRetryMenuOpen}
+						/>
 
 						<div className="flex gap-1 text-xs ml-2">
 							<div className="text-neutral-500">

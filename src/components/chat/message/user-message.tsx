@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Message as ChatMessage } from '@/lib/types';
+import { Message as ChatMessage, ReasoningEffort } from '@/lib/types';
+import { ModelId } from '@/lib/models';
 import { useRegenerate, useEditAndResubmit } from '@/hooks/use-messages';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,6 +8,8 @@ import { Markdown } from '@/components/ui/markdown';
 import { Message } from '@/components/ui/message';
 import { CheckIcon, CopyIcon, RefreshCcwIcon, PencilIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { RetryButton } from '../input/retry-button';
+import { RetryButtonAdvanced } from '../input/retry-button-advanced';
 
 interface UserMessageProps {
 	message: ChatMessage;
@@ -20,6 +23,7 @@ export function UserMessage({ message, index }: UserMessageProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editedContent, setEditedContent] = useState(message.content);
 	const [copied, setCopied] = useState(false);
+	const [isRetryMenuOpen, setIsRetryMenuOpen] = useState(false);
 
 	const regenerate = useRegenerate();
 	const editAndResubmit = useEditAndResubmit();
@@ -28,7 +32,10 @@ export function UserMessage({ message, index }: UserMessageProps) {
 		if (!isEditing) setEditedContent(message.content);
 	}, [message.content, isEditing]);
 
-	const handleRegenerate = async () => {
+	const handleRegenerate = async (
+		model?: ModelId,
+		reasoningEffort?: ReasoningEffort
+	) => {
 		try {
 			setIsEditing(false);
 			if (editedContent === message.content) {
@@ -36,6 +43,8 @@ export function UserMessage({ message, index }: UserMessageProps) {
 				await regenerate({
 					messageId: message._id,
 					threadId: message.threadId,
+					model,
+					reasoningEffort,
 				});
 			} else if (editedContent.trim()) {
 				// If the edited content is different, edit and resubmit the message
@@ -43,6 +52,8 @@ export function UserMessage({ message, index }: UserMessageProps) {
 					userMessageId: message._id,
 					threadId: message.threadId,
 					newContent: editedContent,
+					model,
+					reasoningEffort,
 				});
 			}
 		} catch (error) {
@@ -104,14 +115,12 @@ export function UserMessage({ message, index }: UserMessageProps) {
 				</Message>
 			)}
 
-			<div className="flex items-center justify-end opacity-0 transition-opacity duration-300 peer-hover/message:opacity-100 hover:opacity-100 h-10 pt-2">
-				<Button
-					onClick={handleRegenerate}
-					variant="ghost"
-					size="icon"
-					className="size-8">
-					<RefreshCcwIcon className="size-4" />
-				</Button>
+			<div
+				className={`flex items-center justify-end transition-opacity duration-300 h-10 pt-2 focus-within:opacity-100 focus:opacity-100 ${
+					isRetryMenuOpen
+						? 'opacity-100'
+						: 'opacity-0 peer-hover/message:opacity-100 hover:opacity-100'
+				}`}>
 				<Button
 					onClick={() => setIsEditing((prev) => !prev)}
 					variant="ghost"
@@ -130,6 +139,10 @@ export function UserMessage({ message, index }: UserMessageProps) {
 						<CopyIcon className="w-4 h-4" />
 					)}
 				</Button>
+				<RetryButtonAdvanced
+					handleRegenerate={handleRegenerate}
+					onOpenChange={setIsRetryMenuOpen}
+				/>
 			</div>
 		</div>
 	);

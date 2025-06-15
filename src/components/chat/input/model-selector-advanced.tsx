@@ -13,12 +13,8 @@ import {
 	BrainIcon,
 	ChevronDownIcon,
 	EyeIcon,
-	FlaskConical,
 	GlobeIcon,
 	PaperclipIcon,
-	SparklesIcon,
-	TestTube,
-	TestTube2,
 } from 'lucide-react';
 
 import {
@@ -62,12 +58,7 @@ export const ModelSelectorAdvanced = () => {
 		return grouped;
 	}, []);
 
-	const handleModelChange = (
-		selectedModel: ModelId,
-		reasoningLevel?: 'low' | 'medium' | 'high'
-	) => {
-		// For reasoning models, we might want to append the reasoning level
-		// For now, just use the base model ID
+	const handleModelChange = (selectedModel: ModelId) => {
 		updateModel({ model: selectedModel });
 	};
 
@@ -104,7 +95,7 @@ export const ModelSelectorAdvanced = () => {
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
 				side="top"
-				className="w-36 rounded-lg border-[0.5px]">
+				className="w-40 rounded-lg border-[0.5px]">
 				<DropdownMenuGroup>
 					{Object.entries(modelsByProvider).map(
 						([provider, providerModels]) => (
@@ -126,7 +117,7 @@ export const ModelSelectorAdvanced = () => {
 									</div>
 								</DropdownMenuSubTrigger>
 								<DropdownMenuSubContent
-									className="w-64 rounded-lg border-[0.5px]"
+									className="min-w-52 rounded-lg border-[0.5px]"
 									alignOffset={-4}
 									sideOffset={8}>
 									<DropdownMenuGroup>
@@ -134,7 +125,7 @@ export const ModelSelectorAdvanced = () => {
 											<DropdownMenuItem
 												key={modelData.id}
 												onClick={() => handleModelChange(modelData.id)}>
-												<div className="flex items-center gap-2 w-full">
+												<div className="flex items-center gap-4 w-full">
 													{modelData.name}
 													<div className="flex items-center gap-2 ml-auto">
 														{modelData.reasoning && (
