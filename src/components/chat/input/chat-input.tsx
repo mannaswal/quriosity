@@ -17,10 +17,13 @@ import { useThread } from '@/hooks/use-threads';
 import { ReasoningSelector } from './reasoning-selector';
 import { useTempModel } from '@/stores/use-temp-data-store';
 import { canReason, hasEffortControl } from '@/lib/utils';
+import { useStickToBottomContext } from 'use-stick-to-bottom';
 
 export function ChatInput() {
-	const thread = useThread();
 	const [message, setMessage] = useState('');
+
+	const { scrollToBottom } = useStickToBottomContext();
+	const thread = useThread();
 
 	const sendMessage = useSendMessage();
 	const stopStream = useStopStream();
@@ -37,6 +40,7 @@ export function ChatInput() {
 
 	const handleSendMessage = async () => {
 		if (!message.trim() || isProcessing) return;
+		scrollToBottom();
 
 		const messageContent = message;
 		sendMessage(message).catch((error) => {

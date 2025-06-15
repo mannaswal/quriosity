@@ -13,6 +13,7 @@ import {
 	BrainIcon,
 	ChevronDownIcon,
 	EyeIcon,
+	FileText,
 	GlobeIcon,
 	PaperclipIcon,
 } from 'lucide-react';
@@ -23,6 +24,7 @@ import {
 	modelsData,
 	providerModelNames,
 	ModelProvider,
+	ModelProperty,
 } from '@/lib/models';
 import { useModel, useUpdateModel } from '@/hooks/use-model';
 import { useMemo } from 'react';
@@ -85,22 +87,25 @@ export const ModelSelectorAdvanced = () => {
 									alt={currentModelData.provider}
 									width={16}
 									height={16}
+									priority
+									unoptimized
 								/>
 							</div>
 						)}
 						{currentModelData ? currentModelData.name : 'Select model'}
 					</div>
-					<ChevronDownIcon className="size-4 opacity-50 pointer-events-none" />
+					<ChevronDownIcon className="size-4 pointer-events-none opacity-50 text-muted-foreground" />
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
 				side="top"
+				align="start"
 				className="w-40 rounded-lg border-[0.5px]">
 				<DropdownMenuGroup>
 					{Object.entries(modelsByProvider).map(
 						([provider, providerModels]) => (
 							<DropdownMenuSub key={provider}>
-								<DropdownMenuSubTrigger iconClassName="text-muted-foreground opacity-50 -mr-1.5">
+								<DropdownMenuSubTrigger iconClassName="text-muted-foreground opacity-50 -mr-1">
 									<div className="flex items-center gap-2.5">
 										<div className="size-4">
 											<Image
@@ -111,6 +116,7 @@ export const ModelSelectorAdvanced = () => {
 												alt={provider}
 												width={16}
 												height={16}
+												unoptimized
 											/>
 										</div>
 										{providerModelNames[provider as ModelProvider]}
@@ -123,25 +129,10 @@ export const ModelSelectorAdvanced = () => {
 									<DropdownMenuGroup>
 										{providerModels.map((modelData) => (
 											<DropdownMenuItem
+												className="cursor-pointer"
 												key={modelData.id}
 												onClick={() => handleModelChange(modelData.id)}>
-												<div className="flex items-center gap-4 w-full">
-													{modelData.name}
-													<div className="flex items-center gap-2 ml-auto">
-														{modelData.reasoning && (
-															<BrainIcon className="text-xs rounded size-3 shrink-0 opacity-75" />
-														)}
-														{modelData.vision && (
-															<EyeIcon className="text-xs rounded size-3 shrink-0 opacity-75" />
-														)}
-														{modelData.webSearch && (
-															<GlobeIcon className="text-xs rounded size-3 shrink-0 opacity-75" />
-														)}
-														{modelData.attachments && (
-															<PaperclipIcon className="text-xs rounded size-3 shrink-0 opacity-75" />
-														)}
-													</div>
-												</div>
+												<ModelSelectorItem modelData={modelData} />
 											</DropdownMenuItem>
 										))}
 									</DropdownMenuGroup>
@@ -152,5 +143,31 @@ export const ModelSelectorAdvanced = () => {
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>
+	);
+};
+
+export const ModelSelectorItem = ({
+	modelData,
+}: {
+	modelData: ModelProperty;
+}) => {
+	return (
+		<div className="flex items-center gap-4 w-full">
+			{modelData.name}
+			<div className="flex items-center gap-2 ml-auto">
+				{modelData.reasoning && (
+					<BrainIcon className="text-xs rounded size-3 shrink-0 opacity-75 text-purple-400" />
+				)}
+				{modelData.vision && (
+					<EyeIcon className="text-xs rounded size-3 shrink-0 opacity-75 text-teal-300" />
+				)}
+				{modelData.webSearch && (
+					<GlobeIcon className="text-xs rounded size-3 shrink-0 opacity-75 text-blue-400" />
+				)}
+				{modelData.attachments && (
+					<FileText className="text-xs rounded size-3 shrink-0 opacity-75 text-gray-300" />
+				)}
+			</div>
+		</div>
 	);
 };

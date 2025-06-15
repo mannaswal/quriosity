@@ -34,6 +34,7 @@ import {
 import { ReasoningEffort } from '@/lib/types';
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
+import { ModelSelectorItem } from './model-selector-advanced';
 
 interface RetryButtonAdvancedProps {
 	handleRegenerate: (
@@ -156,6 +157,8 @@ export const RetryButtonAdvanced = ({
 												alt={provider}
 												width={16}
 												height={16}
+												unoptimized
+												priority
 											/>
 										</div>
 										{providerModelNames[provider as ModelProvider]}
@@ -179,23 +182,7 @@ export const RetryButtonAdvanced = ({
 															onClick={() =>
 																handleModelChangeAndRetry(modelData.id)
 															}>
-															<div className="flex items-center gap-4 w-full">
-																{modelData.name}
-																<div className="flex items-center gap-2 ml-auto">
-																	{modelData.reasoning && (
-																		<BrainIcon className="text-xs rounded size-3 shrink-0 opacity-75" />
-																	)}
-																	{modelData.vision && (
-																		<EyeIcon className="text-xs rounded size-3 shrink-0 opacity-75" />
-																	)}
-																	{modelData.webSearch && (
-																		<GlobeIcon className="text-xs rounded size-3 shrink-0 opacity-75" />
-																	)}
-																	{modelData.attachments && (
-																		<PaperclipIcon className="text-xs rounded size-3 shrink-0 opacity-75" />
-																	)}
-																</div>
-															</div>
+															<ModelSelectorItem modelData={modelData} />
 														</DropdownMenuSubTrigger>
 														<DropdownMenuSubContent
 															className="rounded-lg border-[0.5px]"

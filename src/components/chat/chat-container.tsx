@@ -12,12 +12,11 @@ import { Magnetic } from '../ui/magnetic';
 import { MessageItem } from './message/message-item';
 import { useThreadId } from '@/hooks/use-threads';
 import { cn } from '@/lib/utils';
+import { ChatInput } from './input/chat-input';
 
 const ChatContainer = memo(function ChatContainer() {
 	const threadId = useThreadId();
 	const messages = useThreadMessages(threadId);
-
-	useEffect(() => {}, [messages]);
 
 	return (
 		<div className="flex h-screen flex-col overflow-hidden justify-end relative">
@@ -41,6 +40,7 @@ const ChatContainer = memo(function ChatContainer() {
 						<ScrollButton className="shadow-sm h-6 w-12 backdrop-blur-sm hover:translate-y-0.5 transition-transform duration-150" />
 					</Magnetic>
 				</div>
+				<ChatInput />
 				<div className="h-2 bg-background absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl" />
 			</ChatContainerRoot>
 		</div>

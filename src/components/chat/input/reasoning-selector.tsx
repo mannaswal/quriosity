@@ -36,12 +36,13 @@ export const ReasoningSelector = () => {
 			onValueChange={(value) =>
 				handleReasoningChange(value as ReasoningEffort)
 			}>
-			<SelectTrigger className="border-none not-hover:dark:bg-transparent">
+			<SelectTrigger className="border-none not-hover:dark:bg-transparent cursor-pointer">
 				<SelectValue defaultValue={'medium'} />
 			</SelectTrigger>
 			<SelectContent>
 				{options.map((m) => (
 					<SelectItem
+						className="cursor-pointer"
 						key={m.value}
 						value={m.value}>
 						{m.label}
