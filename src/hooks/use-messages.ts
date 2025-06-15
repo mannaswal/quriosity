@@ -15,6 +15,7 @@ import { useModel } from './use-model';
 import { ModelId } from '@/lib/models';
 import { processDataStream } from 'ai';
 import { getMessagesByThread } from 'convex/messages';
+import { getEffortControl } from '@/lib/utils';
 
 /**
  * Hook to get messages for a thread - now subscribes to both DB and streaming store
@@ -160,7 +161,7 @@ export function useSendMessage(opts?: {
 	onSuccess?: () => void;
 	onError?: (error: Error) => void;
 }) {
-	const { model, reasoningEffort, modelData } = useModel();
+	const { model, reasoningEffort } = useModel();
 	const router = useRouter();
 	const thread = useThread();
 	const streamMessage = useStreamMessage();
@@ -178,7 +179,7 @@ export function useSendMessage(opts?: {
 				targetThreadId = await createThread({
 					messageContent,
 					model,
-					reasoningEffort,
+					reasoningEffort: getEffortControl(model, reasoningEffort),
 				});
 
 				router.push(`/chat/${targetThreadId}`); // Redirect to the new thread
@@ -187,7 +188,7 @@ export function useSendMessage(opts?: {
 			const { assistantMessageId, allMessages } = await setupThread({
 				threadId: targetThreadId,
 				model,
-				reasoningEffort,
+				reasoningEffort: getEffortControl(model, reasoningEffort),
 				messageContent,
 			});
 
@@ -201,7 +202,7 @@ export function useSendMessage(opts?: {
 			await streamMessage({
 				threadId: targetThreadId,
 				model,
-				reasoningEffort,
+				reasoningEffort: getEffortControl(model, reasoningEffort),
 				assistantMessageId,
 				messageHistory,
 			});
@@ -269,7 +270,10 @@ export function useRegenerate(opts?: {
 			await streamMessage({
 				threadId: assistantMessage.threadId,
 				model: assistantMessage.model as ModelId,
-				reasoningEffort: assistantMessage.reasoningEffort,
+				reasoningEffort: getEffortControl(
+					assistantMessage.model as ModelId,
+					assistantMessage.reasoningEffort
+				),
 				assistantMessageId,
 				messageHistory,
 			});

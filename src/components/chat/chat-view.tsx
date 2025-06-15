@@ -6,6 +6,7 @@ import ChatContainer from '@/components/chat/chat-container';
 import { ChatInput } from '@/components/chat/input/chat-input';
 import { useThread, useThreadId } from '@/hooks/use-threads';
 import { toast } from 'sonner';
+import { ProgressiveBlur } from '../ui/progressive-blur';
 
 export function ChatView() {
 	const router = useRouter();
@@ -31,8 +32,17 @@ export function ChatView() {
 
 	return (
 		<div className="w-full h-screen max-h-screen relative">
-			<ChatContainer />
-			<ChatInput />
+			<ProgressiveBlur
+				className="pointer-events-none absolute top-0 left-0 h-14 w-full z-10"
+				blurIntensity={0.4}
+				blurLayers={12}
+				direction="top"
+			/>
+			<div className="absolute top-0 left-0 h-16 w-full bg-gradient-to-t from-transparent to-background/95" />
+			<div className="relative">
+				<ChatContainer />
+				<ChatInput />
+			</div>
 		</div>
 	);
 }

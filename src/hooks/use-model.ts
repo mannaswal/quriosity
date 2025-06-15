@@ -8,6 +8,7 @@ import {
 } from '@/stores/use-temp-data-store';
 import { ReasoningEffort } from '@/lib/types';
 import { useEffect } from 'react';
+import { getEffortControl } from '@/lib/utils';
 
 /**
  * Hook for getting the model and reasoning effort for the current thread, or the user's last used model and reasoning effort, or the temp model and reasoning effort
@@ -53,6 +54,7 @@ export function useModel(): {
 }
 
 export const useUpdateModel = () => {
+	const { reasoningEffort: currentReasoningEffort } = useModel();
 	const { setModel, setReasoningEffort } = useTempActions();
 	const updateLastModelUsed = useUpdateLastModelUsed();
 	const updateThreadModelMutation = useUpdateThreadModel();
@@ -66,9 +68,21 @@ export const useUpdateModel = () => {
 	}) => {
 		if (model) {
 			setModel(model);
+			const allowedEffort = getEffortControl(model, currentReasoningEffort);
 
-			await updateLastModelUsed({ model });
-			await updateThreadModelMutation({ model });
+			if (allowedEffort) {
+				// if setting a reasoning model, set the reasoning effort to the allowed effort
+				setReasoningEffort(allowedEffort);
+			}
+
+			await updateLastModelUsed({
+				model,
+				reasoningEffort: allowedEffort, // set effort, if allowed
+			});
+			await updateThreadModelMutation({
+				model,
+				reasoningEffort: allowedEffort, // set effort, if allowed
+			});
 		}
 
 		if (reasoningEffort) {

@@ -75,7 +75,7 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 			data-id={message._id}
 			className={cn(
 				'w-full flex flex-col',
-				index > 2 && 'last:min-h-[calc(100vh-20rem)]'
+				index > 2 && 'last:min-h-[calc(100vh-18rem)]'
 			)}>
 			{isLoading && (
 				<Loader

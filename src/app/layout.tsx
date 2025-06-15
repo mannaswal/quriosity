@@ -32,7 +32,9 @@ export default async function RootLayout({
 	const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
 
 	return (
-		<html lang="en">
+		<html
+			lang="en"
+			className="dark">
 			{/* <head>
 				<script
 					crossOrigin="anonymous"
@@ -40,7 +42,7 @@ export default async function RootLayout({
 				/>
 			</head> */}
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased dark`}>
+				className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
 				<ClerkProvider>
 					<ConvexClientProvider>
 						<TRPCProvider>

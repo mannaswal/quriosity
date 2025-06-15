@@ -47,6 +47,15 @@ export async function POST(request: NextRequest) {
 		// 4. Create our own AbortController to properly stop AI token generation
 		const abortController = new AbortController();
 
+		const response = streamText({
+			model: openrouter.chat(model, {
+				reasoning: { effort: reasoningEffort ?? 'medium' },
+			}),
+			messages: formattedHistory,
+			abortSignal: abortController.signal,
+			experimental_transform: markdownJoinerTransform(),
+		});
+
 		const updateMessage = async (input: {
 			content?: string;
 			reasoning?: string;
@@ -61,15 +70,6 @@ export async function POST(request: NextRequest) {
 				stopReason: input.stopReason,
 			});
 		};
-
-		const response = streamText({
-			model: openrouter.chat(model, {
-				reasoning: { effort: reasoningEffort ?? 'medium' },
-			}),
-			messages: formattedHistory,
-			abortSignal: abortController.signal,
-			experimental_transform: markdownJoinerTransform(),
-		});
 
 		let content = '';
 		let reasoning = '';
@@ -105,6 +105,8 @@ export async function POST(request: NextRequest) {
 										needsUpdate = true;
 									}
 									needsUpdate = true;
+								} else if (chunk.type === 'error') {
+									break;
 								}
 
 								const now = Date.now();

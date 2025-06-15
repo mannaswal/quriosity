@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useRef, useEffect, useState } from 'react';
+import { memo, useRef, useEffect } from 'react';
 import {
 	ChatContainerRoot,
 	ChatContainerContent,
@@ -14,25 +14,18 @@ import { useThreadId } from '@/hooks/use-threads';
 import { cn } from '@/lib/utils';
 
 const ChatContainer = memo(function ChatContainer() {
-	const [tallerThanScreen, setTallerThanScreen] = useState(false);
 	const threadId = useThreadId();
 	const messages = useThreadMessages(threadId);
 
 	useEffect(() => {}, [messages]);
 
 	return (
-		<div className="flex h-screen flex-col overflow-hidden justify-end pb-3 relative">
-			<ProgressiveBlur
-				className="pointer-events-none absolute top-0 left-0 h-14 w-full z-10"
-				blurIntensity={0.4}
-				blurLayers={12}
-				direction="top"
-			/>
-			<div className="absolute top-0 left-0 h-16 w-full bg-gradient-to-t from-transparent to-background/95" />
-			<ChatContainerRoot className="flex-1">
+		<div className="flex h-screen flex-col overflow-hidden justify-end relative">
+			<ChatContainerRoot className="flex-1 px-0.5 pl-2">
 				<ChatContainerContent
-					data-tall={tallerThanScreen}
-					className={cn('px-6 max-w-3xl mx-auto pt-14 pb-32 space-y-4 group')}>
+					className={cn(
+						'px-4 max-w-3xl mx-auto pt-14 pb-32 space-y-4 group scroll-m-2'
+					)}>
 					{messages.map((message, index) => {
 						return (
 							<MessageItem
@@ -48,6 +41,7 @@ const ChatContainer = memo(function ChatContainer() {
 						<ScrollButton className="shadow-sm h-6 w-12 backdrop-blur-sm hover:translate-y-0.5 transition-transform duration-150" />
 					</Magnetic>
 				</div>
+				<div className="h-2 bg-background absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl" />
 			</ChatContainerRoot>
 		</div>
 	);

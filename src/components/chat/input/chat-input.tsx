@@ -16,7 +16,7 @@ import { ModelSelectorAdvanced } from './model-selector-advanced';
 import { useThread } from '@/hooks/use-threads';
 import { ReasoningSelector } from './reasoning-selector';
 import { useTempModel } from '@/stores/use-temp-data-store';
-import { canReason } from '@/lib/utils';
+import { canReason, hasEffortControl } from '@/lib/utils';
 
 export function ChatInput() {
 	const thread = useThread();
@@ -47,7 +47,7 @@ export function ChatInput() {
 	};
 
 	return (
-		<div className="w-full absolute bottom-2 left-1/2 -translate-x-1/2 max-w-3xl px-2 z-50">
+		<div className="w-full absolute left-1/2 -translate-x-1/2 max-w-3xl z-50 bottom-2 max-md:px-2 transition-[padding] duration-300">
 			<PromptInput
 				onSubmit={handleSendMessage}
 				onValueChange={setMessage}
@@ -66,7 +66,7 @@ export function ChatInput() {
 							tooltip="Model">
 							<ModelSelectorAdvanced />
 						</PromptInputAction>
-						{canReason(modelId) && (
+						{hasEffortControl(modelId) && (
 							<PromptInputAction
 								delayDuration={300}
 								tooltip="Reasoning">
