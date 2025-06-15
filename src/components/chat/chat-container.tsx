@@ -21,7 +21,7 @@ const ChatContainer = memo(function ChatContainer() {
 
 	return (
 		<div className="flex h-screen flex-col overflow-hidden justify-end relative">
-			<ChatContainerRoot className="flex-1 px-0.5 pl-2">
+			<ChatContainerRoot className="flex-1 px-px *:first:!overflow-y-scroll *:first:pl-1.5">
 				<ChatContainerContent
 					className={cn(
 						'px-4 max-w-3xl mx-auto pt-14 pb-32 space-y-4 group scroll-m-2'

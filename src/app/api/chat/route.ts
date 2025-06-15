@@ -1,10 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { streamText, CoreMessage, createDataStreamResponse } from 'ai';
 import { auth } from '@clerk/nextjs/server';
 import { api } from 'convex/_generated/api';
 import { ConvexHttpClient } from 'convex/browser';
 import { markdownJoinerTransform } from '@/utils/markdown-joiner-transform';
+
+export const maxDuration = 500;
 
 const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY!,
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
 
 		const response = streamText({
 			model: openrouter.chat(model, {
-				reasoning: { effort: reasoningEffort ?? 'medium' },
+				reasoning: { effort: reasoningEffort },
 			}),
 			messages: formattedHistory,
 			abortSignal: abortController.signal,
@@ -134,12 +136,16 @@ export async function POST(request: NextRequest) {
 								}
 							}
 
-							await updateMessage({
-								content,
-								reasoning,
-								status: 'done',
-								stopReason: 'completed',
-							});
+							after(
+								(async () => {
+									await updateMessage({
+										content,
+										reasoning,
+										status: 'done',
+										stopReason: 'completed',
+									});
+								})()
+							);
 						} catch (streamError) {
 							console.error(
 								'[API] Error in stream processing loop:',
@@ -182,18 +188,20 @@ export async function POST(request: NextRequest) {
 					JSON.stringify(error, Object.getOwnPropertyNames(error))
 				);
 
-				(async () => {
-					console.log(
-						'[API] onError: Updating message to error state due to:',
-						(error as Error)?.message || 'Unknown error'
-					);
-					await updateMessage({
-						status: 'error',
-						stopReason: 'error',
-						content: content,
-						reasoning: reasoning,
-					});
-				})();
+				after(
+					(async () => {
+						console.log(
+							'[API] onError: Updating message to error state due to:',
+							(error as Error)?.message || 'Unknown error'
+						);
+						await updateMessage({
+							status: 'error',
+							stopReason: 'error',
+							content: content,
+							reasoning: reasoning,
+						});
+					})()
+				);
 				return 'Error generating response';
 			},
 		});

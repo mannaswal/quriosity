@@ -257,20 +257,15 @@
 /* Track */
 ::-webkit-scrollbar-track {
 	background: transparent;
-	width: 6px;
 }
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
 	background: #222; /* Dark grey */
 	border-radius: 10px; /* Rounded corners for the handle */
-	width: 10px;
-	border-width: 1px;
-	border-color: #f00;
 }
 
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
 	background: #777; /* Even darker grey on hover */
-	width: 4px;
 }
