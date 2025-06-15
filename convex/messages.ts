@@ -129,17 +129,14 @@ export const updateMessage = mutation({
 		const user = await getUser(ctx);
 		if (!user) throw new Error('User not authenticated');
 
-		const message = await ctx.db
-			.query('messages')
-			.withIndex('by_user_id', (q) => q.eq('userId', user._id))
-			.filter((q) => q.eq(q.field('_id'), args.messageId))
-			.first();
+		const message = await ctx.db.get(args.messageId);
 
-		if (!message) return false;
+		if (!message) return false; // Message may have been deleted
 
-		if (message.status === 'done' || message.status === 'error') {
-			return false;
-		}
+		if (message.userId !== user._id)
+			throw new Error('User not authorized to access this message.');
+
+		if (message.status === 'done' || message.status === 'error') return false;
 
 		const patchData: any = {};
 		if (args.status) patchData.status = args.status;
@@ -152,7 +149,12 @@ export const updateMessage = mutation({
 		if (args.status) {
 			const threadStatus =
 				args.status === 'reasoning' ? 'streaming' : args.status;
-			await ctx.db.patch(message.threadId, { status: threadStatus });
+
+			const thread = await ctx.db.get(message.threadId);
+			if (thread && thread.status !== threadStatus) {
+				// Make sure thread hasn't been deleted
+				await ctx.db.patch(message.threadId, { status: threadStatus });
+			}
 		}
 
 		return true;
@@ -193,7 +195,11 @@ export const regenerateResponse = mutation({
 		}
 
 		const thread = await ctx.db.get(message.threadId);
-		if (!thread || thread.userId !== user._id) {
+		if (!thread) {
+			throw new Error('Thread not found.');
+		}
+
+		if (thread.userId !== user._id) {
 			throw new Error('User not authorized to access this thread.');
 		}
 
@@ -253,7 +259,11 @@ export const editAndResubmit = mutation({
 		}
 
 		const thread = await ctx.db.get(userMessage.threadId);
-		if (!thread || thread.userId !== user._id) {
+		if (!thread) {
+			throw new Error('Thread not found.');
+		}
+
+		if (thread.userId !== user._id) {
 			throw new Error('User not authorized to access this thread.');
 		}
 
@@ -300,5 +310,51 @@ export const editAndResubmit = mutation({
 		);
 
 		return { assistantMessageId, assistantMessage, messages };
+	},
+});
+
+export const markMessageAsDone = mutation({
+	args: {
+		messageId: v.id('messages'),
+		stopReason: v.union(v.literal('completed'), v.literal('stopped')),
+	},
+	handler: async (ctx, { messageId, stopReason }) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('User not authenticated');
+
+		const message = await ctx.db.get(messageId);
+		if (!message || message.userId !== user._id)
+			throw new Error('User not authorized to access this message.');
+
+		await ctx.db.patch(messageId, {
+			status: 'done',
+			...(stopReason && { stopReason }),
+		});
+
+		const thread = await ctx.db.get(message.threadId);
+
+		if (thread && thread.status !== 'done') {
+			await ctx.db.patch(message.threadId, {
+				status: 'done',
+			});
+		}
+
+		return true;
+	},
+});
+
+export const markMessageAsError = mutation({
+	args: { messageId: v.id('messages') },
+	handler: async (ctx, { messageId }) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('User not authenticated');
+
+		const message = await ctx.db.get(messageId);
+		if (!message || message.userId !== user._id)
+			throw new Error('User not authorized to access this message.');
+
+		await ctx.db.patch(messageId, { status: 'error' });
+
+		return true;
 	},
 });

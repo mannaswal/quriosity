@@ -62,8 +62,6 @@ export async function POST(request: NextRequest) {
 			});
 		};
 
-		console.log(model, reasoningEffort);
-
 		const response = streamText({
 			model: openrouter.chat(model, {
 				reasoning: { effort: reasoningEffort ?? 'medium' },
@@ -75,6 +73,10 @@ export async function POST(request: NextRequest) {
 
 		let content = '';
 		let reasoning = '';
+		let status: 'streaming' | 'done' | 'error' | 'reasoning' | undefined =
+			undefined;
+		let updateAccepted = true;
+		let needsUpdate = false;
 
 		return createDataStreamResponse({
 			execute: async (dataStream) => {
@@ -90,29 +92,41 @@ export async function POST(request: NextRequest) {
 
 							for await (const chunk of response.fullStream) {
 								if (chunk.type === 'text-delta') {
-									if (content === '') {
-										await updateMessage({ status: 'streaming' });
-									}
 									content += chunk.textDelta;
-								} else if (chunk.type === 'reasoning') {
-									if (reasoning === '') {
-										await updateMessage({ status: 'reasoning' });
+									if (status !== 'streaming') {
+										status = 'streaming';
+										needsUpdate = true;
 									}
+									needsUpdate = true;
+								} else if (chunk.type === 'reasoning') {
 									reasoning += chunk.textDelta;
+									if (status !== 'reasoning') {
+										status = 'reasoning';
+										needsUpdate = true;
+									}
+									needsUpdate = true;
 								}
 
 								const now = Date.now();
-								if (now - lastSent > 250) {
-									const updateAccepted = await updateMessage({
+								if (needsUpdate && now - lastSent > 300) {
+									lastSent = now;
+									needsUpdate = false;
+									updateMessage({
 										content,
 										reasoning,
-									});
-									lastSent = now;
+										status,
+									})
+										.then((accepted) => {
+											updateAccepted = accepted;
+										})
+										.catch((error) => {
+											needsUpdate = true;
+										});
+								}
 
-									if (!updateAccepted) {
-										abortController.abort(); // Actually stop the AI stream to save tokens
-										break;
-									}
+								if (!updateAccepted) {
+									abortController.abort(); // Actually stop the AI stream to save tokens
+									break;
 								}
 							}
 
@@ -146,6 +160,8 @@ export async function POST(request: NextRequest) {
 					await updateMessage({
 						status: 'error',
 						stopReason: 'error',
+						content: content,
+						reasoning: reasoning,
 					});
 				})();
 				return 'Error generating response';

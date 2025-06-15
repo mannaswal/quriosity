@@ -29,11 +29,9 @@ export function ChatInput() {
 		thread?.status === 'streaming' || thread?.status === 'pending';
 
 	const handleStop = async () => {
-		try {
-			await stopStream(thread?._id);
-		} catch (error) {
+		stopStream(thread?._id).catch((error) => {
 			console.error('Failed to stop stream:', error);
-		}
+		});
 	};
 
 	const handleSendMessage = async () => {
