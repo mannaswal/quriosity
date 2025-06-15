@@ -261,7 +261,9 @@ export function useStopStream() {
 	const { getStreamingMessage, removeStreamingMessage, blockStreaming } =
 		useStreamingStoreActions();
 	const stopThread = useConvexMutation(api.threads.stopThread);
-	const updateMessage = useConvexMutation(api.messages.updateMessage);
+	const markMessageAsStopped = useConvexMutation(
+		api.messages.markMessageAsStopped
+	);
 
 	return async (threadId: Id<'threads'> | undefined) => {
 		if (!threadId) return;
@@ -274,11 +276,10 @@ export function useStopStream() {
 				blockStreaming(threadId);
 
 				// Patch message with current optimistic content
-				await updateMessage({
+				await markMessageAsStopped({
 					messageId: localStreamingData.messageId,
 					content: localStreamingData.content,
-					status: 'done',
-					stopReason: 'stopped',
+					reasoning: localStreamingData.reasoning,
 				});
 
 				removeStreamingMessage(threadId);

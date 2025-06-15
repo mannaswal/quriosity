@@ -1,12 +1,7 @@
 // convex/messages.ts
 import { v } from 'convex/values';
-import {
-	internalMutation,
-	mutation,
-	query,
-	internalAction,
-} from './_generated/server';
-import { api, internal } from './_generated/api';
+import { internalMutation, mutation, query } from './_generated/server';
+import { internal } from './_generated/api';
 import { getUser } from './users';
 import { Doc, Id } from './_generated/dataModel';
 import {
@@ -17,7 +12,6 @@ import {
 	ReasoningEffort,
 	StopReason,
 } from './schema';
-import { updateThreadStatus } from './threads';
 
 export const getMessagesByThread = query({
 	args: { threadId: v.id('threads') },
@@ -131,18 +125,19 @@ export const updateMessage = mutation({
 
 		const message = await ctx.db.get(args.messageId);
 
-		if (!message) return false; // Message may have been deleted
+		if (!message) return false; // Message may have been deleted during the update
 
 		if (message.userId !== user._id)
 			throw new Error('User not authorized to access this message.');
 
 		if (message.status === 'done' || message.status === 'error') return false;
 
-		const patchData: any = {};
-		if (args.status) patchData.status = args.status;
-		if (args.stopReason) patchData.stopReason = args.stopReason;
-		if (args.content) patchData.content = args.content;
-		if (args.reasoning) patchData.reasoning = args.reasoning;
+		const patchData = {
+			...(args.status && { status: args.status }),
+			...(args.stopReason && { stopReason: args.stopReason }),
+			...(args.content && { content: args.content }),
+			...(args.reasoning && { reasoning: args.reasoning }),
+		};
 
 		await ctx.db.patch(args.messageId, patchData);
 
@@ -173,9 +168,9 @@ export const regenerateResponse = mutation({
 
 		const message = await ctx.db.get(messageId);
 
-		if (!message || message.userId !== user._id) {
-			throw new Error('Message not found.');
-		}
+		if (!message) throw new Error('Message not found.');
+		if (message.userId !== user._id)
+			throw new Error('User not authorized to access this message.');
 
 		if (message.role === 'user') {
 			userMessage = message;
@@ -195,13 +190,10 @@ export const regenerateResponse = mutation({
 		}
 
 		const thread = await ctx.db.get(message.threadId);
-		if (!thread) {
-			throw new Error('Thread not found.');
-		}
 
-		if (thread.userId !== user._id) {
+		if (!thread) throw new Error('Thread not found.');
+		if (thread.userId !== user._id)
 			throw new Error('User not authorized to access this thread.');
-		}
 
 		const modelUsed = userMessage.model;
 		const reasoningEffortUsed = userMessage.reasoningEffort;
@@ -249,23 +241,18 @@ export const editAndResubmit = mutation({
 	args: { userMessageId: v.id('messages'), newContent: v.string() },
 	handler: async (ctx, { userMessageId, newContent }) => {
 		const user = await getUser(ctx);
-		if (!user) {
-			throw new Error('User not authenticated.');
-		}
+		if (!user) throw new Error('User not authenticated.');
 
 		const userMessage = await ctx.db.get(userMessageId);
-		if (!userMessage || userMessage.role !== 'user') {
+		if (!userMessage) throw new Error('Invalid user message ID.');
+		if (userMessage.role !== 'user')
 			throw new Error('Invalid user message ID.');
-		}
 
 		const thread = await ctx.db.get(userMessage.threadId);
-		if (!thread) {
-			throw new Error('Thread not found.');
-		}
 
-		if (thread.userId !== user._id) {
+		if (!thread) throw new Error('Thread not found.');
+		if (thread.userId !== user._id)
 			throw new Error('User not authorized to access this thread.');
-		}
 
 		// 1. Update the user's message content
 		await ctx.db.patch(userMessage._id, { content: newContent });
@@ -313,33 +300,32 @@ export const editAndResubmit = mutation({
 	},
 });
 
-export const markMessageAsDone = mutation({
+export const markMessageAsStopped = mutation({
 	args: {
 		messageId: v.id('messages'),
-		stopReason: v.union(v.literal('completed'), v.literal('stopped')),
+		content: v.optional(v.string()),
+		reasoning: v.optional(v.string()),
 	},
-	handler: async (ctx, { messageId, stopReason }) => {
+	handler: async (ctx, { messageId, content, reasoning }) => {
 		const user = await getUser(ctx);
 		if (!user) throw new Error('User not authenticated');
 
 		const message = await ctx.db.get(messageId);
-		if (!message || message.userId !== user._id)
+		if (!message) throw new Error('Message not found.');
+		if (message.userId !== user._id)
 			throw new Error('User not authorized to access this message.');
 
 		await ctx.db.patch(messageId, {
 			status: 'done',
-			...(stopReason && { stopReason }),
+			stopReason: 'stopped',
+			content,
+			reasoning,
 		});
 
 		const thread = await ctx.db.get(message.threadId);
 
-		if (thread && thread.status !== 'done') {
-			await ctx.db.patch(message.threadId, {
-				status: 'done',
-			});
-		}
-
-		return true;
+		if (thread && thread.status !== 'done')
+			await ctx.db.patch(message.threadId, { status: 'done' });
 	},
 });
 
@@ -350,11 +336,14 @@ export const markMessageAsError = mutation({
 		if (!user) throw new Error('User not authenticated');
 
 		const message = await ctx.db.get(messageId);
-		if (!message || message.userId !== user._id)
+		if (!message) throw new Error('Message not found.');
+		if (message.userId !== user._id)
 			throw new Error('User not authorized to access this message.');
 
-		await ctx.db.patch(messageId, { status: 'error' });
+		await ctx.db.patch(messageId, { status: 'error', stopReason: 'error' });
 
-		return true;
+		const thread = await ctx.db.get(message.threadId);
+		if (thread && thread.status !== 'error')
+			await ctx.db.patch(message.threadId, { status: 'error' });
 	},
 });

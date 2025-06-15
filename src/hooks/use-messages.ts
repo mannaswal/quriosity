@@ -58,7 +58,7 @@ export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
 function useStreamMessage() {
 	const { updateStreamingContent, addStreamingMessage } =
 		useStreamingStoreActions();
-	const updateMessage = useMutation(api.messages.updateMessage);
+	const markMessageAsError = useMutation(api.messages.markMessageAsError);
 
 	return async (input: {
 		threadId: Id<'threads'>;
@@ -141,9 +141,8 @@ function useStreamMessage() {
 
 			// Handle other errors - update message status to error
 			try {
-				await updateMessage({
+				await markMessageAsError({
 					messageId: assistantMessageId,
-					status: 'error',
 				});
 			} catch (updateError) {
 				console.error('Failed to update message status on error:', updateError);
