@@ -1,11 +1,17 @@
 import { after, NextRequest, NextResponse } from 'next/server';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { streamText, CoreMessage, createDataStreamResponse } from 'ai';
+import {
+	streamText,
+	CoreMessage,
+	createDataStreamResponse,
+	UserContent,
+} from 'ai';
 import { auth } from '@clerk/nextjs/server';
 import { api } from 'convex/_generated/api';
 import { ConvexHttpClient } from 'convex/browser';
 import { markdownJoinerTransform } from '@/utils/markdown-joiner-transform';
-import { attachmentsToMessageContent } from '@/lib/utils';
+import { messageToCoreMessage } from '@/lib/utils';
+import { Attachment, Message } from '@/lib/types';
 
 export const maxDuration = 500;
 
@@ -42,41 +48,24 @@ export async function POST(request: NextRequest) {
 		// 3. Format message history for AI (exclude the empty assistant message)
 		const formattedHistory: CoreMessage[] = await Promise.all(
 			messages
-				.filter((msg: any) => msg.status !== 'in_progress')
-				.map(async (msg: any) => {
-					// Base message content
-					let content: string | any[] = msg.content;
+				.filter((msg: Message) => msg.status !== 'pending')
+				.map(async (msg: Message) => {
+					const attachments: Attachment[] = [];
 
-					// If message has attachments, fetch and format them
-					if (msg.attachmentIds && msg.attachmentIds.length > 0) {
+					if (msg.attachmentIds?.length) {
 						try {
-							// Fetch attachment details from Convex
-							const attachments = await convexClient.query(
-								api.attachments.getAttachmentsByIds,
-								{ attachmentIds: msg.attachmentIds }
+							attachments.push(
+								...(await convexClient.query(
+									api.attachments.getAttachmentsByIds,
+									{ ids: msg.attachmentIds }
+								))
 							);
-
-							if (attachments.length > 0) {
-								// Convert to multimodal content format
-								const attachmentContent =
-									attachmentsToMessageContent(attachments);
-
-								// Combine text content with attachments
-								content = [
-									{ type: 'text', text: msg.content },
-									...attachmentContent,
-								];
-							}
 						} catch (error) {
 							console.error('Failed to fetch attachments for message:', error);
-							// Continue with text-only message if attachment fetch fails
 						}
 					}
 
-					return {
-						role: msg.role,
-						content,
-					};
+					return messageToCoreMessage(msg, attachments);
 				})
 		);
 
@@ -98,7 +87,6 @@ export async function POST(request: NextRequest) {
 			status?: 'streaming' | 'done' | 'error' | 'reasoning';
 			stopReason?: 'completed' | 'stopped' | 'error';
 		}) => {
-			console.log('[API] About to update message with status:', input.status);
 			const result = await convexClient.mutation(api.messages.updateMessage, {
 				messageId,
 				content: input.content,
@@ -106,7 +94,6 @@ export async function POST(request: NextRequest) {
 				status: input.status,
 				stopReason: input.stopReason,
 			});
-			console.log('[API] Update message result:', result);
 			return result;
 		};
 
@@ -169,7 +156,6 @@ export async function POST(request: NextRequest) {
 									break;
 								}
 							}
-
 							after(
 								(async () => {
 									await updateMessage({
@@ -209,18 +195,6 @@ export async function POST(request: NextRequest) {
 					return 'Stream aborted by user';
 				}
 				console.error('[API] onError triggered - Streaming error:', error);
-				console.error(
-					'[API] onError - Error type:',
-					(error as Error)?.constructor?.name || typeof error
-				);
-				console.error(
-					'[API] onError - Error message:',
-					(error as Error)?.message || 'Unknown error'
-				);
-				console.error(
-					'[API] onError - Full error object:',
-					JSON.stringify(error, Object.getOwnPropertyNames(error))
-				);
 
 				after(
 					(async () => {

@@ -1,8 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { createUploadthing, type FileRouter } from 'uploadthing/next';
 import { UploadThingError } from 'uploadthing/server';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from 'convex/_generated/api';
 import { AttachmentType } from '@/lib/types';
 
 const f = createUploadthing();
@@ -27,51 +25,42 @@ const sharedMiddleware = async ({ req }: { req: Request }) => {
 	const user = await auth();
 	if (!user.userId) throw new UploadThingError('Unauthorized');
 
-	const token = await user.getToken({ template: 'convex' });
-	if (!token) throw new UploadThingError('No Convex token available');
-
-	return { userId: user.userId, convexToken: token };
+	return { userId: user.userId };
 };
 
 /**
- * Shared upload completion handler
+ * Shared upload completion handler - returns metadata instead of storing in DB
  */
 const sharedOnUploadComplete = async ({
 	metadata,
 	file,
 }: {
-	metadata: { userId: string; convexToken: string };
-	file: { url: string; name: string; type: string };
+	metadata: { userId: string };
+	file: {
+		ufsUrl: string;
+		name: string;
+		type: string;
+		key: string;
+	};
 }) => {
 	try {
-		const convexClient = new ConvexHttpClient(
-			process.env.NEXT_PUBLIC_CONVEX_URL!
-		);
-		convexClient.setAuth(metadata.convexToken);
-
 		const attachmentType = getAttachmentType(file.type);
 
-		const attachmentId = await convexClient.mutation(
-			api.attachments.insertAttachment,
-			{
-				filename: file.name,
-				originalFilename: file.name,
-				url: file.url,
-				mimeType: file.type,
-				type: attachmentType,
-			}
-		);
+		// console.log('File uploaded to UploadThing:', file.name);
 
-		console.log('Attachment stored:', attachmentId);
-
+		// Return metadata for temp store instead of storing in DB
 		return {
-			attachmentId,
+			id: crypto.randomUUID(), // Generate temp ID
+			name: file.name,
+			url: file.ufsUrl,
+			mimeType: file.type,
 			type: attachmentType,
+			uploadThingKey: file.key,
 			uploadedBy: metadata.userId,
 		};
 	} catch (error) {
-		console.error('Failed to store attachment:', error);
-		throw new UploadThingError('Failed to store attachment in database');
+		console.error('Failed to process upload:', error);
+		throw new UploadThingError('Failed to process upload');
 	}
 };
 
@@ -116,7 +105,19 @@ export const ourFileRouter = {
 			maxFileSize: '16MB',
 			maxFileCount: 20,
 		},
-		image: {
+		'image/png': {
+			maxFileSize: '16MB',
+			maxFileCount: 20,
+		},
+		'image/jpeg': {
+			maxFileSize: '16MB',
+			maxFileCount: 20,
+		},
+		'image/gif': {
+			maxFileSize: '16MB',
+			maxFileCount: 20,
+		},
+		'image/webp': {
 			maxFileSize: '16MB',
 			maxFileCount: 20,
 		},

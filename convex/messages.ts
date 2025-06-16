@@ -135,18 +135,7 @@ export const updateMessage = mutation({
 			return false;
 		}
 
-		console.log(
-			'[CONVEX] Current message status:',
-			message.status,
-			'Attempting to set status to:',
-			args.status
-		);
-
 		if (message.status === 'done' || message.status === 'error') {
-			// console.log(
-			// 	'[CONVEX] Message is done or error, returning false. Current status:',
-			// 	message.status
-			// );
 			return false;
 		}
 

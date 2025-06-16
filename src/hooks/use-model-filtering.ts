@@ -1,126 +1,88 @@
 import { useMemo } from 'react';
-import { models, modelsData, ModelProperty } from '@/lib/models';
+import { ModelProperty, modelsData, models, ModelId } from '@/lib/models';
 import { hasVision, hasDocs } from '@/lib/utils';
-import { Attachment, AttachmentType } from '@/lib/types';
-
-export interface ModelFilterResult {
-	filteredModels: typeof models;
-	restrictions: {
-		requiresVision: boolean;
-		requiresDocs: boolean;
-		requiresText: boolean;
-		attachmentTypes: AttachmentType[];
-	};
-	incompatibleModels: typeof models;
-}
+import { TempAttachment } from '@/lib/types';
 
 /**
- * Hook to filter available models based on selected attachments
- * Returns filtered models, restrictions info, and incompatible models
+ * Hook to filter models based on attachment requirements
+ * Separates models into compatible and incompatible based on their capabilities
  */
-export function useModelFiltering(
-	attachments: Attachment[]
-): ModelFilterResult {
+export function useModelFiltering(attachments: TempAttachment[] = []) {
 	return useMemo(() => {
-		// If no attachments, return all models
-		if (!attachments || attachments.length === 0) {
-			return {
-				filteredModels: models,
-				restrictions: {
-					requiresVision: false,
-					requiresDocs: false,
-					requiresText: false,
-					attachmentTypes: [],
-				},
-				incompatibleModels: [],
-			};
-		}
+		// Determine what capabilities we need based on attachments
+		const needsVision = attachments.some((att) => att.type === 'image');
+		const needsDocs = attachments.some((att) => att.type === 'pdf');
 
-		// Determine what capabilities are required based on attachment types
-		const attachmentTypes = [...new Set(attachments.map((att) => att.type))];
-		const requiresVision = attachmentTypes.includes('image');
-		const requiresDocs = attachmentTypes.includes('pdf');
-		const requiresText = attachmentTypes.includes('text');
-
-		// Filter models based on requirements
 		const filteredModels: ModelProperty[] = [];
 		const incompatibleModels: ModelProperty[] = [];
 
-		models.forEach((model) => {
-			let isCompatible = true;
+		models.forEach((data) => {
+			const canHandleVision = hasVision(data.id);
+			const canHandleDocs = hasDocs(data.id);
 
-			// Check vision requirement
-			if (requiresVision && !hasVision(model.id)) {
-				isCompatible = false;
-			}
-
-			// Check docs requirement
-			if (requiresDocs && !hasDocs(model.id)) {
-				isCompatible = false;
-			}
-
-			// Text files are generally supported by any model that supports attachments
-			// So we only check if the model supports ANY attachments when text is present
-			if (requiresText && !hasVision(model.id) && !hasDocs(model.id)) {
-				isCompatible = false;
-			}
+			// Check if model can handle all required capabilities
+			const isCompatible =
+				(!needsVision || canHandleVision) && (!needsDocs || canHandleDocs);
 
 			if (isCompatible) {
-				filteredModels.push(model);
+				filteredModels.push(data);
 			} else {
-				incompatibleModels.push(model);
+				incompatibleModels.push(data);
 			}
 		});
 
+		// Determine which restrictions apply
+		const restrictions = [];
+		if (needsVision) restrictions.push('vision');
+		if (needsDocs) restrictions.push('docs');
+
 		return {
 			filteredModels,
-			restrictions: {
-				requiresVision,
-				requiresDocs,
-				requiresText,
-				attachmentTypes,
-			},
 			incompatibleModels,
+			restrictions,
 		};
 	}, [attachments]);
 }
 
 /**
- * Hook to check if a specific model is compatible with given attachments
+ * Hook to check if a specific model is compatible with the given attachments
  */
 export function useModelCompatibility(
-	attachments: Attachment[],
-	modelId: string
+	modelId: string | undefined,
+	attachments: TempAttachment[] = []
 ) {
-	const { filteredModels } = useModelFiltering(attachments);
 	return useMemo(() => {
-		return filteredModels.some((model) => model.id === modelId);
-	}, [filteredModels, modelId]);
+		if (!modelId) return true;
+
+		const needsVision = attachments.some((att) => att.type === 'image');
+		const needsDocs = attachments.some((att) => att.type === 'pdf');
+
+		const canHandleVision = hasVision(modelId as ModelId);
+		const canHandleDocs = hasDocs(modelId as ModelId);
+
+		return (!needsVision || canHandleVision) && (!needsDocs || canHandleDocs);
+	}, [modelId, attachments]);
 }
 
 /**
- * Get human-readable restrictions message
+ * Generate a human-readable message about model restrictions
  */
-export function getRestrictionsMessage(
-	restrictions: ModelFilterResult['restrictions']
-): string {
-	if (restrictions.attachmentTypes.length === 0) {
-		return '';
+export function getRestrictionsMessage(restrictions: string[]): string {
+	if (restrictions.length === 0) return '';
+
+	const messages = [];
+	if (restrictions.includes('vision')) {
+		messages.push('images require vision models');
+	}
+	if (restrictions.includes('docs')) {
+		messages.push('PDFs require document models');
 	}
 
-	const requirements: string[] = [];
-
-	if (restrictions.requiresVision) {
-		requirements.push('vision support');
+	if (messages.length === 1) {
+		return `Note: ${messages[0]}`;
+	} else if (messages.length === 2) {
+		return `Note: ${messages[0]} and ${messages[1]}`;
 	}
 
-	if (restrictions.requiresDocs) {
-		requirements.push('document support');
-	}
-
-	if (requirements.length === 0) {
-		return 'Models with attachment support';
-	}
-
-	return `Models with ${requirements.join(' and ')}`;
+	return '';
 }

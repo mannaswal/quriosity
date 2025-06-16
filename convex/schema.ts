@@ -55,10 +55,10 @@ export default defineSchema({
 	attachments: defineTable({
 		userId: v.id('users'),
 		filename: v.string(),
-		originalFilename: v.string(),
 		url: v.string(),
 		mimeType: v.string(),
 		type: AttachmentType,
+		key: v.string(),
 	}).index('by_user_id', ['userId']),
 
 	threads: defineTable({

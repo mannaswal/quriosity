@@ -253,6 +253,7 @@
 /* Target the scrollbar for the entire page */
 ::-webkit-scrollbar {
 	width: 6px; /* Width of the vertical scrollbar */
+	height: 6px; /* Width of the horizontal scrollbar */
 }
 
 /* Track */
@@ -269,4 +270,13 @@
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
 	background: #777; /* Even darker grey on hover */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+	display: none;
+}
+
+.scrollbar-hide {
+	-ms-overflow-style: none; /* IE and Edge */
+	scrollbar-width: none; /* Firefox */
 }

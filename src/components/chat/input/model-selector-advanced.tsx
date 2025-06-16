@@ -35,26 +35,22 @@ import {
 	useModelFiltering,
 	getRestrictionsMessage,
 } from '@/hooks/use-model-filtering';
-import { AttachmentType } from '@/lib/types';
+import { TempAttachment } from '@/lib/types';
+import { useTempAttachments } from '@/stores/use-temp-data-store';
 
 /**
  * Advanced model selector with organized provider-based navigation
  * Supports nested menus for providers and reasoning levels
- * @param attachments - Optional array of attachments to filter models by
+ * @param attachments - Optional array of temp attachments to filter models by
  */
-export const ModelSelectorAdvanced = ({
-	attachments = [],
-}: {
-	attachments?: Array<{ type: AttachmentType }>;
-} = {}) => {
+export const ModelSelectorAdvanced = () => {
 	const { model } = useModel();
 	const updateModel = useUpdateModel();
+	const attachments = useTempAttachments();
 
 	// Filter models based on attachments
 	const { filteredModels, restrictions, incompatibleModels } =
-		useModelFiltering(
-			attachments as any[] // We'll fix this typing later when we have full Attachment objects
-		);
+		useModelFiltering(attachments);
 
 	// Group all models by provider (both compatible and incompatible)
 	const modelsByProvider = useMemo(() => {

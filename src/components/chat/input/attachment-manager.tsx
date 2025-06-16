@@ -16,13 +16,18 @@ import {
 	LoaderIcon,
 } from 'lucide-react';
 import { UploadButton } from '@/utils/uploadthing';
-import { Attachment, AttachmentType } from '@/lib/types';
+import { AttachmentType, TempAttachment } from '@/lib/types';
 import { hasVision, hasDocs } from '@/lib/utils';
 import { ModelId } from '@/lib/models';
+import {
+	useTempAttachments,
+	useTempActions,
+} from '@/stores/use-temp-data-store';
+import { ClientUploadedFileData } from 'uploadthing/types';
+import { deleteFromUploadThing } from '@/app/api/uploadthing/route';
+import { toast } from 'sonner';
 
 interface AttachmentManagerProps {
-	attachments: Attachment[];
-	onAttachmentsChange: (attachments: Attachment[]) => void;
 	modelId?: ModelId;
 	disabled?: boolean;
 }
@@ -84,90 +89,97 @@ function getAttachmentIcon(type: AttachmentType) {
 
 /**
  * Attachment Manager Component
- * Single upload button with dynamic file type acceptance
+ * Uses temp store for attachment management
  */
 export function AttachmentManager({
-	attachments,
-	onAttachmentsChange,
 	modelId,
 	disabled = false,
 }: AttachmentManagerProps) {
-	const [isUploading, setIsUploading] = useState(false);
+	// const [isUploading, setIsUploading] = useState(false);
+	const { addUploadedAttachment, addOptimisticAttachment } = useTempActions();
 	const capabilities = getModelCapabilities(modelId);
 
-	const handleRemoveAttachment = useCallback(
-		(attachmentId: string) => {
-			onAttachmentsChange(
-				attachments.filter((att) => att._id !== attachmentId)
-			);
-		},
-		[attachments, onAttachmentsChange]
-	);
-
 	const handleUploadComplete = useCallback(
-		(results: any[]) => {
-			const newAttachments = results.map((res) => ({
-				_id: res.attachmentId,
-				_creationTime: Date.now(),
-				filename: res.name || 'Unknown',
-				originalFilename: res.name || 'Unknown',
-				url: res.url,
-				mimeType: res.type || 'application/octet-stream',
-				type: res.type as AttachmentType,
-				userId: res.uploadedBy || '',
-			})) as Attachment[];
-
-			onAttachmentsChange([...attachments, ...newAttachments]);
-			setIsUploading(false);
+		(
+			results: ClientUploadedFileData<{
+				id: string;
+				name: string;
+				url: string;
+				mimeType: string;
+				type: AttachmentType;
+				uploadThingKey: string;
+				uploadedBy: string;
+			}>[]
+		) => {
+			results.forEach((result) => {
+				const tempAttachment: TempAttachment = {
+					uploaded: true,
+					name: result.name,
+					url: result.serverData.url,
+					mimeType: result.serverData.mimeType,
+					type: result.serverData.type,
+					uploadThingKey: result.serverData.uploadThingKey,
+				};
+				addUploadedAttachment(tempAttachment);
+			});
 		},
-		[attachments, onAttachmentsChange]
+		[addUploadedAttachment]
 	);
 
 	const handleUploadError = useCallback((error: Error) => {
 		console.error('Upload error:', error);
-		setIsUploading(false);
+		toast.error('Failed to upload attachment');
 	}, []);
 
-	const handleUploadBegin = useCallback(() => {
-		setIsUploading(true);
-	}, []);
+	const handleBeforeUploadBegin = useCallback((files: File[]): File[] => {
+		const renamedFiles: File[] = [];
+		const fileNameCounts: Map<string, number> = new Map(); // To track occurrences of each base filename
+
+		files.forEach((file) => {
+			const originalFileName = file.name;
+			const lastDotIndex = originalFileName.lastIndexOf('.');
+			let baseName = originalFileName;
+			let extension = '';
+
+			// Separate base name and extension
+			if (lastDotIndex !== -1 && lastDotIndex > 0) {
+				baseName = originalFileName.substring(0, lastDotIndex);
+				extension = originalFileName.substring(lastDotIndex); // includes the dot, e.g., ".pdf"
+			}
+
+			if (extension === '.jpg') extension = '.jpeg';
+
+			// Get current count for this base name
+			const currentCount = fileNameCounts.get(baseName) || 0;
+
+			let newFileName = originalFileName;
+			if (currentCount > 0) {
+				// Append (count) to the filename
+				newFileName = `${baseName} (${currentCount})${extension}`;
+			}
+
+			// Increment count for the next occurrence of this base name
+			fileNameCounts.set(baseName, currentCount + 1);
+
+			// Create a new File object with the updated name
+			// The File constructor allows creating a new File with the same content and different metadata
+			renamedFiles.push(
+				new File([file], newFileName, {
+					type: file.type,
+					lastModified: file.lastModified,
+				})
+			);
+		});
+
+		renamedFiles.forEach((file) => {
+			addOptimisticAttachment(file);
+		});
+
+		return renamedFiles;
+	}, []); // No dependencies needed for this logic, as it operates on the input 'files'
 
 	return (
 		<div className="flex items-center gap-2">
-			{/* Attachment Previews */}
-			{attachments.length > 0 && (
-				<div className="flex items-center gap-1 mr-2">
-					{attachments.map((attachment) => (
-						<div
-							key={attachment._id}
-							className="flex items-center gap-1 bg-muted rounded-md px-2 py-1 text-xs">
-							{getAttachmentIcon(attachment.type)}
-							<span className="max-w-20 truncate">
-								{attachment.originalFilename}
-							</span>
-							<Button
-								variant="ghost"
-								size="icon"
-								className="size-4 hover:bg-destructive/10"
-								onClick={() => handleRemoveAttachment(attachment._id)}>
-								<XIcon className="size-3" />
-							</Button>
-						</div>
-					))}
-				</div>
-			)}
-
-			{/* Uploading Indicator */}
-			{isUploading && (
-				<div className="flex items-center gap-1 mr-2">
-					<div className="flex items-center gap-1 bg-muted/50 rounded-md px-2 py-1 text-xs">
-						<LoaderIcon className="size-4 animate-spin" />
-						<span>Uploading...</span>
-					</div>
-				</div>
-			)}
-
-			{/* Upload Button with Popover */}
 			<Popover>
 				<PopoverTrigger asChild>
 					<Button
@@ -175,10 +187,16 @@ export function AttachmentManager({
 						size="icon"
 						asChild>
 						<UploadButton
+							config={{
+								appendOnPaste: true,
+							}}
 							endpoint={capabilities.endpoint}
 							onClientUploadComplete={handleUploadComplete}
 							onUploadError={handleUploadError}
-							onUploadBegin={handleUploadBegin}
+							onBeforeUploadBegin={handleBeforeUploadBegin}
+							onUploadProgress={(progress) => {
+								console.log('upload progress', progress);
+							}}
 							content={{
 								button: <PaperclipIcon className="size-4 stroke-[1.5]" />,
 							}}

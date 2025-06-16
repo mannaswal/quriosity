@@ -1,11 +1,6 @@
 'use client';
 
-import {
-	PaperclipIcon,
-	SendIcon,
-	StopCircleIcon,
-	UploadIcon,
-} from 'lucide-react';
+import { FileIcon, SendIcon, StopCircleIcon } from 'lucide-react';
 import {
 	PromptInput,
 	PromptInputAction,
@@ -16,20 +11,28 @@ import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { useSendMessage } from '@/hooks/use-messages';
 import { useStopStream } from '@/hooks/use-threads';
-import { ModelSelector } from './model-selector';
 import { ModelSelectorAdvanced } from './model-selector-advanced';
 import { useThread } from '@/hooks/use-threads';
 import { ReasoningSelector } from './reasoning-selector';
-import { useTempModel } from '@/stores/use-temp-data-store';
-import { canReason, hasAttachments, hasEffortControl } from '@/lib/utils';
+import {
+	useAllAttachmentsUploaded,
+	useTempModel,
+} from '@/stores/use-temp-data-store';
+import { hasEffortControl } from '@/lib/utils';
 import { useStickToBottomContext } from 'use-stick-to-bottom';
-import { UploadButton } from '@/utils/uploadthing';
 import { AttachmentManager } from './attachment-manager';
-import { Attachment } from '@/lib/types';
+import {
+	useTempAttachments,
+	useTempActions,
+} from '@/stores/use-temp-data-store';
+import { AttachmentList } from './attachment-list';
+import { toast } from 'sonner';
 
 export function ChatInput() {
 	const [message, setMessage] = useState('');
-	const [attachments, setAttachments] = useState<Attachment[]>([]);
+	const { clearAttachments, addUploadedAttachment } = useTempActions();
+	const tempAttachments = useTempAttachments();
+	const allAttachmentsUploaded = useAllAttachmentsUploaded();
 
 	const { scrollToBottom } = useStickToBottomContext();
 	const thread = useThread();
@@ -40,6 +43,7 @@ export function ChatInput() {
 
 	const isProcessing =
 		thread?.status === 'streaming' || thread?.status === 'pending';
+	const disabled = !message.trim() || isProcessing || !allAttachmentsUploaded;
 
 	const handleStop = async () => {
 		stopStream(thread?._id).catch((error) => {
@@ -49,23 +53,28 @@ export function ChatInput() {
 
 	const handleSendMessage = async () => {
 		if (!message.trim() || isProcessing) return;
-		scrollToBottom();
 
+		// Take a snapshot of the message and attachments
 		const messageContent = message;
-		const messageAttachments = attachments.map((att) => att._id);
+		const attachments = tempAttachments;
 
-		try {
-			await sendMessage(messageContent, messageAttachments);
-			setMessage('');
-			setAttachments([]); // Clear attachments after successful send
-		} catch (error) {
+		scrollToBottom();
+		setMessage('');
+		clearAttachments();
+
+		sendMessage(messageContent).catch((error) => {
 			console.error('Failed to send message:', error);
+			toast.error('Failed to send message');
+
+			// Restore the message and attachments
 			setMessage(messageContent);
-		}
+			attachments.forEach((a) => addUploadedAttachment(a));
+		});
 	};
 
 	return (
 		<div className="w-full absolute left-1/2 -translate-x-[calc(50%+0.5rem)] max-w-3xl z-50 bottom-2 mx-2">
+			<AttachmentList />
 			<PromptInput
 				onSubmit={handleSendMessage}
 				onValueChange={setMessage}
@@ -82,7 +91,7 @@ export function ChatInput() {
 						<PromptInputAction
 							delayDuration={300}
 							tooltip="Model">
-							<ModelSelectorAdvanced attachments={attachments} />
+							<ModelSelectorAdvanced />
 						</PromptInputAction>
 						{hasEffortControl(modelId) && (
 							<PromptInputAction
@@ -95,8 +104,6 @@ export function ChatInput() {
 							delayDuration={300}
 							tooltip="Attach files">
 							<AttachmentManager
-								attachments={attachments}
-								onAttachmentsChange={setAttachments}
 								modelId={modelId}
 								disabled={isProcessing}
 							/>
@@ -115,7 +122,7 @@ export function ChatInput() {
 							</Button>
 						) : (
 							<Button
-								disabled={!message.trim()}
+								disabled={disabled}
 								onClick={handleSendMessage}
 								variant="ghost"
 								size="icon"

@@ -16,6 +16,11 @@ import { ModelId } from '@/lib/models';
 import { processDataStream } from 'ai';
 import { getMessagesByThread } from 'convex/messages';
 import { useMemo, useCallback, useRef } from 'react';
+import { TempAttachment } from '@/lib/types';
+import {
+	useAllAttachmentsUploaded,
+	useTempAttachments,
+} from '@/stores/use-temp-data-store';
 
 /**
  * Hook to get messages for a thread - now subscribes to both DB and streaming store
@@ -127,12 +132,7 @@ function useStreamMessage() {
 		model: ModelId;
 		reasoningEffort: ReasoningEffort | undefined;
 		assistantMessageId: Id<'messages'>;
-		messageHistory: {
-			id: Id<'messages'>;
-			role: 'user' | 'assistant' | 'system';
-			content: string;
-			attachmentIds?: Id<'attachments'>[];
-		}[];
+		messageHistory: Message[];
 	}) => {
 		const {
 			threadId,
@@ -227,18 +227,42 @@ export function useSendMessage(opts?: {
 	const { model, reasoningEffort } = useModel();
 	const router = useRouter();
 	const thread = useThread();
+	const tempAttachments = useTempAttachments();
+	const allAttachmentsUploaded = useAllAttachmentsUploaded();
 	const streamMessage = useStreamMessage();
 	const getReasoningEffort = useReasoningEffort();
 	const createThread = useMutation(api.threads.createThread);
 	const setupThread = useMutation(api.threads.setupThread);
+	const insertAttachment = useMutation(api.attachments.insertAttachment);
 
-	const sendMessage = async (
-		messageContent: string,
-		attachmentIds?: Id<'attachments'>[]
-	) => {
-		if (thread?.status === 'streaming') return;
+	const sendMessage = async (messageContent: string) => {
+		if (thread?.status === 'streaming') {
+			toast.error("Can't send message while messages are streaming");
+			return;
+		}
+		if (!allAttachmentsUploaded) {
+			toast.error('Please wait for all attachments to finish uploading');
+			return;
+		}
 
 		try {
+			// Convert temp attachments to DB entries
+			let attachmentIds: Id<'attachments'>[] = [];
+			if (tempAttachments && tempAttachments.length > 0) {
+				attachmentIds = await Promise.all(
+					tempAttachments.map(async (tempAtt) => {
+						if (!tempAtt.uploaded) throw new Error('Attachment not uploaded'); // Should never happen
+						return await insertAttachment({
+							filename: tempAtt.name,
+							url: tempAtt.url,
+							mimeType: tempAtt.mimeType,
+							type: tempAtt.type,
+							key: tempAtt.uploadThingKey,
+						});
+					})
+				);
+			}
+
 			let targetThreadId = thread?._id;
 
 			// If there is no thread, we create a new one
@@ -261,20 +285,13 @@ export function useSendMessage(opts?: {
 				attachmentIds,
 			});
 
-			const messageHistory = allMessages.map((message) => ({
-				id: message._id,
-				role: message.role,
-				content: message.content,
-				attachmentIds: message.attachmentIds || [],
-			}));
-
 			// Start streaming
 			await streamMessage({
 				threadId: targetThreadId,
 				model,
 				reasoningEffort: getReasoningEffort(model, reasoningEffort),
 				assistantMessageId,
-				messageHistory,
+				messageHistory: allMessages,
 			});
 
 			opts?.onSuccess?.();
@@ -340,19 +357,13 @@ export function useRegenerate(opts?: {
 
 			removeStreamingMessage(args.threadId);
 
-			const messageHistory = messages.map((message) => ({
-				id: message._id,
-				role: message.role,
-				content: message.content,
-			}));
-
 			// Start streaming
 			await streamMessage({
 				threadId: assistantMessage.threadId,
 				model: assistantMessage.model as ModelId,
 				reasoningEffort: effort,
 				assistantMessageId,
-				messageHistory,
+				messageHistory: messages,
 			});
 
 			opts?.onSuccess?.();
@@ -420,19 +431,13 @@ export function useEditAndResubmit(opts?: {
 
 			removeStreamingMessage(args.threadId);
 
-			const messageHistory = messages.map((message) => ({
-				id: message._id,
-				role: message.role,
-				content: message.content,
-			}));
-
 			// Start streaming
 			await streamMessage({
 				threadId: assistantMessage.threadId,
 				model: assistantMessage.model as ModelId,
 				reasoningEffort: effort,
 				assistantMessageId,
-				messageHistory,
+				messageHistory: messages,
 			});
 
 			opts?.onSuccess?.();
