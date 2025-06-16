@@ -41,10 +41,6 @@ export function useThreadMessages(threadIdParam?: Id<'threads'>): Message[] {
 			threadId && isAuthenticated ? { threadId } : 'skip'
 		) ?? [];
 
-	console.log('threadId', threadId);
-	console.log('isAuthenticated', isAuthenticated);
-	console.log('dbMessages', dbMessages);
-
 	// Memoize the merged messages array to prevent infinite re-renders
 	// This is crucial for XAI models that send rapid reasoning updates
 	return useMemo(() => {
@@ -467,11 +463,9 @@ export function useEditAndResubmit(opts?: {
  */
 export function usePreviousMessage(messageId: Id<'messages'>) {
 	const messages = useThreadMessages();
-	console.log('messages', messages);
 
 	const previousMessage = useMemo(() => {
 		const index = messages.findIndex((m) => m._id === messageId);
-		console.log(index);
 		if (index === -1 || index === 0) return null;
 
 		return messages[index - 1];

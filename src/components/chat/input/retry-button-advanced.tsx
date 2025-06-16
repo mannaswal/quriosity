@@ -75,8 +75,6 @@ export const RetryButtonAdvanced = ({
 	const getReasoningEffort = useReasoningEffort();
 	const updateModel = useUpdateModel();
 	const previousMessage = usePreviousMessage(message._id);
-	console.log(message);
-	console.log(previousMessage);
 
 	let retryMessage = message;
 
@@ -88,9 +86,6 @@ export const RetryButtonAdvanced = ({
 	const modelsCompatibility = useModelsCompatibility(messageAttachments);
 
 	const restrictions = getRestrictions(messageAttachments);
-
-	// console.log(messageAttachments);
-	// console.log(retryMessage);
 
 	const handleModelChangeAndRetry = async (
 		selectedModel: ModelId,

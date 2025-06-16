@@ -44,6 +44,7 @@ import {
 	DisclosureContent,
 	DisclosureTrigger,
 } from '../ui/disclosure';
+import { Badge } from '../ui/badge';
 
 const funnelDisplay = Funnel_Display({
 	subsets: ['latin'],
@@ -154,7 +155,14 @@ export function AppSidebar() {
 							})}
 							<Disclosure className="group/collapsible mt-auto">
 								<SidebarGroup>
-									<SidebarGroupLabel>Archived</SidebarGroupLabel>
+									<SidebarGroupLabel>
+										Archived
+										<Badge
+											variant="secondary"
+											className="ml-2 text-[10px] text-muted-foreground py-px">
+											{groupedThreads.archived.length}
+										</Badge>
+									</SidebarGroupLabel>
 									<DisclosureTrigger>
 										<SidebarGroupAction
 											title="Archived"
