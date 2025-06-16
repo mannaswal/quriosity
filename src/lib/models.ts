@@ -31,8 +31,8 @@ export type ModelProperty = {
 	vision?: boolean;
 	/** Whether the model can perform web searches. */
 	webSearch?: boolean;
-	/** Whether the model supports file attachments. */
-	attachments?: boolean;
+	/** Whether the model supports file docs. */
+	docs?: boolean;
 	/** Whether the model has enhanced reasoning capabilities. */
 	reasoning?: boolean;
 	/** Whether the model supports effort control. */
@@ -50,7 +50,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		id: 'google/gemini-2.5-flash-preview-05-20' as const,
 		vision: true,
 		webSearch: true,
-		attachments: true,
+		docs: true,
 	},
 	'google/gemini-2.5-flash-preview-05-20:thinking': {
 		provider: 'google' as ModelProvider,
@@ -58,7 +58,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		id: 'google/gemini-2.5-flash-preview-05-20:thinking' as const,
 		vision: true,
 		webSearch: true,
-		attachments: true,
+		docs: true,
 		reasoning: true,
 		effortControl: true,
 	},
@@ -68,7 +68,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		id: 'google/gemini-2.5-pro-preview-05-06' as const,
 		vision: true,
 		webSearch: true,
-		attachments: true,
+		docs: true,
 		reasoning: true,
 		effortControl: true,
 		experimental: true,
@@ -86,7 +86,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		name: 'Claude 4 Sonnet',
 		id: 'anthropic/claude-sonnet-4' as const,
 		vision: true,
-		attachments: true,
+		docs: true,
 		reasoning: true,
 		effortControl: true,
 	},
@@ -95,7 +95,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 	// 	name: 'Claude 4 Sonnet (Reasoning)',
 	// 	id: 'anthropic/claude-sonnet-4:reasoning' as const,
 	// 	vision: true,
-	// 	attachments: true,
+	// 	docs: true,
 	// 	reasoning: true,
 	// 	effortControl: true,
 	// },
@@ -105,14 +105,14 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		id: 'google/gemini-2.0-flash-001' as const,
 		vision: true,
 		webSearch: true,
-		attachments: true,
+		docs: true,
 	},
 	'google/gemini-2.0-flash-lite-001': {
 		provider: 'google' as ModelProvider,
 		name: 'Gemini 2.0 Flash Lite',
 		id: 'google/gemini-2.0-flash-lite-001' as const,
 		vision: true,
-		attachments: true,
+		docs: true,
 		fast: true,
 		experimental: true,
 	},
@@ -166,7 +166,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		name: 'o3 Pro',
 		id: 'openai/o3-pro' as const,
 		vision: true,
-		attachments: true,
+		docs: true,
 		reasoning: true,
 		effortControl: true,
 	},
@@ -175,21 +175,21 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		name: 'Claude 3.5 Sonnet',
 		id: 'anthropic/claude-3.5-sonnet-20240620' as const,
 		vision: true,
-		attachments: true,
+		docs: true,
 	},
 	'anthropic/claude-3.7-sonnet': {
 		provider: 'anthropic' as ModelProvider,
 		name: 'Claude 3.7 Sonnet',
 		id: 'anthropic/claude-3.7-sonnet' as const,
 		vision: true,
-		attachments: true,
+		docs: true,
 	},
 	'anthropic/claude-3.7-sonnet:thinking': {
 		provider: 'anthropic' as ModelProvider,
 		name: 'Claude 3.7 Sonnet (Reasoning)',
 		id: 'anthropic/claude-3.7-sonnet:thinking' as const,
 		vision: true,
-		attachments: true,
+		docs: true,
 		reasoning: true,
 		effortControl: true,
 	},
@@ -198,7 +198,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		name: 'Claude 4 Opus',
 		id: 'anthropic/claude-opus-4' as const,
 		vision: true,
-		attachments: true,
+		docs: true,
 		reasoning: true,
 	},
 	'meta-llama/llama-3.3-70b-instruct': {

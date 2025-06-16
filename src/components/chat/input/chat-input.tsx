@@ -86,7 +86,7 @@ export function ChatInput() {
 						{hasAttachments(modelId) && (
 							<PromptInputAction
 								delayDuration={300}
-								tooltip="Attachments">
+								tooltip="Attach files">
 								<Button
 									variant="ghost"
 									size="icon"

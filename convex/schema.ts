@@ -36,6 +36,12 @@ export const ReasoningEffort = v.union(
 	v.literal('high')
 );
 
+export const AttachmentType = v.union(
+	v.literal('text'),
+	v.literal('image'),
+	v.literal('pdf')
+);
+
 export default defineSchema({
 	users: defineTable({
 		name: v.string(),
@@ -45,6 +51,15 @@ export default defineSchema({
 		lastModelUsed: v.optional(v.string()),
 		lastReasoningEffortUsed: v.optional(ReasoningEffort),
 	}).index('by_auth_id', ['authId']),
+
+	attachments: defineTable({
+		userId: v.id('users'),
+		filename: v.string(),
+		originalFilename: v.string(),
+		url: v.string(),
+		mimeType: v.string(),
+		type: AttachmentType,
+	}).index('by_user_id', ['userId']),
 
 	threads: defineTable({
 		userId: v.id('users'),
@@ -73,6 +88,8 @@ export default defineSchema({
 
 		model: v.string(),
 		reasoningEffort: v.optional(ReasoningEffort),
+
+		attachmentIds: v.optional(v.array(v.id('attachments'))),
 	})
 		.index('by_user_id', ['userId'])
 		.index('by_thread', ['threadId'])

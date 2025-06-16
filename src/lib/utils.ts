@@ -19,11 +19,11 @@ export const hasVision = (model: ModelId | undefined) =>
 export const hasWebSearch = (model: ModelId | undefined) =>
 	(model && modelsData[model]?.webSearch) ?? false;
 
-export const hasFiles = (model: ModelId | undefined) =>
-	(model && modelsData[model]?.attachments) ?? false;
+export const hasDocs = (model: ModelId | undefined) =>
+	(model && modelsData[model]?.docs) ?? false;
 
 export const hasAttachments = (model: ModelId | undefined) =>
-	hasFiles(model) || hasVision(model);
+	hasDocs(model) || hasVision(model);
 
 export const capitalize = (str: string) =>
 	str.charAt(0).toUpperCase() + str.slice(1);
