@@ -205,6 +205,7 @@ export function AttachmentManager({
 							}}
 							appearance={{
 								allowedContent: 'hidden',
+								button: 'size-9',
 							}}
 						/>
 					</Button>
