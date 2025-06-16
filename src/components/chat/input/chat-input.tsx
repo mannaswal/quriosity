@@ -103,10 +103,7 @@ export function ChatInput() {
 						<PromptInputAction
 							delayDuration={300}
 							tooltip="Attach files">
-							<AttachmentManager
-								modelId={modelId}
-								disabled={isProcessing}
-							/>
+							<AttachmentManager modelId={modelId} />
 						</PromptInputAction>
 					</div>
 					<PromptInputAction

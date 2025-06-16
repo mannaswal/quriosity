@@ -39,10 +39,7 @@ export function ChatView() {
 				direction="top"
 			/>
 			<div className="absolute top-0 left-0 h-16 w-full bg-gradient-to-t from-transparent to-background/95" />
-			<div className="relative">
-				<ChatContainer />
-				{/* <ChatInput /> */}
-			</div>
+			<ChatContainer />
 		</div>
 	);
 }

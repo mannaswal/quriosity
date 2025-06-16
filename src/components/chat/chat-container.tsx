@@ -23,7 +23,7 @@ const ChatContainer = memo(function ChatContainer() {
 			<ChatContainerRoot className="flex-1 px-px *:first:!overflow-y-scroll *:first:pl-1.5">
 				<ChatContainerContent
 					className={cn(
-						'px-4 max-w-3xl mx-auto pt-14 pb-32 space-y-4 group scroll-m-2'
+						'px-4 max-w-3xl mx-auto pt-14 pb-40 space-y-4 group scroll-m-2'
 					)}>
 					{messages.map((message, index) => {
 						return (
