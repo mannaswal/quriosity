@@ -24,9 +24,12 @@ import { useTempModel } from '@/stores/use-temp-data-store';
 import { canReason, hasAttachments, hasEffortControl } from '@/lib/utils';
 import { useStickToBottomContext } from 'use-stick-to-bottom';
 import { UploadButton } from '@/utils/uploadthing';
+import { AttachmentManager } from './attachment-manager';
+import { Attachment } from '@/lib/types';
 
 export function ChatInput() {
 	const [message, setMessage] = useState('');
+	const [attachments, setAttachments] = useState<Attachment[]>([]);
 
 	const { scrollToBottom } = useStickToBottomContext();
 	const thread = useThread();
@@ -49,11 +52,16 @@ export function ChatInput() {
 		scrollToBottom();
 
 		const messageContent = message;
-		sendMessage(message).catch((error) => {
+		const messageAttachments = attachments.map((att) => att._id);
+
+		try {
+			await sendMessage(messageContent, messageAttachments);
+			setMessage('');
+			setAttachments([]); // Clear attachments after successful send
+		} catch (error) {
 			console.error('Failed to send message:', error);
 			setMessage(messageContent);
-		});
-		setMessage('');
+		}
 	};
 
 	return (
@@ -74,7 +82,7 @@ export function ChatInput() {
 						<PromptInputAction
 							delayDuration={300}
 							tooltip="Model">
-							<ModelSelectorAdvanced />
+							<ModelSelectorAdvanced attachments={attachments} />
 						</PromptInputAction>
 						{hasEffortControl(modelId) && (
 							<PromptInputAction
@@ -83,35 +91,16 @@ export function ChatInput() {
 								<ReasoningSelector />
 							</PromptInputAction>
 						)}
-						{hasAttachments(modelId) && (
-							<PromptInputAction
-								delayDuration={300}
-								tooltip="Attach files">
-								<Button
-									variant="ghost"
-									size="icon"
-									asChild>
-									<UploadButton
-										content={{
-											button: <PaperclipIcon className="size-4 stroke-[1.5]" />,
-										}}
-										appearance={{
-											allowedContent: 'hidden',
-										}}
-										config={{
-											appendOnPaste: true,
-										}}
-										endpoint="fileUploader"
-										onClientUploadComplete={(res) => {
-											console.log('res', res);
-										}}
-										onUploadError={(error: Error) => {
-											console.log('error', error);
-										}}
-									/>
-								</Button>
-							</PromptInputAction>
-						)}
+						<PromptInputAction
+							delayDuration={300}
+							tooltip="Attach files">
+							<AttachmentManager
+								attachments={attachments}
+								onAttachmentsChange={setAttachments}
+								modelId={modelId}
+								disabled={isProcessing}
+							/>
+						</PromptInputAction>
 					</div>
 					<PromptInputAction
 						delayDuration={300}

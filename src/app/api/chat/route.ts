@@ -5,6 +5,7 @@ import { auth } from '@clerk/nextjs/server';
 import { api } from 'convex/_generated/api';
 import { ConvexHttpClient } from 'convex/browser';
 import { markdownJoinerTransform } from '@/utils/markdown-joiner-transform';
+import { attachmentsToMessageContent } from '@/lib/utils';
 
 export const maxDuration = 500;
 
@@ -39,12 +40,45 @@ export async function POST(request: NextRequest) {
 		}
 
 		// 3. Format message history for AI (exclude the empty assistant message)
-		const formattedHistory: CoreMessage[] = messages
-			.filter((msg: any) => msg.status !== 'in_progress')
-			.map((msg: any) => ({
-				role: msg.role,
-				content: msg.content,
-			}));
+		const formattedHistory: CoreMessage[] = await Promise.all(
+			messages
+				.filter((msg: any) => msg.status !== 'in_progress')
+				.map(async (msg: any) => {
+					// Base message content
+					let content: string | any[] = msg.content;
+
+					// If message has attachments, fetch and format them
+					if (msg.attachmentIds && msg.attachmentIds.length > 0) {
+						try {
+							// Fetch attachment details from Convex
+							const attachments = await convexClient.query(
+								api.attachments.getAttachmentsByIds,
+								{ attachmentIds: msg.attachmentIds }
+							);
+
+							if (attachments.length > 0) {
+								// Convert to multimodal content format
+								const attachmentContent =
+									attachmentsToMessageContent(attachments);
+
+								// Combine text content with attachments
+								content = [
+									{ type: 'text', text: msg.content },
+									...attachmentContent,
+								];
+							}
+						} catch (error) {
+							console.error('Failed to fetch attachments for message:', error);
+							// Continue with text-only message if attachment fetch fails
+						}
+					}
+
+					return {
+						role: msg.role,
+						content,
+					};
+				})
+		);
 
 		// 4. Create our own AbortController to properly stop AI token generation
 		const abortController = new AbortController();

@@ -142,6 +142,7 @@ export function UserMessage({ message, index }: UserMessageProps) {
 				<RetryButtonAdvanced
 					handleRegenerate={handleRegenerate}
 					onOpenChange={setIsRetryMenuOpen}
+					// attachments={message.attachments} // TODO: Add when message schema supports attachments
 				/>
 			</div>
 		</div>

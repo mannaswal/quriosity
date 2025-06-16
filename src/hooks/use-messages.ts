@@ -131,6 +131,7 @@ function useStreamMessage() {
 			id: Id<'messages'>;
 			role: 'user' | 'assistant' | 'system';
 			content: string;
+			attachmentIds?: Id<'attachments'>[];
 		}[];
 	}) => {
 		const {
@@ -231,7 +232,10 @@ export function useSendMessage(opts?: {
 	const createThread = useMutation(api.threads.createThread);
 	const setupThread = useMutation(api.threads.setupThread);
 
-	const sendMessage = async (messageContent: string) => {
+	const sendMessage = async (
+		messageContent: string,
+		attachmentIds?: Id<'attachments'>[]
+	) => {
 		if (thread?.status === 'streaming') return;
 
 		try {
@@ -243,6 +247,7 @@ export function useSendMessage(opts?: {
 					messageContent,
 					model,
 					reasoningEffort: getReasoningEffort(model, reasoningEffort),
+					attachmentIds,
 				});
 
 				router.push(`/chat/${targetThreadId}`); // Redirect to the new thread
@@ -253,12 +258,14 @@ export function useSendMessage(opts?: {
 				model,
 				reasoningEffort: getReasoningEffort(model, reasoningEffort),
 				messageContent,
+				attachmentIds,
 			});
 
 			const messageHistory = allMessages.map((message) => ({
 				id: message._id,
 				role: message.role,
 				content: message.content,
+				attachmentIds: message.attachmentIds || [],
 			}));
 
 			// Start streaming

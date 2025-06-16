@@ -78,11 +78,11 @@ const sharedOnUploadComplete = async ({
 // FileRouter for your app, can contain multiple FileRoutes
 export const ourFileRouter = {
 	/**
-	 * Image uploader - for models with vision capability
-	 * Supports: PNG, JPEG, GIF, WebP, HEIC
+	 * Text only uploader - for models with no vision/docs capability
+	 * Accepts: Text files only
 	 */
-	imageUploader: f({
-		image: {
+	textOnlyUploader: f({
+		'text/plain': {
 			maxFileSize: '16MB',
 			maxFileCount: 20,
 		},
@@ -91,10 +91,14 @@ export const ourFileRouter = {
 		.onUploadComplete(sharedOnUploadComplete),
 
 	/**
-	 * Document uploader - for models with docs capability
-	 * Supports: PDF files only
+	 * Docs + Text uploader - for models with docs capability but no vision
+	 * Accepts: Text files and PDFs
 	 */
-	docUploader: f({
+	docsTextUploader: f({
+		'text/plain': {
+			maxFileSize: '16MB',
+			maxFileCount: 20,
+		},
 		pdf: {
 			maxFileSize: '16MB',
 			maxFileCount: 20,
@@ -104,11 +108,36 @@ export const ourFileRouter = {
 		.onUploadComplete(sharedOnUploadComplete),
 
 	/**
-	 * Text uploader - universal for any model with attachment support
-	 * Supports: Plain text files
+	 * Images + Text uploader - for models with vision capability but no docs
+	 * Accepts: Text files and Images
 	 */
-	textUploader: f({
-		text: {
+	imagesTextUploader: f({
+		'text/plain': {
+			maxFileSize: '16MB',
+			maxFileCount: 20,
+		},
+		image: {
+			maxFileSize: '16MB',
+			maxFileCount: 20,
+		},
+	})
+		.middleware(sharedMiddleware)
+		.onUploadComplete(sharedOnUploadComplete),
+
+	/**
+	 * All files uploader - for models with both vision and docs capability
+	 * Accepts: Text files, Images, and PDFs
+	 */
+	allFilesUploader: f({
+		'text/plain': {
+			maxFileSize: '16MB',
+			maxFileCount: 20,
+		},
+		image: {
+			maxFileSize: '16MB',
+			maxFileCount: 20,
+		},
+		pdf: {
 			maxFileSize: '16MB',
 			maxFileCount: 20,
 		},

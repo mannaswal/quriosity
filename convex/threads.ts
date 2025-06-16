@@ -127,6 +127,7 @@ export const createThread = mutation({
 		messageContent: v.string(),
 		model: v.string(),
 		reasoningEffort: v.optional(ReasoningEffort),
+		attachmentIds: v.optional(v.array(v.id('attachments'))),
 	},
 	handler: async (ctx, args) => {
 		const user = await getUser(ctx);
@@ -162,6 +163,7 @@ export const setupThread = mutation({
 		model: v.string(),
 		reasoningEffort: v.optional(ReasoningEffort),
 		messageContent: v.string(),
+		attachmentIds: v.optional(v.array(v.id('attachments'))),
 	},
 	handler: async (ctx, args) => {
 		const user = await getUser(ctx);
@@ -177,6 +179,7 @@ export const setupThread = mutation({
 			model: args.model,
 			reasoningEffort: args.reasoningEffort,
 			content: args.messageContent,
+			attachmentIds: args.attachmentIds || [],
 		});
 
 		const assistantMessageId = await ctx.db.insert('messages', {
