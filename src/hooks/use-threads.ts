@@ -132,7 +132,11 @@ export function usePinThread() {
 			localStore.setQuery(
 				api.threads.getThreadById,
 				{ threadId },
-				{ ...currentThread, pinned }
+				{
+					...currentThread,
+					pinned,
+					...(pinned && !currentThread.archived && { archived: false }),
+				}
 			);
 		}
 
@@ -149,7 +153,6 @@ export function usePinThread() {
 	return async (args: { threadId: Id<'threads'>; pinned: boolean }) => {
 		try {
 			await pinMutation(args);
-			toast.success(args.pinned ? 'Thread pinned' : 'Thread unpinned');
 		} catch (error) {
 			toast.error('Failed to update thread');
 			throw error;
@@ -191,7 +194,6 @@ export function useArchiveThread() {
 	return async (args: { threadId: Id<'threads'>; archived: boolean }) => {
 		try {
 			await archiveMutation(args);
-			toast.success(args.archived ? 'Thread archived' : 'Thread unarchived');
 		} catch (error) {
 			toast.error('Failed to update thread');
 			throw error;
@@ -281,7 +283,6 @@ export function useBranchThread() {
 	return async (args: { messageId: Id<'messages'> }) => {
 		try {
 			const newThreadId = await branchMutation(args);
-			toast.success('Thread branched successfully!');
 			router.push(`/chat/${newThreadId}`);
 			return newThreadId;
 		} catch (error) {

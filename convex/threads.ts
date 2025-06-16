@@ -262,27 +262,25 @@ export const pinThread = mutation({
 		pinned: v.boolean(),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) throw new Error('Not authenticated');
+		const user = await getUser(ctx);
+		if (!user) throw new Error('Not authenticated');
 
 		// Verify the thread exists and get the thread data
 		const thread = await ctx.db.get(args.threadId);
 		if (!thread) throw new Error('Thread not found');
 
 		// Verify the user owns this thread
-		const user = await ctx.db
-			.query('users')
-			.withIndex('by_auth_id', (q) => q.eq('authId', identity.subject))
-			.unique();
+		if (thread.userId !== user._id) throw new Error('Unauthorized');
 
-		if (!user || thread.userId !== user._id) {
-			throw new Error('Unauthorized: You can only pin/unpin your own threads');
+		const patch: Record<string, boolean> = {
+			pinned: args.pinned,
+		};
+		if (args.pinned && thread.archived) {
+			patch.archived = false;
 		}
 
 		// Update the thread's pinned status
-		await ctx.db.patch(args.threadId, {
-			pinned: args.pinned,
-		});
+		await ctx.db.patch(args.threadId, patch);
 
 		return { success: true, pinned: args.pinned };
 	},

@@ -45,6 +45,7 @@ import {
 	DisclosureTrigger,
 } from '../ui/disclosure';
 import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 
 const funnelDisplay = Funnel_Display({
 	subsets: ['latin'],
@@ -98,7 +99,7 @@ export function AppSidebar() {
 
 	return (
 		<Sidebar variant="floating">
-			<SidebarHeader>
+			<SidebarHeader className="flex flex-col items-center justify-between">
 				<Link
 					href="/"
 					className="rounded-lg">
@@ -110,8 +111,16 @@ export function AppSidebar() {
 						Quriosity
 					</h1>
 				</Link>
+				<div className="w-full">
+					<Button
+						variant="ghost"
+						className="w-full dark:bg-input/90 hover:dark:bg-input"
+						size="lg">
+						New chat
+					</Button>
+				</div>
 			</SidebarHeader>
-			<SidebarContent className="h-full">
+			<SidebarContent className="h-full gap-0 ">
 				{isLoading ? (
 					<SidebarGroup>
 						<SidebarGroupContent>
@@ -153,40 +162,42 @@ export function AppSidebar() {
 									</SidebarGroup>
 								);
 							})}
-							<Disclosure className="group/collapsible mt-auto">
-								<SidebarGroup>
-									<SidebarGroupLabel>
-										Archived
-										<Badge
-											variant="secondary"
-											className="ml-2 text-[10px] text-muted-foreground py-px">
-											{groupedThreads.archived.length}
-										</Badge>
-									</SidebarGroupLabel>
-									<DisclosureTrigger>
-										<SidebarGroupAction
-											title="Archived"
-											className="group/archived">
-											<EyeOffIcon className="size-3! hidden group-aria-expanded/archived:block transition-opacity text-muted-foreground" />
-											<EyeIcon className="size-3! block group-aria-expanded/archived:hidden transition-opacity text-muted-foreground" />
-											<span className="sr-only">Archived</span>
-										</SidebarGroupAction>
-									</DisclosureTrigger>
-									<DisclosureContent>
-										<SidebarGroupContent>
-											<SidebarMenu>
-												{groupedThreads.archived?.map((thread) => (
-													<ThreadItem
-														key={thread._id}
-														thread={thread}
-														currentThreadId={threadId}
-													/>
-												))}
-											</SidebarMenu>
-										</SidebarGroupContent>
-									</DisclosureContent>
-								</SidebarGroup>
-							</Disclosure>
+							{groupedThreads.archived.length > 0 && (
+								<Disclosure className="group/collapsible mt-auto">
+									<SidebarGroup>
+										<SidebarGroupLabel>
+											Archived
+											<Badge
+												variant="secondary"
+												className="ml-2 text-[10px] text-muted-foreground py-px">
+												{groupedThreads.archived.length}
+											</Badge>
+										</SidebarGroupLabel>
+										<DisclosureTrigger>
+											<SidebarGroupAction
+												title="Archived"
+												className="group/archived">
+												<EyeOffIcon className="size-3! hidden group-aria-expanded/archived:block transition-opacity text-muted-foreground" />
+												<EyeIcon className="size-3! block group-aria-expanded/archived:hidden transition-opacity text-muted-foreground" />
+												<span className="sr-only">Archived</span>
+											</SidebarGroupAction>
+										</DisclosureTrigger>
+										<DisclosureContent>
+											<SidebarGroupContent>
+												<SidebarMenu>
+													{groupedThreads.archived?.map((thread) => (
+														<ThreadItem
+															key={thread._id}
+															thread={thread}
+															currentThreadId={threadId}
+														/>
+													))}
+												</SidebarMenu>
+											</SidebarGroupContent>
+										</DisclosureContent>
+									</SidebarGroup>
+								</Disclosure>
+							)}
 						</>
 					)
 				) : (
