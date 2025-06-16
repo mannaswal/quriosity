@@ -124,13 +124,13 @@ export function MessageAttachmentList({ message }: { message: Message }) {
 					return (
 						<div
 							key={attachment._id}
-							className="h-48 rounded-md last:rounded-tr-md last:rounded-br-2xl first:rounded-l-2xl overflow-hidden flex-shrink-0 bg-neutral-600/20">
+							className="h-48 rounded-md last:rounded-tr-md last:rounded-br-2xl first:rounded-l-2xl overflow-hidden flex-shrink-0 bg-neutral-600/20 max-w-full">
 							<Image
 								src={attachment.url}
 								alt={attachment.filename}
 								width={0}
 								height={0}
-								sizes="100vw"
+								sizes="(max-width: 600px) 100vw, 600px"
 								unoptimized={attachment.mimeType.includes('gif')}
 								className="h-full w-auto object-cover"
 								style={{ width: 'auto', height: '100%' }}

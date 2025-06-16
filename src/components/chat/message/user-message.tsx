@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Message as ChatMessage, ReasoningEffort } from '@/lib/types';
 import { ModelId } from '@/lib/models';
 import { useRegenerate, useEditAndResubmit } from '@/hooks/use-messages';
@@ -6,21 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Markdown } from '@/components/ui/markdown';
 import { Message } from '@/components/ui/message';
-import {
-	CheckIcon,
-	CopyIcon,
-	RefreshCcwIcon,
-	PencilIcon,
-	FileIcon,
-	FileText,
-	FileType,
-} from 'lucide-react';
+import { CheckIcon, CopyIcon, PencilIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { RetryButton } from '../input/retry-button';
 import { RetryButtonAdvanced } from '../input/retry-button-advanced';
-import { useAttachments } from '@/hooks/use-attachments';
-import Image from 'next/image';
-import { cn } from '@/lib/utils';
 import { MessageAttachmentList } from '../input/attachment-list';
 
 interface UserMessageProps {
@@ -31,7 +19,7 @@ interface UserMessageProps {
 /**
  * Component for rendering user messages with edit, regenerate, and copy functionality
  */
-export function UserMessage({ message, index }: UserMessageProps) {
+export function UserMessage({ message }: UserMessageProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editedContent, setEditedContent] = useState(message.content);
 	const [copied, setCopied] = useState(false);
