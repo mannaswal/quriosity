@@ -1,6 +1,11 @@
 'use client';
 
-import { SendIcon, StopCircleIcon } from 'lucide-react';
+import {
+	PaperclipIcon,
+	SendIcon,
+	StopCircleIcon,
+	UploadIcon,
+} from 'lucide-react';
 import {
 	PromptInput,
 	PromptInputAction,
@@ -16,8 +21,9 @@ import { ModelSelectorAdvanced } from './model-selector-advanced';
 import { useThread } from '@/hooks/use-threads';
 import { ReasoningSelector } from './reasoning-selector';
 import { useTempModel } from '@/stores/use-temp-data-store';
-import { canReason, hasEffortControl } from '@/lib/utils';
+import { canReason, hasAttachments, hasEffortControl } from '@/lib/utils';
 import { useStickToBottomContext } from 'use-stick-to-bottom';
+import { UploadButton } from '@/utils/uploadthing';
 
 export function ChatInput() {
 	const [message, setMessage] = useState('');
@@ -75,6 +81,35 @@ export function ChatInput() {
 								delayDuration={300}
 								tooltip="Reasoning">
 								<ReasoningSelector />
+							</PromptInputAction>
+						)}
+						{hasAttachments(modelId) && (
+							<PromptInputAction
+								delayDuration={300}
+								tooltip="Attachments">
+								<Button
+									variant="ghost"
+									size="icon"
+									asChild>
+									<UploadButton
+										content={{
+											button: <PaperclipIcon className="size-4 stroke-[1.5]" />,
+										}}
+										appearance={{
+											allowedContent: 'hidden',
+										}}
+										config={{
+											appendOnPaste: true,
+										}}
+										endpoint="fileUploader"
+										onClientUploadComplete={(res) => {
+											console.log('res', res);
+										}}
+										onUploadError={(error: Error) => {
+											console.log('error', error);
+										}}
+									/>
+								</Button>
 							</PromptInputAction>
 						)}
 					</div>

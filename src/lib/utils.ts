@@ -13,6 +13,18 @@ export const canReason = (model: ModelId | undefined) =>
 export const hasEffortControl = (model: ModelId | undefined) =>
 	(model && modelsData[model]?.effortControl) ?? false;
 
+export const hasVision = (model: ModelId | undefined) =>
+	(model && modelsData[model]?.vision) ?? false;
+
+export const hasWebSearch = (model: ModelId | undefined) =>
+	(model && modelsData[model]?.webSearch) ?? false;
+
+export const hasFiles = (model: ModelId | undefined) =>
+	(model && modelsData[model]?.attachments) ?? false;
+
+export const hasAttachments = (model: ModelId | undefined) =>
+	hasFiles(model) || hasVision(model);
+
 export const capitalize = (str: string) =>
 	str.charAt(0).toUpperCase() + str.slice(1);
 

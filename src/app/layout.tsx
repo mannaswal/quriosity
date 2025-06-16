@@ -4,9 +4,11 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { ConvexClientProvider } from '@/auth/convex-client-provider';
 import { ClerkProvider } from '@clerk/nextjs';
-import { TRPCProvider } from '@/server/trpc/provider';
 import { Toaster } from '@/components/ui/sonner';
 import { cookies } from 'next/headers';
+import { NextSSRPlugin } from '@uploadthing/react/next-ssr-plugin';
+import { extractRouterConfig } from 'uploadthing/server';
+import { ourFileRouter } from '@/app/api/uploadthing/core';
 
 const geistSans = Geist({
 	variable: '--font-geist-sans',
@@ -45,13 +47,12 @@ export default async function RootLayout({
 				className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
 				<ClerkProvider>
 					<ConvexClientProvider>
-						<TRPCProvider>
-							<SidebarProvider defaultOpen={defaultOpen}>
-								<AppSidebar />
-								<main className="flex-1">{children}</main>
-							</SidebarProvider>
-							<Toaster />
-						</TRPCProvider>
+						<NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
+						<SidebarProvider defaultOpen={defaultOpen}>
+							<AppSidebar />
+							<main className="flex-1">{children}</main>
+						</SidebarProvider>
+						<Toaster />
 					</ConvexClientProvider>
 				</ClerkProvider>
 			</body>
