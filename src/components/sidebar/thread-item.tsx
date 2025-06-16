@@ -17,6 +17,8 @@ import {
 	XIcon,
 	TextCursorIcon,
 	TrashIcon,
+	ArchiveIcon,
+	ArchiveRestore,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Loader } from '../ui/loader';
@@ -25,6 +27,7 @@ import { SplitIcon } from 'lucide-react';
 import Link from 'next/link';
 import {
 	useDeleteThread,
+	useArchiveThread,
 	usePinThread,
 	useRenameThread,
 } from '@/hooks/use-threads';
@@ -49,6 +52,7 @@ export const ThreadItem = ({
 	const pinThreadMutation = usePinThread();
 	const deleteThreadMutation = useDeleteThread();
 	const renameThreadMutation = useRenameThread();
+	const archiveThreadMutation = useArchiveThread();
 
 	/**
 	 * Handle pinning/unpinning a thread
@@ -237,7 +241,7 @@ export const ThreadItem = ({
 				<ContextMenuContent>
 					<ContextMenuItem
 						onClick={() => handlePinThread(thread._id, thread.pinned)}>
-						<PinIcon className="mr-2 size-4" />
+						<PinIcon className="size-4" />
 						{thread.pinned ? 'Unpin' : 'Pin'}
 					</ContextMenuItem>
 					<ContextMenuItem
@@ -246,14 +250,28 @@ export const ThreadItem = ({
 							// e.preventDefault();
 							e.stopPropagation();
 						}}>
-						<TextCursorIcon className="mr-2 size-4" />
+						<TextCursorIcon className="size-4 text-muted-foreground" />
 						Rename
+					</ContextMenuItem>
+					<ContextMenuItem
+						onClick={() =>
+							archiveThreadMutation({
+								threadId: thread._id,
+								archived: !thread.archived,
+							})
+						}>
+						{thread.archived ? (
+							<ArchiveRestore className="size-4" />
+						) : (
+							<ArchiveIcon className="size-4" />
+						)}
+						{thread.archived ? 'Unarchive' : 'Archive'}
 					</ContextMenuItem>
 					<ContextMenuSeparator />
 					<ContextMenuItem
 						onClick={() => handleDeleteThread(thread._id)}
-						className="text-red-500 focus:text-red-700">
-						<TrashIcon className="mr-2 size-4" />
+						className="text-rose-500 focus:text-rose-700">
+						<TrashIcon className="size-4" />
 						Delete
 					</ContextMenuItem>
 				</ContextMenuContent>

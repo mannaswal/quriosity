@@ -158,6 +158,48 @@ export function usePinThread() {
 }
 
 /**
+ * Hook for archiving threads with optimistic updates
+ */
+export function useArchiveThread() {
+	const archiveMutation = useConvexMutation(
+		api.threads.archiveThread
+	).withOptimisticUpdate((localStore, args) => {
+		const { threadId, archived } = args;
+
+		// Update specific thread
+		const currentThread = localStore.getQuery(api.threads.getThreadById, {
+			threadId,
+		});
+		if (currentThread) {
+			localStore.setQuery(
+				api.threads.getThreadById,
+				{ threadId },
+				{ ...currentThread, archived }
+			);
+		}
+
+		// Update threads list
+		const threadsList = localStore.getQuery(api.threads.getUserThreads, {});
+		if (threadsList) {
+			const updatedList = threadsList.map((thread) =>
+				thread._id === threadId ? { ...thread, archived } : thread
+			);
+			localStore.setQuery(api.threads.getUserThreads, {}, updatedList);
+		}
+	});
+
+	return async (args: { threadId: Id<'threads'>; archived: boolean }) => {
+		try {
+			await archiveMutation(args);
+			toast.success(args.archived ? 'Thread archived' : 'Thread unarchived');
+		} catch (error) {
+			toast.error('Failed to update thread');
+			throw error;
+		}
+	};
+}
+
+/**
  * Hook for deleting threads with optimistic updates
  */
 export function useDeleteThread() {

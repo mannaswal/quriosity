@@ -8,7 +8,16 @@ import {
 	SidebarGroupContent,
 	SidebarHeader,
 	SidebarMenu,
+	SidebarMenuItem,
+	SidebarMenuButton,
+	SidebarGroupAction,
 } from '@/components/ui/sidebar';
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { SidebarMenuSub, SidebarMenuSubItem } from '@/components/ui/sidebar';
 import { Authenticated, Unauthenticated, useConvexAuth } from 'convex/react';
 import { SignInButton, UserButton } from '@clerk/nextjs';
 import { useStoreUserEffect } from '@/hooks/use-store-user';
@@ -24,6 +33,17 @@ import { ThreadItem } from './thread-item';
 
 import { Funnel_Display } from 'next/font/google';
 import { cn } from '@/lib/utils';
+import {
+	ArchiveIcon,
+	ChevronDownIcon,
+	EyeIcon,
+	EyeOffIcon,
+} from 'lucide-react';
+import {
+	Disclosure,
+	DisclosureContent,
+	DisclosureTrigger,
+} from '../ui/disclosure';
 
 const funnelDisplay = Funnel_Display({
 	subsets: ['latin'],
@@ -55,6 +75,7 @@ export function AppSidebar() {
 		{ name: 'Yesterday', threads: groupedThreads.yesterday },
 		{ name: 'Last 7 Days', threads: groupedThreads.last7Days },
 		{ name: 'Last 30 Days', threads: groupedThreads.last30Days },
+		{ name: 'Archived', threads: groupedThreads.archived },
 	];
 
 	useEffect(() => {
@@ -89,7 +110,7 @@ export function AppSidebar() {
 					</h1>
 				</Link>
 			</SidebarHeader>
-			<SidebarContent>
+			<SidebarContent className="h-full">
 				{isLoading ? (
 					<SidebarGroup>
 						<SidebarGroupContent>
@@ -112,7 +133,8 @@ export function AppSidebar() {
 					) : (
 						<>
 							{sidebarGroups.map((group) => {
-								if (group.threads.length === 0) return null;
+								if (group.threads.length === 0 || group.name === 'Archived')
+									return null;
 								return (
 									<SidebarGroup key={group.name}>
 										<SidebarGroupLabel>{group.name}</SidebarGroupLabel>
@@ -130,6 +152,33 @@ export function AppSidebar() {
 									</SidebarGroup>
 								);
 							})}
+							<Disclosure className="group/collapsible mt-auto">
+								<SidebarGroup>
+									<SidebarGroupLabel>Archived</SidebarGroupLabel>
+									<DisclosureTrigger>
+										<SidebarGroupAction
+											title="Archived"
+											className="group/archived">
+											<EyeOffIcon className="size-3! hidden group-aria-expanded/archived:block transition-opacity text-muted-foreground" />
+											<EyeIcon className="size-3! block group-aria-expanded/archived:hidden transition-opacity text-muted-foreground" />
+											<span className="sr-only">Archived</span>
+										</SidebarGroupAction>
+									</DisclosureTrigger>
+									<DisclosureContent>
+										<SidebarGroupContent>
+											<SidebarMenu>
+												{groupedThreads.archived?.map((thread) => (
+													<ThreadItem
+														key={thread._id}
+														thread={thread}
+														currentThreadId={threadId}
+													/>
+												))}
+											</SidebarMenu>
+										</SidebarGroupContent>
+									</DisclosureContent>
+								</SidebarGroup>
+							</Disclosure>
 						</>
 					)
 				) : (
@@ -168,6 +217,7 @@ function groupThreadsByRecency(threads: Thread[] | undefined) {
 			yesterday: [],
 			last7Days: [],
 			last30Days: [],
+			archived: [],
 		};
 
 	const now = new Date();
@@ -190,9 +240,14 @@ function groupThreadsByRecency(threads: Thread[] | undefined) {
 		yesterday: [] as Thread[],
 		last7Days: [] as Thread[],
 		last30Days: [] as Thread[],
+		archived: [] as Thread[],
 	};
 
 	for (const thread of threads) {
+		if (thread.archived) {
+			groups.archived.push(thread);
+			continue;
+		}
 		if (thread.pinned) {
 			groups.pinned.push(thread);
 			continue;
