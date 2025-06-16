@@ -97,11 +97,12 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 				key={message._id}
 				className="peer/message flex flex-col w-full text-neutral-100">
 				{reasoning && (
-					<Reasoning className="w-full bg-neutral-900/70 rounded-xl p-4">
-						<ReasoningTrigger className="w-full">
+					<Reasoning className="w-full bg-neutral-900/70 hover:bg-neutral-900/90 transition-colors rounded-xl">
+						<ReasoningTrigger className="w-full hover:text-accent-foreground p-4">
 							{isReasoning ? <TextShimmer>Reasoning</TextShimmer> : 'Reasoning'}
 						</ReasoningTrigger>
 						<ReasoningContent
+							contentClassName="px-4 pb-4"
 							className="w-full max-w-full"
 							markdown>
 							{reasoning}

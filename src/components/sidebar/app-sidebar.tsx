@@ -115,8 +115,9 @@ export function AppSidebar() {
 					<Button
 						variant="ghost"
 						className="w-full dark:bg-input/90 hover:dark:bg-input"
-						size="lg">
-						New chat
+						size="lg"
+						asChild>
+						<Link href="/">New chat</Link>
 					</Button>
 				</div>
 			</SidebarHeader>

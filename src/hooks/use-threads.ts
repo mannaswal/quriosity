@@ -225,6 +225,7 @@ export function useDeleteThread() {
 	return async (threadId: Id<'threads'>) => {
 		try {
 			await deleteMutation({ threadId });
+			toast.success('Thread deleted!');
 		} catch (error) {
 			toast.error('Failed to delete thread');
 			throw error;

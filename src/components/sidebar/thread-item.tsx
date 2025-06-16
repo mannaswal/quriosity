@@ -31,6 +31,16 @@ import {
 	usePinThread,
 	useRenameThread,
 } from '@/hooks/use-threads';
+import {
+	Dialog,
+	DialogTrigger,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogDescription,
+	DialogFooter,
+	DialogClose,
+} from '../ui/dialog';
 
 /**
  * Individual thread item component with all thread-related functionality
@@ -238,21 +248,53 @@ export const ThreadItem = ({
 								<PinIcon className="size-3" />
 							)}
 						</Button>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="size-6 shrink-0 rounded-sm dark:hover:bg-sidebar-accent-foreground/20 cursor-pointer"
-							onClick={(e) => {
-								handleDeleteThread(thread._id);
-								e.preventDefault();
-								e.stopPropagation();
-							}}>
-							<XIcon className="size-3" />
-						</Button>
+						<ThreadItemDeleteButton
+							thread={thread}
+							handleDeleteThread={handleDeleteThread}
+						/>
 					</div>
 				</div>
 			</ThreadItemContextMenuWrapper>
 		</SidebarMenuItem>
+	);
+};
+
+const ThreadItemDeleteButton = ({
+	thread,
+	handleDeleteThread,
+}: {
+	thread: Thread;
+	handleDeleteThread: (threadIdToDelete: string) => void;
+}) => {
+	return (
+		<Dialog>
+			<DialogTrigger asChild>
+				<Button
+					variant="ghost"
+					size="icon"
+					className="size-6 shrink-0 rounded-sm dark:hover:bg-sidebar-accent-foreground/20 cursor-pointer">
+					<XIcon className="size-3" />
+				</Button>
+			</DialogTrigger>
+			<DialogContent className="sm:max-w-sm">
+				<DialogHeader>
+					<DialogTitle>Delete thread?</DialogTitle>
+					<DialogDescription className="leading-relaxed">
+						Are you sure you want to delete the thread "{thread.title}"?
+					</DialogDescription>
+				</DialogHeader>
+				<DialogFooter>
+					<DialogClose asChild>
+						<Button variant="outline">Cancel</Button>
+					</DialogClose>
+					<Button
+						variant="destructive"
+						onClick={() => handleDeleteThread(thread._id)}>
+						Delete
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 };
 
