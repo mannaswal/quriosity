@@ -111,6 +111,7 @@ export function AttachmentManager({
 				uploadedBy: string;
 			}>[]
 		) => {
+			console.log('upload complete', results);
 			results.forEach((result) => {
 				const tempAttachment: TempAttachment = {
 					uploaded: true,
@@ -156,6 +157,8 @@ export function AttachmentManager({
 			if (currentCount > 0) {
 				// Append (count) to the filename
 				newFileName = `${baseName} (${currentCount})${extension}`;
+			} else {
+				newFileName = baseName + extension;
 			}
 
 			// Increment count for the next occurrence of this base name

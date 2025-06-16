@@ -25,7 +25,7 @@ import {
 	useTempAttachments,
 	useTempActions,
 } from '@/stores/use-temp-data-store';
-import { AttachmentList } from './attachment-list';
+import { InputAttachmentList } from './attachment-list';
 import { toast } from 'sonner';
 
 export function ChatInput() {
@@ -52,7 +52,11 @@ export function ChatInput() {
 	};
 
 	const handleSendMessage = async () => {
-		if (!message.trim() || isProcessing) return;
+		if (disabled) {
+			if (!allAttachmentsUploaded)
+				toast.error('Attachments are still uploading');
+			return;
+		}
 
 		// Take a snapshot of the message and attachments
 		const messageContent = message;
@@ -74,7 +78,7 @@ export function ChatInput() {
 
 	return (
 		<div className="w-full absolute left-1/2 -translate-x-[calc(50%+0.5rem)] max-w-3xl z-50 bottom-2 mx-2">
-			<AttachmentList />
+			<InputAttachmentList />
 			<PromptInput
 				onSubmit={handleSendMessage}
 				onValueChange={setMessage}

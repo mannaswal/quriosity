@@ -9,7 +9,7 @@ import {
 	useStreamingStoreActions,
 	useStreamingMessage,
 } from '@/stores/use-streaming-store';
-import { useStopStream, useThread } from './use-threads';
+import { useStopStream, useThread, useThreadId } from './use-threads';
 import { useRouter } from 'next/navigation';
 import { useModel, useReasoningEffort } from './use-model';
 import { ModelId } from '@/lib/models';
@@ -25,7 +25,11 @@ import {
 /**
  * Hook to get messages for a thread - now subscribes to both DB and streaming store
  */
-export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
+export function useThreadMessages(threadIdParam?: Id<'threads'>): Message[] {
+	const currentThreadId = useThreadId();
+
+	const threadId = threadIdParam ?? currentThreadId;
+
 	const { isAuthenticated } = useConvexAuth();
 
 	// Subscribe to the streaming message for this thread
@@ -36,6 +40,10 @@ export function useThreadMessages(threadId?: Id<'threads'>): Message[] {
 			api.messages.getMessagesByThread,
 			threadId && isAuthenticated ? { threadId } : 'skip'
 		) ?? [];
+
+	console.log('threadId', threadId);
+	console.log('isAuthenticated', isAuthenticated);
+	console.log('dbMessages', dbMessages);
 
 	// Memoize the merged messages array to prevent infinite re-renders
 	// This is crucial for XAI models that send rapid reasoning updates
@@ -452,4 +460,22 @@ export function useEditAndResubmit(opts?: {
 			throw error;
 		}
 	};
+}
+
+/**
+ * Hook to get the previous message in a thread
+ */
+export function usePreviousMessage(messageId: Id<'messages'>) {
+	const messages = useThreadMessages();
+	console.log('messages', messages);
+
+	const previousMessage = useMemo(() => {
+		const index = messages.findIndex((m) => m._id === messageId);
+		console.log(index);
+		if (index === -1 || index === 0) return null;
+
+		return messages[index - 1];
+	}, [messages, messageId]);
+
+	return previousMessage;
 }

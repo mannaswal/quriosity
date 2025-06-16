@@ -41,9 +41,7 @@ export function useThreadId(): Id<'threads'> | undefined {
 
 	const threadId = params.threadId;
 
-	if (Array.isArray(threadId)) {
-		return threadId[0] as Id<'threads'>;
-	}
+	if (Array.isArray(threadId)) return threadId[0] as Id<'threads'>;
 
 	return threadId as Id<'threads'> | undefined;
 }

@@ -23,6 +23,9 @@ Made for the T3 Chat Cloneathon
 - [ ] Chat Sharing
 - [ ] Web Search
 - [ ] Bring Your Own Key
+- [ ] Disable models for retrying based on message
+- [ ] Image and file previews
+- [ ] Add HEIC/HEIF support
 
 - [ ] Temporary chats
 - [ ] Projects

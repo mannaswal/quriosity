@@ -3,6 +3,7 @@ import {
 	DropdownMenuContent,
 	DropdownMenuGroup,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuSub,
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
@@ -17,7 +18,10 @@ import {
 	FileTextIcon,
 	GlobeIcon,
 	PaperclipIcon,
+	AlertTriangleIcon,
+	EyeOffIcon,
 } from 'lucide-react';
+import FileTextOffIcon from 'public/icons/FileTextOffIcon.svg';
 
 import {
 	ModelId,
@@ -27,13 +31,19 @@ import {
 	ModelProvider,
 	ModelProperty,
 } from '@/lib/models';
-import { useModel, useUpdateModel } from '@/hooks/use-model';
+import { modelProviderLogos } from '@/lib/provider-logos';
+import {
+	useModel,
+	useModelsByProvider,
+	useUpdateModel,
+} from '@/hooks/use-model';
 import { useMemo } from 'react';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
+import { cn, getRestrictions } from '@/lib/utils';
 import {
 	useModelFiltering,
 	getRestrictionsMessage,
+	useModelsCompatibility,
 } from '@/hooks/use-model-filtering';
 import { TempAttachment } from '@/lib/types';
 import { useTempAttachments } from '@/stores/use-temp-data-store';
@@ -48,41 +58,21 @@ export const ModelSelectorAdvanced = () => {
 	const updateModel = useUpdateModel();
 	const attachments = useTempAttachments();
 
-	// Filter models based on attachments
-	const { filteredModels, restrictions, incompatibleModels } =
-		useModelFiltering(attachments);
-
 	// Group all models by provider (both compatible and incompatible)
-	const modelsByProvider = useMemo(() => {
-		const allModels = [...filteredModels, ...incompatibleModels];
-		const grouped: Record<ModelProvider, typeof allModels> = {} as Record<
-			ModelProvider,
-			typeof allModels
-		>;
+	const modelsByProvider = useModelsByProvider(attachments);
 
-		allModels.forEach((modelData) => {
-			if (!grouped[modelData.provider]) {
-				grouped[modelData.provider] = [];
-			}
-			grouped[modelData.provider].push(modelData);
-		});
-
-		Object.values(grouped).forEach((models) => {
-			models.sort((a, b) => b.name.localeCompare(a.name));
-		});
-
-		return grouped;
-	}, [filteredModels, incompatibleModels]);
+	const currentModelData = modelsData[model];
+	const modelsCompatibility = useModelsCompatibility(attachments);
+	const restrictions = getRestrictions(attachments);
 
 	const handleModelChange = (selectedModel: ModelId) => {
 		updateModel({ model: selectedModel });
 	};
 
-	const currentModelData = modelsData[model];
-	const isCurrentModelIncompatible = incompatibleModels.some(
-		(m) => m.id === model
-	);
-	const restrictionsMessage = getRestrictionsMessage(restrictions);
+	const isCurrentModelIncompatible = !modelsCompatibility[model].isCompatible;
+
+	const currentModelProviderLogo =
+		modelProviderLogos[currentModelData?.provider];
 
 	return (
 		<DropdownMenu>
@@ -94,26 +84,16 @@ export const ModelSelectorAdvanced = () => {
 						className={cn(
 							'flex items-center gap-2',
 							!currentModelData && 'text-muted-foreground',
-							isCurrentModelIncompatible && 'text-red-400'
+							!modelsCompatibility[model].isCompatible && 'text-red-400'
 						)}>
 						{currentModelData && (
 							<div className="size-4">
-								<Image
-									className="dark:invert opacity-60"
-									src={`/providers/${providerModelNames[
-										currentModelData.provider
-									].toLowerCase()}.svg`}
-									alt={currentModelData.provider}
-									width={16}
-									height={16}
-									priority
-									unoptimized
-								/>
+								<currentModelProviderLogo.monochrome className="text-muted-foreground size-4 shrink-0" />
 							</div>
 						)}
 						{currentModelData ? currentModelData.name : 'Select model'}
 						{isCurrentModelIncompatible && (
-							<span className="text-xs text-red-400">⚠</span>
+							<AlertTriangleIcon className="size-4 text-red-400" />
 						)}
 					</div>
 					<ChevronDownIcon className="size-4 pointer-events-none opacity-50 text-muted-foreground" />
@@ -123,65 +103,65 @@ export const ModelSelectorAdvanced = () => {
 				side="top"
 				align="start"
 				className="w-40 rounded-lg border-[0.5px]">
-				{restrictionsMessage && (
-					<div className="px-3 py-2 text-xs text-muted-foreground border-b border-border">
-						{restrictionsMessage}
-					</div>
+				{restrictions.message && (
+					<>
+						<div className="px-2 py-1 text-xs text-muted-foreground ">
+							{restrictions.message}
+						</div>
+						<DropdownMenuSeparator className="h-[0.5px]" />
+					</>
 				)}
 				<DropdownMenuGroup>
 					{Object.entries(modelsByProvider).map(
-						([provider, providerModels]) => (
-							<DropdownMenuSub key={provider}>
-								<DropdownMenuSubTrigger iconClassName="text-muted-foreground opacity-50 -mr-1">
-									<div className="flex items-center gap-2.5">
-										<div className="size-4">
-											<Image
-												className="dark:invert opacity-60"
-												src={`/providers/${providerModelNames[
-													provider as ModelProvider
-												].toLowerCase()}.svg`}
-												alt={provider}
-												width={16}
-												height={16}
-												unoptimized
-											/>
+						([provider, providerModels]) => {
+							const modelProviderLogo =
+								modelProviderLogos[provider as ModelProvider];
+							return (
+								<DropdownMenuSub key={provider}>
+									<DropdownMenuSubTrigger iconClassName="text-muted-foreground opacity-50 -mr-1">
+										<div className="flex items-center gap-2.5">
+											<div className="size-4">
+												{
+													<modelProviderLogo.monochrome className="text-muted-foreground size-4 shrink-0" />
+												}
+											</div>
+											{providerModelNames[provider as ModelProvider]}
 										</div>
-										{providerModelNames[provider as ModelProvider]}
-									</div>
-								</DropdownMenuSubTrigger>
-								<DropdownMenuSubContent
-									className="min-w-52 rounded-lg border-[0.5px]"
-									alignOffset={-4}
-									sideOffset={8}>
-									<DropdownMenuGroup>
-										{providerModels.map((modelData) => {
-											const isIncompatible = incompatibleModels.some(
-												(m) => m.id === modelData.id
-											);
-											return (
-												<DropdownMenuItem
-													className={cn(
-														'cursor-pointer',
-														isIncompatible && 'opacity-50 cursor-not-allowed'
-													)}
-													key={modelData.id}
-													disabled={isIncompatible}
-													onClick={() => {
-														if (!isIncompatible) {
-															handleModelChange(modelData.id);
-														}
-													}}>
-													<ModelSelectorItem
-														modelData={modelData}
-														isIncompatible={isIncompatible}
-													/>
-												</DropdownMenuItem>
-											);
-										})}
-									</DropdownMenuGroup>
-								</DropdownMenuSubContent>
-							</DropdownMenuSub>
-						)
+									</DropdownMenuSubTrigger>
+									<DropdownMenuSubContent
+										className="min-w-52 rounded-lg border-[0.5px]"
+										alignOffset={-4}
+										sideOffset={8}>
+										<DropdownMenuGroup>
+											{providerModels.map((modelId: ModelId) => {
+												const isIncompatible =
+													!modelsCompatibility[modelId].isCompatible;
+												return (
+													<DropdownMenuItem
+														className={cn(
+															'cursor-pointer',
+															isIncompatible && 'opacity-50 cursor-not-allowed'
+														)}
+														key={modelId}
+														disabled={isIncompatible}
+														onClick={() => {
+															if (!isIncompatible) {
+																handleModelChange(modelId);
+															}
+														}}>
+														<ModelSelectorItem
+															modelId={modelId}
+															isIncompatible={isIncompatible}
+															restrictions={restrictions}
+														/>
+													</DropdownMenuItem>
+												);
+											})}
+										</DropdownMenuGroup>
+									</DropdownMenuSubContent>
+								</DropdownMenuSub>
+							);
+						}
 					)}
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
@@ -190,32 +170,50 @@ export const ModelSelectorAdvanced = () => {
 };
 
 export const ModelSelectorItem = ({
-	modelData,
-	isIncompatible = false,
+	modelId,
+	isIncompatible,
+	restrictions,
 }: {
-	modelData: ModelProperty;
-	isIncompatible?: boolean;
+	modelId: ModelId;
+	isIncompatible: boolean;
+	restrictions: {
+		vision: boolean;
+		docs: boolean;
+	};
 }) => {
+	const modelData = modelsData[modelId];
+	const visionIncompatible = restrictions.vision && isIncompatible;
+	const docsIncompatible = restrictions.docs && isIncompatible;
+
+	const iconClassName = cn(
+		'size-3 shrink-0 opacity-75',
+		isIncompatible && 'opacity-50'
+	);
 	return (
-		<div
-			className={cn(
-				'flex items-center gap-4 w-full',
-				isIncompatible && 'opacity-50'
-			)}>
-			{modelData.name}
-			{isIncompatible && <span className="text-xs text-red-400">⚠</span>}
+		<div className={cn('flex items-center gap-4 w-full')}>
+			<div className={cn('text-sm', isIncompatible && 'opacity-50')}>
+				{modelData.name}
+			</div>
 			<div className="flex items-center gap-2 ml-auto">
 				{modelData.reasoning && (
-					<BrainIcon className="text-xs rounded size-3 shrink-0 opacity-75 text-purple-400" />
+					<BrainIcon className={cn('text-purple-400', iconClassName)} />
 				)}
 				{modelData.vision && (
-					<EyeIcon className="text-xs rounded size-3 shrink-0 opacity-75 text-teal-300" />
+					<EyeIcon className={cn('text-teal-300', iconClassName)} />
+				)}
+				{visionIncompatible && (
+					<EyeOffIcon className={cn('text-red-400 size-3 shrink-0')} />
 				)}
 				{modelData.webSearch && (
-					<GlobeIcon className="text-xs rounded size-3 shrink-0 opacity-75 text-blue-400" />
+					<GlobeIcon className={cn('text-blue-400', iconClassName)} />
 				)}
 				{modelData.docs && (
-					<FileTextIcon className="text-xs rounded size-3 shrink-0 opacity-75 text-gray-300" />
+					<FileTextIcon className={cn('text-gray-300', iconClassName)} />
+				)}
+				{docsIncompatible && (
+					<FileTextOffIcon
+						className={cn('text-red-400 size-3 shrink-0 stroke-red-400')}
+					/>
 				)}
 			</div>
 		</div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Message as ChatMessage, ReasoningEffort } from '@/lib/types';
 import { ModelId } from '@/lib/models';
 import { useRegenerate, useEditAndResubmit } from '@/hooks/use-messages';
@@ -21,6 +21,7 @@ import { RetryButtonAdvanced } from '../input/retry-button-advanced';
 import { useAttachments } from '@/hooks/use-attachments';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { MessageAttachmentList } from '../input/attachment-list';
 
 interface UserMessageProps {
 	message: ChatMessage;
@@ -31,7 +32,6 @@ interface UserMessageProps {
  * Component for rendering user messages with edit, regenerate, and copy functionality
  */
 export function UserMessage({ message, index }: UserMessageProps) {
-	const { attachments } = useAttachments();
 	const [isEditing, setIsEditing] = useState(false);
 	const [editedContent, setEditedContent] = useState(message.content);
 	const [copied, setCopied] = useState(false);
@@ -127,57 +127,7 @@ export function UserMessage({ message, index }: UserMessageProps) {
 				</Message>
 			)}
 
-			{!!message.attachmentIds?.length && (
-				<div className="peer flex flex-wrap gap-2 pt-2 w-full justify-end">
-					{message.attachmentIds.map((attachmentId) => {
-						const attachment = attachments?.find((a) => a._id === attachmentId);
-						if (!attachment) return null;
-
-						if (attachment.type === 'image')
-							return (
-								<div
-									key={attachment._id}
-									className="h-48 rounded-md last:rounded-tr-md last:rounded-br-2xl first:rounded-l-2xl overflow-hidden flex-shrink-0 bg-neutral-600/20">
-									<Image
-										src={attachment.url}
-										alt={attachment.filename}
-										width={0}
-										height={0}
-										sizes="100vw"
-										unoptimized={attachment.mimeType.includes('gif')}
-										className="h-full w-auto object-cover"
-										style={{ width: 'auto', height: '100%' }}
-									/>
-								</div>
-							);
-						else
-							return (
-								<div
-									key={attachment._id}
-									className={cn(
-										'flex items-center gap-2 px-3.5 rounded-md  first:rounded-l-2xl last:rounded-br-2xl h-12 bg-neutral-600/20'
-									)}>
-									<div className="size-4 shrink-0">
-										{attachment.type === 'pdf' ? (
-											<FileText
-												className="size-4 shrink-0"
-												strokeWidth={1.5}
-											/>
-										) : (
-											<FileType
-												className="size-4 shrink-0"
-												strokeWidth={1.5}
-											/>
-										)}
-									</div>
-									<span className="whitespace-nowrap text-sm max-w-64 truncate">
-										{attachment.filename}
-									</span>
-								</div>
-							);
-					})}
-				</div>
-			)}
+			<MessageAttachmentList message={message} />
 
 			<div
 				className={`flex items-center justify-end transition-opacity duration-300 h-10 pt-2 focus-within:opacity-100 focus:opacity-100 ${
@@ -206,7 +156,7 @@ export function UserMessage({ message, index }: UserMessageProps) {
 				<RetryButtonAdvanced
 					handleRegenerate={handleRegenerate}
 					onOpenChange={setIsRetryMenuOpen}
-					// attachments={message.attachments} // TODO: Add when message schema supports attachments
+					message={message}
 				/>
 			</div>
 		</div>

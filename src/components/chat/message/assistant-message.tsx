@@ -160,6 +160,7 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 						<RetryButtonAdvanced
 							handleRegenerate={handleRegenerate}
 							onOpenChange={setIsRetryMenuOpen}
+							message={message}
 						/>
 
 						<div className="flex gap-1 text-xs ml-2">

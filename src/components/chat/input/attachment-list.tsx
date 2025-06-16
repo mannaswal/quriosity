@@ -2,15 +2,16 @@ import {
 	useTempActions,
 	useTempAttachments,
 } from '@/stores/use-temp-data-store';
-import { Fragment } from 'react';
+import { Fragment, useMemo } from 'react';
 import Image from 'next/image';
-import { TempAttachment } from '@/lib/types';
+import { Message, TempAttachment } from '@/lib/types';
 import { Loader } from '@/components/ui/loader';
 import { FileImage, FileText, FileType, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAttachments, useMessageAttachments } from '@/hooks/use-attachments';
 
-export function AttachmentList() {
+export function InputAttachmentList() {
 	const attachments = useTempAttachments();
 
 	if (!attachments.length) return null;
@@ -108,3 +109,60 @@ const FileNameItem = ({ attachment }: { attachment: TempAttachment }) => {
 		</div>
 	);
 };
+
+export function MessageAttachmentList({ message }: { message: Message }) {
+	const messageAttachments = useMessageAttachments(message);
+
+	if (!messageAttachments.length) return null;
+
+	return (
+		<div className="peer flex flex-wrap gap-2 pt-2 w-full justify-end">
+			{messageAttachments.map((attachment) => {
+				if (!attachment) return null;
+
+				if (attachment.type === 'image')
+					return (
+						<div
+							key={attachment._id}
+							className="h-48 rounded-md last:rounded-tr-md last:rounded-br-2xl first:rounded-l-2xl overflow-hidden flex-shrink-0 bg-neutral-600/20">
+							<Image
+								src={attachment.url}
+								alt={attachment.filename}
+								width={0}
+								height={0}
+								sizes="100vw"
+								unoptimized={attachment.mimeType.includes('gif')}
+								className="h-full w-auto object-cover"
+								style={{ width: 'auto', height: '100%' }}
+							/>
+						</div>
+					);
+				else
+					return (
+						<div
+							key={attachment._id}
+							className={cn(
+								'flex items-center gap-2 px-3.5 rounded-md  first:rounded-l-2xl last:rounded-br-2xl h-12 bg-neutral-600/20'
+							)}>
+							<div className="size-4 shrink-0">
+								{attachment.type === 'pdf' ? (
+									<FileText
+										className="size-4 shrink-0"
+										strokeWidth={1.5}
+									/>
+								) : (
+									<FileType
+										className="size-4 shrink-0"
+										strokeWidth={1.5}
+									/>
+								)}
+							</div>
+							<span className="whitespace-nowrap text-sm max-w-64 truncate">
+								{attachment.filename}
+							</span>
+						</div>
+					);
+			})}
+		</div>
+	);
+}

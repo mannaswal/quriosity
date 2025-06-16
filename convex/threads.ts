@@ -374,16 +374,10 @@ export const branchFromMessage = mutation({
 
 		// 3. Copy messages to the new thread
 		for (const message of messagesToCopy) {
-			// We intentionally don't copy the _id and _creationTime
+			const { _id, _creationTime, ...rest } = message;
 			await ctx.db.insert('messages', {
+				...rest,
 				threadId: newThreadId,
-				role: message.role,
-				content: message.content,
-				status: message.status,
-				model: message.model,
-				reasoningEffort: message.reasoningEffort,
-				userId: user._id,
-				stopReason: message.stopReason,
 			});
 		}
 

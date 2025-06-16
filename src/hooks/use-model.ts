@@ -1,4 +1,10 @@
-import { ModelId, ModelProperty, models, modelsData } from '@/lib/models';
+import {
+	ModelId,
+	ModelProperty,
+	ModelProvider,
+	models,
+	modelsData,
+} from '@/lib/models';
 import { useThreadId, useThreads, useUpdateThreadModel } from './use-threads';
 import { useCurrentUser, useUpdateLastModelUsed } from './use-user';
 import {
@@ -6,8 +12,16 @@ import {
 	useTempModel,
 	useTempReasoningEffort,
 } from '@/stores/use-temp-data-store';
-import { ReasoningEffort } from '@/lib/types';
-import { useEffect } from 'react';
+import { AttachmentType, ReasoningEffort } from '@/lib/types';
+import { useEffect, useMemo } from 'react';
+
+export type ModelCompatibility = {
+	isVisionCompatible: boolean;
+	isDocsCompatible: boolean;
+	isCompatible: boolean;
+};
+
+export type ModelsByProvider = Record<ModelProvider, ModelId[]>;
 
 /**
  * Hook for getting the model and reasoning effort for the current thread, or the user's last used model and reasoning effort, or the temp model and reasoning effort
@@ -27,9 +41,10 @@ export function useModel(): {
 
 	const thread = threads?.find((t) => t._id === threadId);
 
-	const modelId = (thread?.model ??
+	const modelId: ModelId = (thread?.model ??
 		user?.lastModelUsed ??
-		tempModel) as ModelId;
+		tempModel ??
+		'google/gemini-2.5-flash-preview-05-20') as ModelId;
 
 	const modelData = modelsData[modelId];
 
@@ -129,3 +144,27 @@ export const useReasoningEffort = () => {
 
 	return getReasoningEffort;
 };
+
+export function useModelsByProvider(
+	messageAttachments: { type: AttachmentType }[]
+) {
+	return useMemo(() => {
+		const grouped: ModelsByProvider = {} as ModelsByProvider;
+
+		models.forEach((modelData) => {
+			// Initialize the provider if it doesn't exist
+			if (!grouped[modelData.provider]) {
+				grouped[modelData.provider] = [];
+			}
+			grouped[modelData.provider].push(modelData.id);
+		});
+
+		Object.values(grouped).forEach((models) => {
+			models.sort((a, b) =>
+				modelsData[a].name.localeCompare(modelsData[b].name)
+			);
+		});
+
+		return grouped;
+	}, [messageAttachments]);
+}

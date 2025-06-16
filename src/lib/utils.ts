@@ -1,7 +1,12 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ModelId, modelsData } from '@/lib/models';
-import { ReasoningEffort, AttachmentType, Message } from './types';
+import {
+	ReasoningEffort,
+	AttachmentType,
+	Message,
+	TempAttachment,
+} from './types';
 import {
 	AssistantContent,
 	CoreMessage,
@@ -10,6 +15,7 @@ import {
 	TextPart,
 	UserContent,
 } from 'ai';
+import { getRestrictionsMessage } from '@/hooks/use-model-filtering';
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
@@ -46,6 +52,52 @@ export const capitalize = (str: string) =>
 	str.charAt(0).toUpperCase() + str.slice(1);
 
 export const cap = capitalize;
+
+/**
+ * Function to check if a specific model is compatible with the given attachments
+ */
+export function getModelCompatibility(
+	modelId: ModelId,
+	attachments: { type: AttachmentType }[] = []
+) {
+	const needsVision = attachments.some((att) => att.type === 'image');
+	const needsDocs = attachments.some((att) => att.type === 'pdf');
+
+	const canHandleVision = hasVision(modelId);
+	const canHandleDocs = hasDocs(modelId);
+
+	const isVisionCompatible = !needsVision || canHandleVision;
+	const isDocsCompatible = !needsDocs || canHandleDocs;
+
+	return {
+		isCompatible: isVisionCompatible && isDocsCompatible,
+		isVisionCompatible,
+		isDocsCompatible,
+	};
+}
+
+/**
+ * Function to get restrictions based on attachments
+ */
+export function getRestrictions(attachments: { type: AttachmentType }[]): {
+	vision: boolean;
+	docs: boolean;
+	message: string;
+} {
+	const needsVision = attachments.some((att) => att.type === 'image');
+	const needsDocs = attachments.some((att) => att.type === 'pdf');
+
+	const message = getRestrictionsMessage({
+		vision: needsVision,
+		docs: needsDocs,
+	});
+
+	return {
+		vision: needsVision,
+		docs: needsDocs,
+		message,
+	};
+}
 
 /**
  * Convert attachments to AI SDK CoreMessage format

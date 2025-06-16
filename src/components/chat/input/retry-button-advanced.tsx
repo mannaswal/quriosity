@@ -25,29 +25,35 @@ import {
 	modelsData,
 	providerModelNames,
 	ModelProvider,
+	ModelProperty,
 } from '@/lib/models';
 import {
 	useModel,
 	useReasoningEffort,
 	useUpdateModel,
+	useModelsByProvider,
 } from '@/hooks/use-model';
-import { ReasoningEffort, AttachmentType } from '@/lib/types';
+import { ReasoningEffort, AttachmentType, Message } from '@/lib/types';
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { ModelSelectorItem } from './model-selector-advanced';
 import {
 	useModelFiltering,
 	getRestrictionsMessage,
+	useModelsCompatibility,
 } from '@/hooks/use-model-filtering';
-import { cn } from '@/lib/utils';
+import { cn, getRestrictions } from '@/lib/utils';
+import { usePreviousMessage } from '@/hooks/use-messages';
+import { useAttachments, useMessageAttachments } from '@/hooks/use-attachments';
+import { modelProviderLogos } from '@/lib/provider-logos';
 
 interface RetryButtonAdvancedProps {
+	message: Message;
 	handleRegenerate: (
 		model?: ModelId,
 		reasoningEffort?: ReasoningEffort
 	) => Promise<void>;
 	onOpenChange?: (open: boolean) => void;
-	attachments?: Array<{ type: AttachmentType }>;
 }
 
 const reasoningOptions: { label: string; value: ReasoningEffort }[] = [
@@ -63,41 +69,28 @@ const reasoningOptions: { label: string; value: ReasoningEffort }[] = [
 export const RetryButtonAdvanced = ({
 	handleRegenerate,
 	onOpenChange,
-	attachments = [],
+	message,
 }: RetryButtonAdvancedProps) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const getReasoningEffort = useReasoningEffort();
 	const updateModel = useUpdateModel();
+	const previousMessage = usePreviousMessage(message._id);
+	console.log(message);
+	console.log(previousMessage);
 
-	// Filter models based on attachments
-	const { filteredModels, restrictions, incompatibleModels } =
-		useModelFiltering(
-			attachments as any[] // We'll fix this typing later when we have full Attachment objects
-		);
+	let retryMessage = message;
 
-	// Group all models by provider (both compatible and incompatible)
-	const modelsByProvider = useMemo(() => {
-		const allModels = [...filteredModels, ...incompatibleModels];
-		const grouped: Record<ModelProvider, typeof allModels> = {} as Record<
-			ModelProvider,
-			typeof allModels
-		>;
+	if (message.role === 'assistant' && previousMessage)
+		retryMessage = previousMessage;
 
-		allModels.forEach((modelData) => {
-			if (!grouped[modelData.provider]) {
-				grouped[modelData.provider] = [];
-			}
-			grouped[modelData.provider].push(modelData);
-		});
+	const messageAttachments = useMessageAttachments(retryMessage);
+	const modelsByProvider = useModelsByProvider(messageAttachments);
+	const modelsCompatibility = useModelsCompatibility(messageAttachments);
 
-		Object.values(grouped).forEach((models) => {
-			models.sort((a, b) => b.name.localeCompare(a.name));
-		});
+	const restrictions = getRestrictions(messageAttachments);
 
-		return grouped;
-	}, [filteredModels, incompatibleModels]);
-
-	const restrictionsMessage = getRestrictionsMessage(restrictions);
+	// console.log(messageAttachments);
+	// console.log(retryMessage);
 
 	const handleModelChangeAndRetry = async (
 		selectedModel: ModelId,
@@ -145,13 +138,15 @@ export const RetryButtonAdvanced = ({
 			<DropdownMenuContent
 				side="bottom"
 				className="w-40 rounded-lg border-[0.5px]">
-				{restrictionsMessage && (
-					<div className="px-3 py-2 text-xs text-muted-foreground border-b border-border">
-						{restrictionsMessage}
-					</div>
+				{restrictions.message && (
+					<>
+						<div className="px-2 py-1 text-xs text-muted-foreground">
+							{restrictions.message}
+						</div>
+						<DropdownMenuSeparator className="h-[0.5px]" />
+					</>
 				)}
 				<DropdownMenuGroup>
-					{/* Retry Same - doesn't change model */}
 					<DropdownMenuItem
 						className="cursor-pointer"
 						onClick={() => handleRegenerate()}>
@@ -161,114 +156,111 @@ export const RetryButtonAdvanced = ({
 						</div>
 					</DropdownMenuItem>
 
-					<DropdownMenuSeparator />
+					<DropdownMenuSeparator className="h-[0.5px]" />
 
 					{/* Provider-based model selection */}
 					{Object.entries(modelsByProvider).map(
-						([provider, providerModels]) => (
-							<DropdownMenuSub key={provider}>
-								<DropdownMenuSubTrigger iconClassName="text-muted-foreground opacity-50 -mr-1.5">
-									<div className="flex items-center gap-2.5">
-										<div className="size-4">
-											<Image
-												className="dark:invert opacity-60"
-												src={`/providers/${providerModelNames[
-													provider as ModelProvider
-												].toLowerCase()}.svg`}
-												alt={provider}
-												width={16}
-												height={16}
-												unoptimized
-												priority
-											/>
+						([provider, providerModels]) => {
+							const modelProviderLogo =
+								modelProviderLogos[provider as ModelProvider];
+							return (
+								<DropdownMenuSub key={provider}>
+									<DropdownMenuSubTrigger iconClassName="text-muted-foreground opacity-50 -mr-1.5">
+										<div className="flex items-center gap-2.5">
+											<div className="size-4">
+												<modelProviderLogo.monochrome className="text-muted-foreground size-4 shrink-0" />
+											</div>
+											{providerModelNames[provider as ModelProvider]}
 										</div>
-										{providerModelNames[provider as ModelProvider]}
-									</div>
-								</DropdownMenuSubTrigger>
-								<DropdownMenuSubContent
-									className="min-w-52 rounded-lg border-[0.5px]"
-									alignOffset={-4}
-									sideOffset={8}>
-									<DropdownMenuGroup>
-										{providerModels.map((modelData) => {
-											const hasReasoning = modelData.effortControl;
-											const isIncompatible = incompatibleModels.some(
-												(m) => m.id === modelData.id
-											);
+									</DropdownMenuSubTrigger>
+									<DropdownMenuSubContent
+										className="min-w-52 rounded-lg border-[0.5px]"
+										alignOffset={-4}
+										sideOffset={8}>
+										<DropdownMenuGroup>
+											{providerModels.map((modelId) => {
+												const hasEffortControl =
+													modelsData[modelId].effortControl;
+												const isIncompatible =
+													!modelsCompatibility[modelId].isCompatible;
 
-											if (hasReasoning) {
-												// Model with reasoning - show submenu for reasoning levels
-												return (
-													<DropdownMenuSub key={modelData.id}>
-														<DropdownMenuSubTrigger
+												if (hasEffortControl) {
+													// Model with reasoning - show submenu for reasoning levels
+													return (
+														<DropdownMenuSub key={modelId}>
+															<DropdownMenuSubTrigger
+																className={cn(
+																	'cursor-pointer',
+																	isIncompatible &&
+																		'opacity-50 cursor-not-allowed'
+																)}
+																iconClassName="hidden"
+																disabled={isIncompatible}
+																onClick={() => {
+																	if (!isIncompatible) {
+																		handleModelChangeAndRetry(modelId);
+																	}
+																}}>
+																<ModelSelectorItem
+																	modelId={modelId}
+																	isIncompatible={isIncompatible}
+																	restrictions={restrictions}
+																/>
+															</DropdownMenuSubTrigger>
+															<DropdownMenuSubContent
+																className="rounded-lg border-[0.5px]"
+																alignOffset={-4}
+																sideOffset={8}>
+																{/* Reasoning level options */}
+																{!isIncompatible &&
+																	getReasoningOptionsForModel(modelId).map(
+																		(option) => (
+																			<DropdownMenuItem
+																				className="cursor-pointer"
+																				key={option.value}
+																				onClick={() =>
+																					handleModelChangeAndRetry(
+																						modelId,
+																						option.value
+																					)
+																				}>
+																				{option.label}
+																			</DropdownMenuItem>
+																		)
+																	)}
+															</DropdownMenuSubContent>
+														</DropdownMenuSub>
+													);
+												} else {
+													// Model without reasoning - direct click
+													return (
+														<DropdownMenuItem
 															className={cn(
 																'cursor-pointer',
 																isIncompatible &&
 																	'opacity-50 cursor-not-allowed'
 															)}
-															iconClassName="hidden"
+															key={modelId}
 															disabled={isIncompatible}
 															onClick={() => {
 																if (!isIncompatible) {
-																	handleModelChangeAndRetry(modelData.id);
+																	handleModelChangeAndRetry(modelId);
 																}
 															}}>
 															<ModelSelectorItem
-																modelData={modelData}
+																modelId={modelId}
 																isIncompatible={isIncompatible}
+																restrictions={restrictions}
 															/>
-														</DropdownMenuSubTrigger>
-														<DropdownMenuSubContent
-															className="rounded-lg border-[0.5px]"
-															alignOffset={-4}
-															sideOffset={8}>
-															{/* Reasoning level options */}
-															{!isIncompatible &&
-																getReasoningOptionsForModel(modelData.id).map(
-																	(option) => (
-																		<DropdownMenuItem
-																			className="cursor-pointer"
-																			key={option.value}
-																			onClick={() =>
-																				handleModelChangeAndRetry(
-																					modelData.id,
-																					option.value
-																				)
-																			}>
-																			{option.label}
-																		</DropdownMenuItem>
-																	)
-																)}
-														</DropdownMenuSubContent>
-													</DropdownMenuSub>
-												);
-											} else {
-												// Model without reasoning - direct click
-												return (
-													<DropdownMenuItem
-														className={cn(
-															'cursor-pointer',
-															isIncompatible && 'opacity-50 cursor-not-allowed'
-														)}
-														key={modelData.id}
-														disabled={isIncompatible}
-														onClick={() => {
-															if (!isIncompatible) {
-																handleModelChangeAndRetry(modelData.id);
-															}
-														}}>
-														<ModelSelectorItem
-															modelData={modelData}
-															isIncompatible={isIncompatible}
-														/>
-													</DropdownMenuItem>
-												);
-											}
-										})}
-									</DropdownMenuGroup>
-								</DropdownMenuSubContent>
-							</DropdownMenuSub>
-						)
+														</DropdownMenuItem>
+													);
+												}
+											})}
+										</DropdownMenuGroup>
+									</DropdownMenuSubContent>
+								</DropdownMenuSub>
+							);
+						}
 					)}
 				</DropdownMenuGroup>
 			</DropdownMenuContent>

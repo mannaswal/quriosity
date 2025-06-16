@@ -1,13 +1,29 @@
 import { useMemo } from 'react';
-import { ModelProperty, modelsData, models, ModelId } from '@/lib/models';
-import { hasVision, hasDocs } from '@/lib/utils';
-import { TempAttachment } from '@/lib/types';
+import {
+	ModelProperty,
+	modelsData,
+	models,
+	ModelId,
+	ModelProvider,
+} from '@/lib/models';
+import { hasVision, hasDocs, getModelCompatibility } from '@/lib/utils';
+import { AttachmentType, TempAttachment } from '@/lib/types';
+import { ModelCompatibility } from './use-model';
 
 /**
  * Hook to filter models based on attachment requirements
  * Separates models into compatible and incompatible based on their capabilities
  */
-export function useModelFiltering(attachments: TempAttachment[] = []) {
+export function useModelFiltering(
+	attachments: { type: AttachmentType }[] = []
+): {
+	filteredModels: ModelProperty[];
+	incompatibleModels: ModelProperty[];
+	restrictions: {
+		vision: boolean;
+		docs: boolean;
+	};
+} {
 	return useMemo(() => {
 		// Determine what capabilities we need based on attachments
 		const needsVision = attachments.some((att) => att.type === 'image');
@@ -32,9 +48,13 @@ export function useModelFiltering(attachments: TempAttachment[] = []) {
 		});
 
 		// Determine which restrictions apply
-		const restrictions = [];
-		if (needsVision) restrictions.push('vision');
-		if (needsDocs) restrictions.push('docs');
+		const restrictions: {
+			vision: boolean;
+			docs: boolean;
+		} = {
+			vision: needsVision,
+			docs: needsDocs,
+		};
 
 		return {
 			filteredModels,
@@ -48,33 +68,29 @@ export function useModelFiltering(attachments: TempAttachment[] = []) {
  * Hook to check if a specific model is compatible with the given attachments
  */
 export function useModelCompatibility(
-	modelId: string | undefined,
+	modelId: ModelId,
 	attachments: TempAttachment[] = []
 ) {
-	return useMemo(() => {
-		if (!modelId) return true;
-
-		const needsVision = attachments.some((att) => att.type === 'image');
-		const needsDocs = attachments.some((att) => att.type === 'pdf');
-
-		const canHandleVision = hasVision(modelId as ModelId);
-		const canHandleDocs = hasDocs(modelId as ModelId);
-
-		return (!needsVision || canHandleVision) && (!needsDocs || canHandleDocs);
-	}, [modelId, attachments]);
+	return useMemo(
+		() => getModelCompatibility(modelId, attachments),
+		[modelId, attachments]
+	);
 }
 
 /**
  * Generate a human-readable message about model restrictions
  */
-export function getRestrictionsMessage(restrictions: string[]): string {
-	if (restrictions.length === 0) return '';
+export function getRestrictionsMessage(restrictions: {
+	vision: boolean;
+	docs: boolean;
+}): string {
+	if (!restrictions.vision && !restrictions.docs) return '';
 
 	const messages = [];
-	if (restrictions.includes('vision')) {
+	if (restrictions.vision) {
 		messages.push('images require vision models');
 	}
-	if (restrictions.includes('docs')) {
+	if (restrictions.docs) {
 		messages.push('PDFs require document models');
 	}
 
@@ -86,3 +102,15 @@ export function getRestrictionsMessage(restrictions: string[]): string {
 
 	return '';
 }
+
+export const useModelsCompatibility = (
+	attachments: { type: AttachmentType }[]
+): Record<ModelId, ModelCompatibility> =>
+	useMemo(() => {
+		return models.reduce((acc, model) => {
+			acc[model.id] = {
+				...getModelCompatibility(model.id, attachments),
+			};
+			return acc;
+		}, {} as Record<ModelId, ModelCompatibility>);
+	}, [attachments]);
