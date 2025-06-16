@@ -69,6 +69,7 @@ export default defineSchema({
 		model: v.string(),
 		reasoningEffort: v.optional(ReasoningEffort),
 		pinned: v.optional(v.boolean()),
+		archived: v.optional(v.boolean()),
 		parentMessageId: v.optional(v.id('messages')),
 		status: ThreadStatus,
 	})

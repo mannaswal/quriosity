@@ -51,43 +51,39 @@ export const ReasoningSelector = () => {
 			}>
 			<SelectTrigger
 				hideChevron
-				className="border-none not-hover:dark:bg-transparent cursor-pointer px-1">
-				<Button
-					variant="ghost"
-					size="icon"
-					className="flex items-center gap-0.5">
-					<BrainIcon
-						className="size-4 text-foreground"
-						strokeWidth={1.2}
-					/>
-					<div className="flex flex-col gap-px -mb-[1px]">
-						<div
-							className={cn(
-								dotBaseClass,
-								'-ml-[0.5px]',
-								noMedium && 'opacity-0',
-								currentValue === 'high' &&
-									'bg-accent-foreground/50 border-transparent'
-							)}
-						/>
-
-						<div
-							className={cn(
-								dotBaseClass,
-								'ml-px',
-								(currentValue === 'medium' || currentValue === 'high') &&
-									'bg-accent-foreground/50 border-transparent'
-							)}
-						/>
-
-						<div
-							className={cn(
-								dotBaseClass,
+				className="border-none not-hover:dark:bg-transparent cursor-pointer pl-2.5 pr-2.5 gap-0.5">
+				<BrainIcon
+					className="size-4 text-foreground"
+					strokeWidth={1.2}
+				/>
+				<div className="flex flex-col gap-px -mb-[1px]">
+					<div
+						className={cn(
+							dotBaseClass,
+							'-ml-[0.5px]',
+							noMedium && 'opacity-0',
+							currentValue === 'high' &&
 								'bg-accent-foreground/50 border-transparent'
-							)}
-						/>
-					</div>
-				</Button>
+						)}
+					/>
+
+					<div
+						className={cn(
+							dotBaseClass,
+							'ml-px',
+							(currentValue === 'medium' || currentValue === 'high') &&
+								'bg-accent-foreground/50 border-transparent'
+						)}
+					/>
+
+					<div
+						className={cn(
+							dotBaseClass,
+							'bg-accent-foreground/50 border-transparent'
+						)}
+					/>
+				</div>
+				{/* </Button> */}
 			</SelectTrigger>
 			<SelectContent className="rounded-lg">
 				{options.map((m) => (

@@ -333,6 +333,44 @@ export const renameThread = mutation({
 	},
 });
 
+/**
+ * Toggle the archived status of a thread
+ * Only the thread owner can archive/unarchive their threads
+ */
+export const archiveThread = mutation({
+	args: {
+		threadId: v.id('threads'),
+		archived: v.boolean(),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) throw new Error('Not authenticated');
+
+		// Verify the thread exists and get the thread data
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread) throw new Error('Thread not found');
+
+		// Verify the user owns this thread
+		const user = await ctx.db
+			.query('users')
+			.withIndex('by_auth_id', (q) => q.eq('authId', identity.subject))
+			.unique();
+
+		if (!user || thread.userId !== user._id) {
+			throw new Error(
+				'Unauthorized: You can only archive/unarchive your own threads'
+			);
+		}
+
+		// Update the thread's archived status
+		await ctx.db.patch(args.threadId, {
+			archived: args.archived,
+		});
+
+		return { success: true, archived: args.archived };
+	},
+});
+
 export const branchFromMessage = mutation({
 	args: { messageId: v.id('messages') },
 	handler: async (ctx, { messageId }) => {
