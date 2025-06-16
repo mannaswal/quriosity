@@ -99,33 +99,30 @@ export function AttachmentManager({
 	const { addUploadedAttachment, addOptimisticAttachment } = useTempActions();
 	const capabilities = getModelCapabilities(modelId);
 
-	const handleUploadComplete = useCallback(
-		(
-			results: ClientUploadedFileData<{
-				id: string;
-				name: string;
-				url: string;
-				mimeType: string;
-				type: AttachmentType;
-				uploadThingKey: string;
-				uploadedBy: string;
-			}>[]
-		) => {
-			console.log('upload complete', results);
-			results.forEach((result) => {
-				const tempAttachment: TempAttachment = {
-					uploaded: true,
-					name: result.name,
-					url: result.serverData.url,
-					mimeType: result.serverData.mimeType,
-					type: result.serverData.type,
-					uploadThingKey: result.serverData.uploadThingKey,
-				};
-				addUploadedAttachment(tempAttachment);
-			});
-		},
-		[addUploadedAttachment]
-	);
+	const handleUploadComplete = (
+		results: ClientUploadedFileData<{
+			id: string;
+			name: string;
+			url: string;
+			mimeType: string;
+			type: AttachmentType;
+			uploadThingKey: string;
+			uploadedBy: string;
+		}>[]
+	) => {
+		console.log('upload complete', results);
+		results.forEach((result) => {
+			const tempAttachment: TempAttachment = {
+				uploaded: true,
+				name: result.name,
+				url: result.serverData.url,
+				mimeType: result.serverData.mimeType,
+				type: result.serverData.type,
+				uploadThingKey: result.serverData.uploadThingKey,
+			};
+			addUploadedAttachment(tempAttachment);
+		});
+	};
 
 	const handleUploadError = useCallback((error: Error) => {
 		console.error('Upload error:', error);

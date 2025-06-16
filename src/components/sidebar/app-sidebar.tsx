@@ -99,13 +99,13 @@ export function AppSidebar() {
 
 	return (
 		<Sidebar variant="floating">
-			<SidebarHeader className="flex flex-col items-center justify-between">
+			<SidebarHeader className="flex flex-col items-center justify-between pt-1">
 				<Link
 					href="/"
-					className="rounded-lg">
+					className="rounded-lg w-full">
 					<h1
 						className={cn(
-							'text-2xl font-medium p-2 tracking-tight text-center',
+							'text-xl font-medium p-2 tracking-tight text-center',
 							funnelDisplay.className
 						)}>
 						Quriosity

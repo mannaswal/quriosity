@@ -84,7 +84,6 @@ export const useUpdateModel = () => {
 		if (model) {
 			setModel(model);
 			const allowedEffort = getReasoningEffort(model, reasoningEffort);
-			console.log('allowedEffort', allowedEffort);
 
 			if (allowedEffort) {
 				// if setting a reasoning model, set the reasoning effort to the allowed effort

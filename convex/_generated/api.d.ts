@@ -10,6 +10,7 @@
 
 import type * as attachments from "../attachments.js";
 import type * as messages from "../messages.js";
+import type * as projects from "../projects.js";
 import type * as threads from "../threads.js";
 import type * as users from "../users.js";
 
@@ -30,6 +31,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   attachments: typeof attachments;
   messages: typeof messages;
+  projects: typeof projects;
   threads: typeof threads;
   users: typeof users;
 }>;

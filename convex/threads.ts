@@ -128,10 +128,19 @@ export const createThread = mutation({
 		model: v.string(),
 		reasoningEffort: v.optional(ReasoningEffort),
 		attachmentIds: v.optional(v.array(v.id('attachments'))),
+		projectId: v.optional(v.id('projects')),
 	},
 	handler: async (ctx, args) => {
 		const user = await getUser(ctx);
 		if (!user) throw new Error('Not authenticated');
+
+		// Verify project ownership if projectId is provided
+		if (args.projectId) {
+			const project = await ctx.db.get(args.projectId);
+			if (!project) throw new Error('Project not found');
+
+			if (project.userId !== user._id) throw new Error('Unauthorized');
+		}
 
 		// 1. Create the new thread with the initial model
 		const threadId = await ctx.db.insert('threads', {
@@ -140,6 +149,7 @@ export const createThread = mutation({
 			isPublic: false,
 			model: args.model,
 			reasoningEffort: args.reasoningEffort,
+			projectId: args.projectId,
 			status: 'pending',
 		});
 
@@ -196,10 +206,34 @@ export const setupThread = mutation({
 			.filter((q) => q.neq(q.field('status'), 'pending'))
 			.collect();
 
+		// Get project data if thread belongs to a project
+		let projectData = null;
+		if (thread.projectId) {
+			const project = await ctx.db.get(thread.projectId);
+			if (project && project.userId === user._id) {
+				// Get project attachments
+				const projectAttachments = await Promise.all(
+					project.attachmentIds.map(async (id) => {
+						try {
+							return await ctx.db.get(id);
+						} catch {
+							return null;
+						}
+					})
+				);
+
+				projectData = {
+					...project,
+					attachments: projectAttachments.filter(Boolean),
+				};
+			}
+		}
+
 		return {
 			userMessageId,
 			assistantMessageId,
 			allMessages,
+			projectData,
 		};
 	},
 });

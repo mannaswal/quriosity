@@ -29,7 +29,6 @@ export function InputAttachmentList() {
 					</Fragment>
 				))}
 			</div>
-			{/* <div className="absolute right-1.5 top-0 h-full w-16 bg-gradient-to-l to-transparent from-neutral-900 rounded-r-2xl" /> */}
 		</div>
 	);
 }

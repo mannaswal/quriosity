@@ -52,6 +52,13 @@ export default defineSchema({
 		lastReasoningEffortUsed: v.optional(ReasoningEffort),
 	}).index('by_auth_id', ['authId']),
 
+	projects: defineTable({
+		userId: v.id('users'),
+		name: v.string(),
+		systemPrompt: v.string(),
+		attachmentIds: v.array(v.id('attachments')),
+	}).index('by_user_id', ['userId']),
+
 	attachments: defineTable({
 		userId: v.id('users'),
 		filename: v.string(),
@@ -70,11 +77,13 @@ export default defineSchema({
 		reasoningEffort: v.optional(ReasoningEffort),
 		pinned: v.optional(v.boolean()),
 		archived: v.optional(v.boolean()),
+		projectId: v.optional(v.id('projects')),
 		parentMessageId: v.optional(v.id('messages')),
 		status: ThreadStatus,
 	})
 		.index('by_user_id', ['userId'])
 		.index('by_share_id', ['shareId'])
+		.index('by_project_id', ['projectId'])
 		.index('by_parent_message_id', ['parentMessageId']),
 
 	messages: defineTable({

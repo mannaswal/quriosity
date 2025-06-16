@@ -40,16 +40,26 @@ const useTempDataStore = create<TempDataStore>()(
 				setReasoningEffort: (effort: ReasoningEffort) =>
 					set({ reasoningEffort: effort }),
 				addUploadedAttachment: (attachment: TempAttachment) => {
-					const attachments = get().attachments;
-					const attachmentIndex = attachments.findIndex(
+					const currentAttachments = get().attachments;
+					const attachmentIndex = currentAttachments.findIndex(
 						(att) => att.name === attachment.name
 					);
+
+					let newAttachments;
 					if (attachmentIndex !== -1) {
-						attachments[attachmentIndex] = attachment;
+						// Replace existing attachment
+						newAttachments = [
+							...currentAttachments.slice(0, attachmentIndex),
+							attachment,
+							...currentAttachments.slice(attachmentIndex + 1),
+						];
 					} else {
-						attachments.push(attachment);
+						// Add new attachment
+						newAttachments = [...currentAttachments, attachment];
 					}
-					set({ attachments });
+
+					console.log('attachments', newAttachments);
+					set({ attachments: newAttachments });
 				},
 				addOptimisticAttachment: (file: File) =>
 					set((state) => ({
@@ -63,12 +73,16 @@ const useTempDataStore = create<TempDataStore>()(
 						],
 					})),
 				removeAttachment: (name: string) => {
-					const attachments = get().attachments;
-					const attachment = attachments.find((att) => att.name === name);
+					const currentAttachments = get().attachments;
+					const attachment = currentAttachments.find(
+						(att) => att.name === name
+					);
 					if (attachment && attachment.uploaded) {
-						set({
-							attachments: attachments.filter((att) => att.name !== name),
-						});
+						const newAttachments = currentAttachments.filter(
+							(att) => att.name !== name
+						);
+						set({ attachments: newAttachments });
+
 						deleteFromUploadThing(attachment.uploadThingKey)
 							.then(() => {
 								toast.success('Deleted attachment');
@@ -76,7 +90,7 @@ const useTempDataStore = create<TempDataStore>()(
 							.catch((error) => {
 								toast.error('Failed to delete attachment');
 								// Add attachment back to temp store
-								set({ attachments });
+								set({ attachments: currentAttachments });
 							});
 					}
 				},
