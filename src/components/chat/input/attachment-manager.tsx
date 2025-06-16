@@ -201,7 +201,9 @@ export function AttachmentManager({
 								console.log('upload progress', progress);
 							}}
 							content={{
-								button: <PaperclipIcon className="size-4 stroke-[1.5]" />,
+								button: (
+									<PaperclipIcon className="size-4 stroke-[1.5] text-foreground" />
+								),
 							}}
 							appearance={{
 								allowedContent: 'hidden',

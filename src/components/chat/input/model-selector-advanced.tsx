@@ -79,7 +79,7 @@ export const ModelSelectorAdvanced = () => {
 			<DropdownMenuTrigger asChild>
 				<Button
 					variant="ghost"
-					className="justify-between font-normal has-[>svg]:px-2">
+					className="justify-between font-normal pl-2.5 pr-3">
 					<div
 						className={cn(
 							'flex items-center gap-2',
@@ -96,7 +96,6 @@ export const ModelSelectorAdvanced = () => {
 							<AlertTriangleIcon className="size-4 text-red-400" />
 						)}
 					</div>
-					<ChevronDownIcon className="size-4 pointer-events-none opacity-50 text-muted-foreground" />
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent

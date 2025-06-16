@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import {
 	Select,
 	SelectContent,
@@ -7,6 +8,8 @@ import {
 } from '@/components/ui/select';
 import { useModel, useUpdateModel } from '@/hooks/use-model';
 import { ReasoningEffort } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { BrainIcon } from 'lucide-react';
 import { useMemo } from 'react';
 
 const reasoningOptions = [
@@ -24,11 +27,21 @@ export const ReasoningSelector = () => {
 	};
 
 	const options = useMemo(() => {
-		if (model === 'x-ai/grok-3-mini-beta') {
+		if (model === 'x-ai/grok-3-mini-beta')
 			return [reasoningOptions[0], reasoningOptions[2]];
-		}
 		return reasoningOptions;
 	}, [model]);
+
+	const noMedium = options.length === 2;
+
+	const currentOption = options.find(
+		(option) => option.value === reasoningEffort
+	);
+	const currentValue = currentOption?.value;
+	const currentLabel = currentOption?.label;
+
+	const dotBaseClass =
+		'rounded-full size-1 bg-accent-foreground/20 transition-all duration-100';
 
 	return (
 		<Select
@@ -36,10 +49,47 @@ export const ReasoningSelector = () => {
 			onValueChange={(value) =>
 				handleReasoningChange(value as ReasoningEffort)
 			}>
-			<SelectTrigger className="border-none not-hover:dark:bg-transparent cursor-pointer">
-				<SelectValue defaultValue={'medium'} />
+			<SelectTrigger
+				hideChevron
+				className="border-none not-hover:dark:bg-transparent cursor-pointer px-1">
+				<Button
+					variant="ghost"
+					size="icon"
+					className="flex items-center gap-0.5">
+					<BrainIcon
+						className="size-4 text-foreground"
+						strokeWidth={1.2}
+					/>
+					<div className="flex flex-col gap-px -mb-[1px]">
+						<div
+							className={cn(
+								dotBaseClass,
+								'-ml-[0.5px]',
+								noMedium && 'opacity-0',
+								currentValue === 'high' &&
+									'bg-accent-foreground/50 border-transparent'
+							)}
+						/>
+
+						<div
+							className={cn(
+								dotBaseClass,
+								'ml-px',
+								(currentValue === 'medium' || currentValue === 'high') &&
+									'bg-accent-foreground/50 border-transparent'
+							)}
+						/>
+
+						<div
+							className={cn(
+								dotBaseClass,
+								'bg-accent-foreground/50 border-transparent'
+							)}
+						/>
+					</div>
+				</Button>
 			</SelectTrigger>
-			<SelectContent>
+			<SelectContent className="rounded-lg">
 				{options.map((m) => (
 					<SelectItem
 						className="cursor-pointer"

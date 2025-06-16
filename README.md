@@ -4,7 +4,7 @@ Made for the T3 Chat Cloneathon
 
 ## Core Requirements
 
-- [-] Chat with Various LLMs
+- [x] Chat with Various LLMs
 - [x] Authentication & Sync
 - [x] Browser Friendly
 - [-] Easy to Try
@@ -13,7 +13,7 @@ Made for the T3 Chat Cloneathon
 
 ## Bonus Features
 
-- [ ] Attachment Support
+- [x] Attachment Support
 - [ ] Image Generation Support
 - [-] Syntax Highlighting
 - [x] Resumable Streams
@@ -23,9 +23,11 @@ Made for the T3 Chat Cloneathon
 - [ ] Chat Sharing
 - [ ] Web Search
 - [ ] Bring Your Own Key
-- [ ] Disable models for retrying based on message
+- [x] Disable models for retrying based on message
 - [ ] Image and file previews
 - [ ] Add HEIC/HEIF support
+- [ ] Attachments on paste
+- [ ] Cancel uploads mid-upload
 
 - [ ] Temporary chats
 - [ ] Projects

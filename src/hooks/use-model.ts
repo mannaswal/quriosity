@@ -161,7 +161,7 @@ export function useModelsByProvider(
 
 		Object.values(grouped).forEach((models) => {
 			models.sort((a, b) =>
-				modelsData[a].name.localeCompare(modelsData[b].name)
+				modelsData[b].name.localeCompare(modelsData[a].name)
 			);
 		});
 
