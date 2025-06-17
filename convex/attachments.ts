@@ -5,6 +5,8 @@ import { getUser } from './users';
 
 /**
  * Insert a new attachment record
+ * Optionally adds the attachment to a project if projectId is provided
+ * Supports textContent for text files
  */
 export const insertAttachment = mutation({
 	args: {
@@ -13,6 +15,8 @@ export const insertAttachment = mutation({
 		mimeType: v.string(),
 		type: AttachmentType,
 		key: v.string(),
+		textContent: v.optional(v.string()),
+		projectId: v.optional(v.id('projects')),
 	},
 	handler: async (ctx, args) => {
 		const user = await getUser(ctx);
@@ -25,14 +29,34 @@ export const insertAttachment = mutation({
 			mimeType: args.mimeType,
 			type: args.type,
 			key: args.key,
+			textContent: args.textContent,
 		});
+
+		// If projectId is provided, add the attachment to the project
+		if (args.projectId) {
+			const project = await ctx.db.get(args.projectId);
+			if (!project) throw new Error('Project not found');
+
+			if (project.userId !== user._id) {
+				throw new Error(
+					'Unauthorized: You can only add attachments to your own projects'
+				);
+			}
+
+			// Add attachment to project
+			await ctx.db.patch(args.projectId, {
+				attachmentIds: [...project.attachmentIds, attachmentId],
+			});
+		}
 
 		return attachmentId;
 	},
 });
 
 /**
- * Insert new attachment records
+ * Insert multiple attachment records
+ * Optionally adds all attachments to a project if projectId is provided
+ * Supports textContent for text files
  */
 export const insertAttachments = mutation({
 	args: {
@@ -43,8 +67,10 @@ export const insertAttachments = mutation({
 				mimeType: v.string(),
 				type: AttachmentType,
 				key: v.string(),
+				textContent: v.optional(v.string()),
 			})
 		),
+		projectId: v.optional(v.id('projects')),
 	},
 	handler: async (ctx, args) => {
 		const user = await getUser(ctx);
@@ -58,6 +84,22 @@ export const insertAttachments = mutation({
 				})
 			)
 		);
+
+		// Verify project exists and user owns it if projectId is provided
+		if (args.projectId) {
+			const project = await ctx.db.get(args.projectId);
+			if (!project) throw new Error('Project not found');
+
+			if (project.userId !== user._id) {
+				throw new Error(
+					'Unauthorized: You can only add attachments to your own projects'
+				);
+			}
+
+			await ctx.db.patch(args.projectId, {
+				attachmentIds: [...project.attachmentIds, ...attachmentIds],
+			});
+		}
 
 		return attachmentIds;
 	},

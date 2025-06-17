@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ModelId, modelsData } from '@/lib/models';
-import { AttachmentType, Message, Thread } from './types';
+import { Attachment, AttachmentType, Message, Thread } from './types';
 import {
 	AssistantContent,
 	CoreMessage,
@@ -11,6 +11,7 @@ import {
 	UserContent,
 } from 'ai';
 import { getRestrictionsMessage } from '@/hooks/use-model-filtering';
+import { fetchTextFromUrl } from '@/server/attachments';
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
@@ -71,6 +72,21 @@ export function getModelCompatibility(
 	};
 }
 
+export function filterAttachmentsByModelCapabilities<
+	T extends { type: AttachmentType }
+>(modelId: ModelId, attachments: T[] = []): T[] {
+	const { isVisionCompatible, isDocsCompatible } = getModelCompatibility(
+		modelId,
+		attachments
+	);
+
+	return attachments.filter((att) => {
+		if (att.type === 'image' && !isVisionCompatible) return false;
+		if (att.type === 'pdf' && !isDocsCompatible) return false;
+		return true;
+	});
+}
+
 /**
  * Function to get restrictions based on attachments
  */
@@ -98,37 +114,51 @@ export function getRestrictions(attachments: { type: AttachmentType }[]): {
  * Convert attachments to AI SDK CoreMessage format
  * Transforms attachment data into the content format expected by AI models
  */
-export function attachmentsToParts(
-	attachments: { url: string; mimeType: string; type: AttachmentType }[]
-): (TextPart | ImagePart | FilePart)[] {
-	return attachments.map((attachment) => {
-		if (attachment.type === 'image') {
-			return {
-				type: 'image' as const,
-				image: attachment.url,
-			};
-		} else if (attachment.type === 'text') {
-			// For text files, we'd need to fetch the content
-			// For now, we'll reference the URL - the AI model will need to handle this
+export async function attachmentsToParts(
+	attachments: {
+		url: string;
+		mimeType: string;
+		type: AttachmentType;
+		textContent?: string;
+	}[]
+): Promise<(TextPart | ImagePart | FilePart)[]> {
+	return Promise.all(
+		attachments.map(async (attachment) => {
+			if (attachment.type === 'image') {
+				return {
+					type: 'image' as const,
+					image: attachment.url,
+				};
+			} else if (attachment.type === 'text') {
+				let content = attachment.textContent;
+				if (!content) {
+					try {
+						const text = await fetchTextFromUrl(attachment.url);
+						content = text;
+					} catch (error) {
+						console.error('Failed to fetch text content:', error);
+					}
+				}
+
+				return {
+					type: 'text' as const,
+					text: content!,
+				};
+			} else if (attachment.type === 'pdf') {
+				// For PDFs, similar approach - reference the URL
+				return {
+					type: 'file' as const,
+					data: attachment.url,
+					mimeType: attachment.mimeType,
+				};
+			}
 			return {
 				type: 'file' as const,
 				data: attachment.url,
 				mimeType: attachment.mimeType,
 			};
-		} else if (attachment.type === 'pdf') {
-			// For PDFs, similar approach - reference the URL
-			return {
-				type: 'file' as const,
-				data: attachment.url,
-				mimeType: attachment.mimeType,
-			};
-		}
-		return {
-			type: 'file' as const,
-			data: attachment.url,
-			mimeType: attachment.mimeType,
-		};
-	});
+		})
+	);
 }
 
 const stringToTextPart = (text: string): TextPart => {
@@ -138,10 +168,10 @@ const stringToTextPart = (text: string): TextPart => {
 	};
 };
 
-export function messageToCoreMessage(
+export async function messageToCoreMessage(
 	message: Message,
 	attachments?: { url: string; mimeType: string; type: AttachmentType }[]
-): CoreMessage {
+): Promise<CoreMessage> {
 	const textContent = message.content;
 
 	if (message.role === 'user') {
@@ -149,8 +179,10 @@ export function messageToCoreMessage(
 
 		if (textContent) userContent.push(stringToTextPart(textContent));
 
-		if (attachments?.length)
-			userContent.push(...attachmentsToParts(attachments));
+		if (attachments?.length) {
+			const parts = await attachmentsToParts(attachments);
+			userContent.push(...parts);
+		}
 
 		return {
 			role: 'user',

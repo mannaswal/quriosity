@@ -206,7 +206,6 @@ function useStreamMessage() {
 					});
 				},
 				onFinishStepPart: (part) => {
-					console.log(part);
 					updateStreamingContent({
 						threadId,
 						messageId: assistantMessageId,

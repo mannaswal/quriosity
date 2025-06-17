@@ -74,12 +74,13 @@ export const RetryButtonAdvanced = ({
 	const [isOpen, setIsOpen] = useState(false);
 	const getReasoningEffort = useReasoningEffort();
 	const updateModel = useUpdateModel();
+
 	const previousMessage = usePreviousMessage(message._id);
 
 	let retryMessage = message;
 
-	if (message.role === 'assistant' && previousMessage)
-		retryMessage = previousMessage;
+	const isAssistant = message.role === 'assistant';
+	if (isAssistant && previousMessage) retryMessage = previousMessage;
 
 	const messageAttachments = useMessageAttachments(retryMessage);
 	const modelsByProvider = useModelsByProvider(messageAttachments);
@@ -131,6 +132,7 @@ export const RetryButtonAdvanced = ({
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
+				align={isAssistant ? 'center' : 'end'}
 				side="bottom"
 				className="w-40 rounded-lg border-[0.5px]">
 				{restrictions.message && (

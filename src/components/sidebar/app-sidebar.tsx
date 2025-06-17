@@ -36,6 +36,7 @@ import {
 	ChevronDownIcon,
 	EyeIcon,
 	EyeOffIcon,
+	FolderIcon,
 } from 'lucide-react';
 import {
 	Disclosure,
@@ -109,13 +110,25 @@ export function AppSidebar() {
 						Quriosity
 					</h1>
 				</Link>
-				<div className="w-full">
+				<div className="w-full space-y-2">
 					<Button
 						variant="ghost"
 						className="w-full dark:bg-input/90 hover:dark:bg-input"
 						size="lg"
 						asChild>
 						<Link href="/">New chat</Link>
+					</Button>
+					<Button
+						variant="ghost"
+						className="w-full"
+						size="lg"
+						asChild>
+						<Link
+							href="/projects"
+							className="flex items-center gap-2">
+							<FolderIcon className="size-4" />
+							Projects
+						</Link>
 					</Button>
 				</div>
 			</SidebarHeader>

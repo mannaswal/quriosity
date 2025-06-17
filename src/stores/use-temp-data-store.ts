@@ -7,6 +7,25 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Id } from '../../convex/_generated/dataModel';
 
+/**
+ * Create a unique fingerprint for a file based on its properties
+ * This allows us to match optimistic attachments with upload results
+ */
+export const createFileFingerprint = (
+	name: string,
+	size: number,
+	lastModified: number
+): string => {
+	return `${name}-${size}-${lastModified}`;
+};
+
+/**
+ * Create fingerprint from File object
+ */
+export const createFileFingerprintFromFile = (file: File): string => {
+	return createFileFingerprint(file.name, file.size, file.lastModified);
+};
+
 export type TempDataState = {
 	inputText: string;
 	model: ModelId | undefined;
@@ -20,8 +39,8 @@ type TempDataActions = {
 	setModel: (model: ModelId) => void;
 	setReasoningEffort: (effort: ReasoningEffort) => void;
 	addUploadedAttachment: (attachment: TempAttachment) => void;
-	addOptimisticAttachment: (file: File) => void;
-	removeAttachment: (name: string) => void;
+	addOptimisticAttachment: (file: File, processedName: string) => void;
+	removeAttachment: (fingerprint: string) => void;
 	clearAttachments: () => void;
 	setSelectedProjectId: (projectId: Id<'projects'> | undefined) => void;
 };
@@ -48,44 +67,48 @@ const useTempDataStore = create<TempDataStore>()(
 				addUploadedAttachment: (attachment: TempAttachment) => {
 					const currentAttachments = get().attachments;
 					const attachmentIndex = currentAttachments.findIndex(
-						(att) => att.name === attachment.name
+						(att) => att.fingerprint === attachment.fingerprint
 					);
 
 					let newAttachments;
 					if (attachmentIndex !== -1) {
-						// Replace existing attachment
+						// Replace existing optimistic attachment with real data
 						newAttachments = [
 							...currentAttachments.slice(0, attachmentIndex),
 							attachment,
 							...currentAttachments.slice(attachmentIndex + 1),
 						];
 					} else {
-						// Add new attachment
+						// Add new attachment (shouldn't happen in normal flow)
 						newAttachments = [...currentAttachments, attachment];
 					}
 
 					console.log('attachments', newAttachments);
 					set({ attachments: newAttachments });
 				},
-				addOptimisticAttachment: (file: File) =>
+				addOptimisticAttachment: (file: File, processedName: string) => {
+					const fingerprint = createFileFingerprintFromFile(file);
 					set((state) => ({
 						attachments: [
 							...state.attachments,
 							{
-								name: file.name,
+								fingerprint,
+								name: processedName, // Use processed name (with jpg→jpeg conversion)
 								uploaded: false,
 								type: mimeTypeToAttachmentType(file.type),
+								mimeType: file.type,
 							},
 						],
-					})),
-				removeAttachment: (name: string) => {
+					}));
+				},
+				removeAttachment: (fingerprint: string) => {
 					const currentAttachments = get().attachments;
 					const attachment = currentAttachments.find(
-						(att) => att.name === name
+						(att) => att.fingerprint === fingerprint
 					);
 					if (attachment && attachment.uploaded) {
 						const newAttachments = currentAttachments.filter(
-							(att) => att.name !== name
+							(att) => att.fingerprint !== fingerprint
 						);
 						set({ attachments: newAttachments });
 
@@ -98,6 +121,12 @@ const useTempDataStore = create<TempDataStore>()(
 								// Add attachment back to temp store
 								set({ attachments: currentAttachments });
 							});
+					} else {
+						// Just remove optimistic attachment
+						const newAttachments = currentAttachments.filter(
+							(att) => att.fingerprint !== fingerprint
+						);
+						set({ attachments: newAttachments });
 					}
 				},
 				clearAttachments: () => set({ attachments: [] }),

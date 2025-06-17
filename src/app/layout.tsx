@@ -50,7 +50,7 @@ export default async function RootLayout({
 						<NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
 						<SidebarProvider defaultOpen={defaultOpen}>
 							<AppSidebar />
-							<main className="flex-1">{children}</main>
+							<main className="flex-1 relative">{children}</main>
 						</SidebarProvider>
 						<Toaster />
 					</ConvexClientProvider>

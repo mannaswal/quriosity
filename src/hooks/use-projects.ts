@@ -66,9 +66,11 @@ export function useProjectDataByThreadId(threadId: Id<'threads'> | undefined) {
 export function useProjectThreads(projectId: Id<'projects'> | undefined) {
 	const { isAuthenticated } = useConvexAuth();
 
-	return useConvexQuery(
-		api.projects.getProjectThreads,
-		projectId && isAuthenticated ? { projectId } : 'skip'
+	return (
+		useConvexQuery(
+			api.projects.getProjectThreads,
+			projectId && isAuthenticated ? { projectId } : 'skip'
+		) ?? undefined
 	);
 }
 

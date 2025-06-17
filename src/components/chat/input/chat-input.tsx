@@ -16,6 +16,7 @@ import { useThread } from '@/hooks/use-threads';
 import { ReasoningSelector } from './reasoning-selector';
 import {
 	useAllAttachmentsUploaded,
+	useTempInputText,
 	useTempModel,
 } from '@/stores/use-temp-data-store';
 import { hasEffortControl } from '@/lib/utils';
@@ -27,9 +28,11 @@ import {
 } from '@/stores/use-temp-data-store';
 import { InputAttachmentList } from './attachment-list';
 import { toast } from 'sonner';
+import { ProjectSelector } from './project-selector';
 
 export function ChatInput() {
-	const [message, setMessage] = useState('');
+	const textInput = useTempInputText();
+	const { setInputText } = useTempActions();
 	const { clearAttachments, addUploadedAttachment } = useTempActions();
 	const tempAttachments = useTempAttachments();
 	const allAttachmentsUploaded = useAllAttachmentsUploaded();
@@ -43,7 +46,7 @@ export function ChatInput() {
 
 	const isProcessing =
 		thread?.status === 'streaming' || thread?.status === 'pending';
-	const disabled = !message.trim() || isProcessing || !allAttachmentsUploaded;
+	const disabled = !textInput.trim() || isProcessing || !allAttachmentsUploaded;
 
 	const handleStop = async () => {
 		stopStream(thread?._id).catch((error) => {
@@ -59,11 +62,11 @@ export function ChatInput() {
 		}
 
 		// Take a snapshot of the message and attachments
-		const messageContent = message;
+		const messageContent = textInput;
 		const attachments = tempAttachments;
 
 		scrollToBottom();
-		setMessage('');
+		setInputText('');
 		clearAttachments();
 
 		sendMessage(messageContent).catch((error) => {
@@ -71,7 +74,7 @@ export function ChatInput() {
 			toast.error('Failed to send message');
 
 			// Restore the message and attachments
-			setMessage(messageContent);
+			setInputText(messageContent);
 			attachments.forEach((a) => addUploadedAttachment(a));
 		});
 	};
@@ -81,8 +84,8 @@ export function ChatInput() {
 			<InputAttachmentList />
 			<PromptInput
 				onSubmit={handleSendMessage}
-				onValueChange={setMessage}
-				value={message}>
+				onValueChange={setInputText}
+				value={textInput}>
 				<PromptInputTextarea
 					autoFocus
 					spellCheck={false}
@@ -108,6 +111,11 @@ export function ChatInput() {
 							delayDuration={300}
 							tooltip="Attach files">
 							<AttachmentManager modelId={modelId} />
+						</PromptInputAction>
+						<PromptInputAction
+							delayDuration={300}
+							tooltip="Project">
+							<ProjectSelector />
 						</PromptInputAction>
 					</div>
 					<PromptInputAction

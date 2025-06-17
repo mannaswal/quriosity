@@ -66,6 +66,8 @@ export default defineSchema({
 		mimeType: v.string(),
 		type: AttachmentType,
 		key: v.string(),
+
+		textContent: v.optional(v.string()),
 	}).index('by_user_id', ['userId']),
 
 	threads: defineTable({

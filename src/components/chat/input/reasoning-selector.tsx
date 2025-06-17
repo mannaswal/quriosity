@@ -49,43 +49,50 @@ export const ReasoningSelector = () => {
 			onValueChange={(value) =>
 				handleReasoningChange(value as ReasoningEffort)
 			}>
-			<SelectTrigger
-				hideChevron
-				className="border-none not-hover:dark:bg-transparent cursor-pointer pl-2.5 pr-2.5 gap-0.5">
-				<BrainIcon
-					className="size-4 text-foreground"
-					strokeWidth={1.2}
-				/>
-				<div className="flex flex-col gap-px -mb-[1px]">
-					<div
-						className={cn(
-							dotBaseClass,
-							'-ml-[0.5px]',
-							noMedium && 'opacity-0',
-							currentValue === 'high' &&
-								'bg-accent-foreground/50 border-transparent'
-						)}
+			<Button
+				variant="ghost"
+				className="has-[>svg]:px-2.5"
+				asChild>
+				<SelectTrigger
+					hideChevron
+					className="border-none not-hover:dark:bg-transparent cursor-pointer gap-0.5">
+					<BrainIcon
+						className="size-4 text-foreground"
+						strokeWidth={1.2}
 					/>
+					<div className="flex flex-col gap-px -mb-[1px] -mr-px">
+						<div
+							className={cn(
+								dotBaseClass,
+								'-ml-[0.5px]',
+								noMedium && 'opacity-0',
+								currentValue === 'high' &&
+									'bg-accent-foreground/50 border-transparent'
+							)}
+						/>
 
-					<div
-						className={cn(
-							dotBaseClass,
-							'ml-px',
-							(currentValue === 'medium' || currentValue === 'high') &&
-								'bg-accent-foreground/50 border-transparent'
-						)}
-					/>
+						<div
+							className={cn(
+								dotBaseClass,
+								'ml-px',
+								(currentValue === 'medium' || currentValue === 'high') &&
+									'bg-accent-foreground/50 border-transparent'
+							)}
+						/>
 
-					<div
-						className={cn(
-							dotBaseClass,
-							'bg-accent-foreground/50 border-transparent'
-						)}
-					/>
-				</div>
-				{/* </Button> */}
-			</SelectTrigger>
-			<SelectContent className="rounded-lg">
+						<div
+							className={cn(
+								dotBaseClass,
+								'bg-accent-foreground/50 border-transparent'
+							)}
+						/>
+					</div>
+					{/* </Button> */}
+				</SelectTrigger>
+			</Button>
+			<SelectContent
+				align="center"
+				className="rounded-lg min-w-20">
 				{options.map((m) => (
 					<SelectItem
 						className="cursor-pointer"

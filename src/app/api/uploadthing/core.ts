@@ -71,8 +71,8 @@ export const ourFileRouter = {
 	 * Accepts: Text files only
 	 */
 	textOnlyUploader: f({
-		'text/plain': {
-			maxFileSize: '16MB',
+		text: {
+			maxFileSize: '1MB',
 			maxFileCount: 20,
 		},
 	})
@@ -84,8 +84,8 @@ export const ourFileRouter = {
 	 * Accepts: Text files and PDFs
 	 */
 	docsTextUploader: f({
-		'text/plain': {
-			maxFileSize: '16MB',
+		text: {
+			maxFileSize: '1MB',
 			maxFileCount: 20,
 		},
 		pdf: {
@@ -101,8 +101,8 @@ export const ourFileRouter = {
 	 * Accepts: Text files and Images
 	 */
 	imagesTextUploader: f({
-		'text/plain': {
-			maxFileSize: '16MB',
+		text: {
+			maxFileSize: '1MB',
 			maxFileCount: 20,
 		},
 		'image/png': {
@@ -130,8 +130,8 @@ export const ourFileRouter = {
 	 * Accepts: Text files, Images, and PDFs
 	 */
 	allFilesUploader: f({
-		'text/plain': {
-			maxFileSize: '16MB',
+		text: {
+			maxFileSize: '1MB',
 			maxFileCount: 20,
 		},
 		image: {

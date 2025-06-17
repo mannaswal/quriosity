@@ -13,6 +13,7 @@ import { useAttachments, useMessageAttachments } from '@/hooks/use-attachments';
 
 export function InputAttachmentList() {
 	const attachments = useTempAttachments();
+	const { removeAttachment } = useTempActions();
 
 	if (!attachments.length) return null;
 
@@ -20,11 +21,17 @@ export function InputAttachmentList() {
 		<div className="w-fit max-w-full flex items-center gap-2 mb-2 relative p-1.5 bg-neutral-900/90 backdrop-blur rounded-2xl border-[0.5px] border-border">
 			<div className="flex items-center gap-1.5 w-fit overflow-x-scroll scrollbar-hide relative rounded-lg">
 				{attachments.map((attachment) => (
-					<Fragment key={attachment.name}>
+					<Fragment key={attachment.fingerprint}>
 						{attachment.type === 'image' ? (
-							<ImageItem attachment={attachment} />
+							<ImageItem
+								attachment={attachment}
+								handleRemove={removeAttachment}
+							/>
 						) : (
-							<FileNameItem attachment={attachment} />
+							<FileNameItem
+								attachment={attachment}
+								handleRemove={removeAttachment}
+							/>
 						)}
 					</Fragment>
 				))}
@@ -33,8 +40,13 @@ export function InputAttachmentList() {
 	);
 }
 
-const ImageItem = ({ attachment }: { attachment: TempAttachment }) => {
-	const { removeAttachment } = useTempActions();
+const ImageItem = ({
+	attachment,
+	handleRemove,
+}: {
+	attachment: TempAttachment;
+	handleRemove: (fingerprint: string) => void;
+}) => {
 	return (
 		<div className="group relative">
 			<div className="size-12 grow-0 shrink-0  flex items-center justify-center overflow-hidden rounded-lg bg-neutral-600/20 relative">
@@ -58,16 +70,20 @@ const ImageItem = ({ attachment }: { attachment: TempAttachment }) => {
 				variant="secondary"
 				size="icon"
 				className="absolute top-0 right-0 m-px opacity-0 group-hover:opacity-100 duration-200 z-10 size-5 hover:bg-neutral-700 transition-[colors, opacity]"
-				onClick={() => removeAttachment(attachment.name)}>
+				onClick={() => handleRemove(attachment.fingerprint)}>
 				<X className="size-2.5" />
 			</Button>
 		</div>
 	);
 };
 
-const FileNameItem = ({ attachment }: { attachment: TempAttachment }) => {
-	const { removeAttachment } = useTempActions();
-
+const FileNameItem = ({
+	attachment,
+	handleRemove,
+}: {
+	attachment: TempAttachment;
+	handleRemove: (fingerprint: string) => void;
+}) => {
 	const getIcon = () => {
 		if (!attachment.uploaded) {
 			return (
@@ -102,7 +118,7 @@ const FileNameItem = ({ attachment }: { attachment: TempAttachment }) => {
 				variant="secondary"
 				size="icon"
 				className="absolute top-0 right-0 m-px opacity-0 group-hover:opacity-100 duration-200 z-10 size-5 hover:bg-neutral-700 transition-[colors, opacity]"
-				onClick={() => removeAttachment(attachment.name)}>
+				onClick={() => handleRemove(attachment.fingerprint)}>
 				<X className="size-2.5" />
 			</Button>
 		</div>
