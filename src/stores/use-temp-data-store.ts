@@ -5,12 +5,14 @@ import { mimeTypeToAttachmentType } from '@/lib/utils';
 import { toast } from 'sonner';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { Id } from '../../convex/_generated/dataModel';
 
 export type TempDataState = {
 	inputText: string;
 	model: ModelId | undefined;
 	reasoningEffort: ReasoningEffort | undefined;
 	attachments: TempAttachment[];
+	selectedProjectId: Id<'projects'> | undefined;
 };
 
 type TempDataActions = {
@@ -21,6 +23,7 @@ type TempDataActions = {
 	addOptimisticAttachment: (file: File) => void;
 	removeAttachment: (name: string) => void;
 	clearAttachments: () => void;
+	setSelectedProjectId: (projectId: Id<'projects'> | undefined) => void;
 };
 
 type TempDataStore = TempDataState & {
@@ -34,11 +37,14 @@ const useTempDataStore = create<TempDataStore>()(
 			model: undefined,
 			reasoningEffort: undefined,
 			attachments: [],
+			selectedProjectId: undefined,
 			actions: {
 				setInputText: (text: string) => set({ inputText: text }),
 				setModel: (model: ModelId) => set({ model }),
 				setReasoningEffort: (effort: ReasoningEffort) =>
 					set({ reasoningEffort: effort }),
+				setSelectedProjectId: (projectId: Id<'projects'> | undefined) =>
+					set({ selectedProjectId: projectId }),
 				addUploadedAttachment: (attachment: TempAttachment) => {
 					const currentAttachments = get().attachments;
 					const attachmentIndex = currentAttachments.findIndex(
@@ -104,6 +110,7 @@ const useTempDataStore = create<TempDataStore>()(
 				model: state.model,
 				reasoningEffort: state.reasoningEffort,
 				attachments: state.attachments,
+				selectedProjectId: state.selectedProjectId,
 			}),
 		}
 	)
@@ -121,6 +128,9 @@ export const useTempAttachments = () =>
 	useTempDataStore((state) => state.attachments);
 
 export const useTempActions = () => useTempDataStore((state) => state.actions);
+
+export const useTempSelectedProjectId = () =>
+	useTempDataStore((state) => state.selectedProjectId);
 
 export const useAllAttachmentsUploaded = () => {
 	const attachments = useTempAttachments();

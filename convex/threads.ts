@@ -206,34 +206,10 @@ export const setupThread = mutation({
 			.filter((q) => q.neq(q.field('status'), 'pending'))
 			.collect();
 
-		// Get project data if thread belongs to a project
-		let projectData = null;
-		if (thread.projectId) {
-			const project = await ctx.db.get(thread.projectId);
-			if (project && project.userId === user._id) {
-				// Get project attachments
-				const projectAttachments = await Promise.all(
-					project.attachmentIds.map(async (id) => {
-						try {
-							return await ctx.db.get(id);
-						} catch {
-							return null;
-						}
-					})
-				);
-
-				projectData = {
-					...project,
-					attachments: projectAttachments.filter(Boolean),
-				};
-			}
-		}
-
 		return {
 			userMessageId,
 			assistantMessageId,
 			allMessages,
-			projectData,
 		};
 	},
 });

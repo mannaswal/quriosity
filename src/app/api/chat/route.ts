@@ -5,6 +5,7 @@ import {
 	CoreMessage,
 	createDataStreamResponse,
 	UserContent,
+	CoreSystemMessage,
 } from 'ai';
 import { auth } from '@clerk/nextjs/server';
 import { api } from 'convex/_generated/api';
@@ -38,36 +39,65 @@ export async function POST(request: NextRequest) {
 		convexClient.setAuth(token);
 
 		// 2. Extract request payload
-		const { threadId, model, messages, messageId, reasoningEffort } =
-			await request.json();
+		const {
+			threadId,
+			model,
+			messages: allMessages,
+			messageId,
+			reasoningEffort,
+			projectData,
+		} = await request.json();
 
-		if (!threadId || !model || !messages || !messageId || !userId) {
+		if (!threadId || !model || !allMessages || !messageId || !userId) {
 			return new NextResponse('Missing required fields', { status: 400 });
 		}
 
 		// 3. Format message history for AI (exclude the empty assistant message)
-		const formattedHistory: CoreMessage[] = await Promise.all(
-			messages
-				.filter((msg: Message) => msg.status !== 'pending')
-				.map(async (msg: Message) => {
-					const attachments: Attachment[] = [];
-
-					if (msg.attachmentIds?.length) {
-						try {
-							attachments.push(
-								...(await convexClient.query(
-									api.attachments.getAttachmentsByIds,
-									{ ids: msg.attachmentIds }
-								))
-							);
-						} catch (error) {
-							console.error('Failed to fetch attachments for message:', error);
-						}
-					}
-
-					return messageToCoreMessage(msg, attachments);
-				})
+		const messages = allMessages.filter(
+			(msg: Message) => msg.status !== 'pending'
 		);
+
+		console.time('formatting messages');
+		const coreMessages: CoreMessage[] = await Promise.all(
+			messages.map(async (msg: Message, index: number) => {
+				const attachments: Attachment[] = [];
+
+				if (msg.attachmentIds?.length) {
+					try {
+						attachments.push(
+							...(await convexClient.query(
+								api.attachments.getAttachmentsByIds,
+								{ ids: msg.attachmentIds }
+							))
+						);
+					} catch (error) {
+						console.error('Failed to fetch attachments for message:', error);
+					}
+				}
+
+				// For the first user message in a project thread, inject project attachments
+				if (
+					projectData &&
+					index === 0 &&
+					msg.role === 'user' &&
+					projectData.attachments?.length > 0
+				) {
+					attachments.push(...projectData.attachments);
+				}
+
+				return messageToCoreMessage(msg, attachments);
+			})
+		);
+		console.timeEnd('formatting messages');
+
+		// Inject system prompt at the beginning if thread belongs to a project
+		if (projectData?.systemPrompt) {
+			const systemMessage: CoreSystemMessage = {
+				role: 'system',
+				content: projectData.systemPrompt,
+			};
+			coreMessages.unshift(systemMessage);
+		}
 
 		// 4. Create our own AbortController to properly stop AI token generation
 		const abortController = new AbortController();
@@ -76,7 +106,7 @@ export async function POST(request: NextRequest) {
 			model: openrouter.chat(model, {
 				reasoning: { effort: reasoningEffort },
 			}),
-			messages: formattedHistory,
+			messages: coreMessages,
 			abortSignal: abortController.signal,
 			experimental_transform: markdownJoinerTransform(),
 		});

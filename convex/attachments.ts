@@ -89,19 +89,6 @@ export const getAttachmentsByIds = query({
 /**
  * Get all attachments for a user
  */
-export const getAttachmentsByUserId = query({
-	args: { userId: v.id('users') },
-	handler: async (ctx, args) => {
-		return await ctx.db
-			.query('attachments')
-			.withIndex('by_user_id', (q) => q.eq('userId', args.userId))
-			.collect();
-	},
-});
-
-/**
- * Get all attachments for a user
- */
 export const getUserAttachments = query({
 	args: {},
 	handler: async (ctx) => {

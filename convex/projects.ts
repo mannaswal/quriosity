@@ -29,13 +29,110 @@ export const getProjectById = query({
 		if (!user) throw new Error('User not authenticated');
 
 		const project = await ctx.db.get(args.projectId);
-		if (!project) return null;
+		if (!project) throw new Error('Project not found');
 
 		if (project.userId !== user._id) {
 			throw new Error('Unauthorized: You can only access your own projects');
 		}
 
 		return project;
+	},
+});
+
+/**
+ * Get a specific project by ID
+ * Only the project owner can access their project
+ */
+export const getProjectDataById = query({
+	args: { projectId: v.id('projects') },
+	handler: async (ctx, args) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('User not authenticated');
+
+		const project = await ctx.db.get(args.projectId);
+		if (!project) throw new Error('Project not found');
+
+		if (project.userId !== user._id)
+			throw new Error('Unauthorized: You can only access your own projects');
+
+		const attachments = await Promise.all(
+			project.attachmentIds.map(async (id) => {
+				try {
+					return await ctx.db.get(id);
+				} catch {
+					return null;
+				}
+			})
+		).then((attachments) => attachments.filter((a) => a !== null));
+
+		return { ...project, attachments };
+	},
+});
+
+/**
+ * Get project data by thread ID - includes project details and attachments
+ * Returns null if thread doesn't belong to a project or user doesn't own it
+ */
+export const getProjectDataByThreadId = query({
+	args: { threadId: v.id('threads') },
+	handler: async (ctx, args) => {
+		const user = await getUser(ctx);
+		if (!user) return null;
+
+		// Get the thread
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread) throw new Error('Thread not found');
+		if (thread.userId !== user._id) throw new Error('Unauthorized');
+
+		// If the thread doesn't belong to a project, return null
+		if (!thread.projectId) return null;
+
+		// Get the project
+		const project = await ctx.db.get(thread.projectId);
+		if (!project) throw new Error('Project not found');
+		if (project.userId !== user._id) throw new Error('Unauthorized');
+
+		// Get project attachments
+		const projectAttachments = await Promise.all(
+			project.attachmentIds.map(async (id) => {
+				try {
+					return await ctx.db.get(id);
+				} catch {
+					return null;
+				}
+			})
+		).then((attachments) => attachments.filter((a) => a !== null));
+
+		return {
+			...project,
+			attachments: projectAttachments,
+		};
+	},
+});
+
+/**
+ * Get threads that belong to a specific project
+ * Only the project owner can access threads in their project
+ */
+export const getProjectThreads = query({
+	args: { projectId: v.id('projects') },
+	handler: async (ctx, args) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('User not authenticated');
+
+		// Verify project exists and user owns it
+		const project = await ctx.db.get(args.projectId);
+		if (!project) throw new Error('Project not found');
+
+		if (project.userId !== user._id) {
+			throw new Error('Unauthorized: You can only access your own projects');
+		}
+
+		return await ctx.db
+			.query('threads')
+			.withIndex('by_project_id', (q) => q.eq('projectId', args.projectId))
+			.order('desc')
+			.collect();
 	},
 });
 
@@ -256,31 +353,5 @@ export const removeProjectAttachment = mutation({
 		}
 
 		return { success: true };
-	},
-});
-
-/**
- * Get threads that belong to a specific project
- * Only the project owner can access threads in their project
- */
-export const getProjectThreads = query({
-	args: { projectId: v.id('projects') },
-	handler: async (ctx, args) => {
-		const user = await getUser(ctx);
-		if (!user) throw new Error('User not authenticated');
-
-		// Verify project exists and user owns it
-		const project = await ctx.db.get(args.projectId);
-		if (!project) throw new Error('Project not found');
-
-		if (project.userId !== user._id) {
-			throw new Error('Unauthorized: You can only access your own projects');
-		}
-
-		return await ctx.db
-			.query('threads')
-			.withIndex('by_project_id', (q) => q.eq('projectId', args.projectId))
-			.order('desc')
-			.collect();
 	},
 });

@@ -4,7 +4,12 @@ import { useConvexAuth, useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { toast } from 'sonner';
-import { Message, ReasoningEffort } from '@/lib/types';
+import {
+	Message,
+	Project,
+	ProjectWithAttachments,
+	ReasoningEffort,
+} from '@/lib/types';
 import {
 	useStreamingStoreActions,
 	useStreamingMessage,
@@ -20,7 +25,14 @@ import { TempAttachment } from '@/lib/types';
 import {
 	useAllAttachmentsUploaded,
 	useTempAttachments,
+	useTempSelectedProjectId,
 } from '@/stores/use-temp-data-store';
+import {
+	useProject,
+	useProjectData,
+	useProjectDataByThreadId,
+	useProjects,
+} from './use-projects';
 
 /**
  * Hook to get messages for a thread - now subscribes to both DB and streaming store
@@ -68,7 +80,7 @@ export function useThreadMessages(threadIdParam?: Id<'threads'>): Message[] {
 				...lastMessage,
 				content: streamingMessage.content,
 				reasoning: streamingMessage.reasoning,
-				status: lastMessage.status,
+				status: streamingMessage.status ?? lastMessage.status,
 			};
 			return updatedMessages;
 		}
@@ -137,6 +149,7 @@ function useStreamMessage() {
 		reasoningEffort: ReasoningEffort | undefined;
 		assistantMessageId: Id<'messages'>;
 		messageHistory: Message[];
+		projectData?: ProjectWithAttachments;
 	}) => {
 		const {
 			threadId,
@@ -144,6 +157,7 @@ function useStreamMessage() {
 			reasoningEffort,
 			assistantMessageId,
 			messageHistory,
+			projectData,
 		} = input;
 		addStreamingMessage(threadId, assistantMessageId, '', '');
 
@@ -156,6 +170,7 @@ function useStreamMessage() {
 					model,
 					reasoningEffort,
 					messages: messageHistory,
+					projectData,
 				}),
 			});
 
@@ -228,16 +243,23 @@ export function useSendMessage(opts?: {
 	onSuccess?: () => void;
 	onError?: (error: Error) => void;
 }) {
-	const { model, reasoningEffort } = useModel();
 	const router = useRouter();
 	const thread = useThread();
+
+	const { model, reasoningEffort } = useModel();
+	const getReasoningEffort = useReasoningEffort();
+
 	const tempAttachments = useTempAttachments();
 	const allAttachmentsUploaded = useAllAttachmentsUploaded();
-	const streamMessage = useStreamMessage();
-	const getReasoningEffort = useReasoningEffort();
-	const createThread = useMutation(api.threads.createThread);
+
+	const selectedProjectId = useTempSelectedProjectId();
+	const projectData = useProjectData(selectedProjectId);
+
 	const setupThread = useMutation(api.threads.setupThread);
-	const insertAttachment = useMutation(api.attachments.insertAttachment);
+	const createThread = useMutation(api.threads.createThread);
+	const insertAttachments = useMutation(api.attachments.insertAttachments);
+
+	const streamMessage = useStreamMessage();
 
 	const sendMessage = async (messageContent: string) => {
 		if (thread?.status === 'streaming') {
@@ -253,18 +275,20 @@ export function useSendMessage(opts?: {
 			// Convert temp attachments to DB entries
 			let attachmentIds: Id<'attachments'>[] = [];
 			if (tempAttachments && tempAttachments.length > 0) {
-				attachmentIds = await Promise.all(
-					tempAttachments.map(async (tempAtt) => {
-						if (!tempAtt.uploaded) throw new Error('Attachment not uploaded'); // Should never happen
-						return await insertAttachment({
-							filename: tempAtt.name,
-							url: tempAtt.url,
-							mimeType: tempAtt.mimeType,
-							type: tempAtt.type,
-							key: tempAtt.uploadThingKey,
-						});
-					})
-				);
+				attachmentIds = await insertAttachments({
+					attachments: tempAttachments
+						.map((tempAtt) => {
+							if (tempAtt.uploaded)
+								return {
+									type: tempAtt.type,
+									filename: tempAtt.name,
+									url: tempAtt.url,
+									mimeType: tempAtt.mimeType,
+									key: tempAtt.uploadThingKey,
+								};
+						})
+						.filter((item) => item !== undefined),
+				});
 			}
 
 			let targetThreadId = thread?._id;
@@ -276,6 +300,7 @@ export function useSendMessage(opts?: {
 					model,
 					reasoningEffort: getReasoningEffort(model, reasoningEffort),
 					attachmentIds,
+					projectId: selectedProjectId,
 				});
 
 				router.push(`/chat/${targetThreadId}`); // Redirect to the new thread
@@ -296,6 +321,7 @@ export function useSendMessage(opts?: {
 				reasoningEffort: getReasoningEffort(model, reasoningEffort),
 				assistantMessageId,
 				messageHistory: allMessages,
+				projectData: projectData,
 			});
 
 			opts?.onSuccess?.();
@@ -320,15 +346,20 @@ export function useRegenerate(opts?: {
 	onSuccess?: () => void;
 	onError?: (error: Error) => void;
 }) {
-	const regenerateMutation = useMutation(api.messages.regenerateResponse);
-	const streamMessage = useStreamMessage();
-	const getReasoningEffort = useReasoningEffort();
+	const thread = useThread();
+	const projectData = useProjectDataByThreadId(thread?._id);
+
 	const {
 		getStreamingMessage,
 		removeStreamingMessage,
 		updateStreamingContent,
 		blockStreaming,
 	} = useStreamingStoreActions();
+
+	const streamMessage = useStreamMessage();
+	const getReasoningEffort = useReasoningEffort();
+
+	const regenerateMutation = useMutation(api.messages.regenerateResponse);
 
 	return async (args: {
 		messageId: Id<'messages'>;
@@ -361,13 +392,14 @@ export function useRegenerate(opts?: {
 
 			removeStreamingMessage(args.threadId);
 
-			// Start streaming
+			// Start streaming with project data
 			await streamMessage({
 				threadId: assistantMessage.threadId,
 				model: assistantMessage.model as ModelId,
 				reasoningEffort: effort,
 				assistantMessageId,
 				messageHistory: messages,
+				projectData: projectData,
 			});
 
 			opts?.onSuccess?.();
@@ -391,15 +423,20 @@ export function useEditAndResubmit(opts?: {
 	onSuccess?: () => void;
 	onError?: (error: Error) => void;
 }) {
-	const editMutation = useMutation(api.messages.editAndResubmit);
+	const thread = useThread();
+	const projectData = useProjectDataByThreadId(thread?._id);
+
 	const streamMessage = useStreamMessage();
-	const getReasoningEffort = useReasoningEffort();
+	const editMutation = useMutation(api.messages.editAndResubmit);
+
 	const {
 		getStreamingMessage,
 		removeStreamingMessage,
 		updateStreamingContent,
 		blockStreaming,
 	} = useStreamingStoreActions();
+
+	const getReasoningEffort = useReasoningEffort();
 
 	return async (args: {
 		userMessageId: Id<'messages'>;
@@ -442,6 +479,7 @@ export function useEditAndResubmit(opts?: {
 				reasoningEffort: effort,
 				assistantMessageId,
 				messageHistory: messages,
+				projectData: projectData,
 			});
 
 			opts?.onSuccess?.();

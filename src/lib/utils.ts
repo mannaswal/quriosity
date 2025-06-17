@@ -1,12 +1,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ModelId, modelsData } from '@/lib/models';
-import {
-	ReasoningEffort,
-	AttachmentType,
-	Message,
-	TempAttachment,
-} from './types';
+import { AttachmentType, Message, Thread } from './types';
 import {
 	AssistantContent,
 	CoreMessage,
@@ -184,4 +179,66 @@ export function messageToCoreMessage(
 		role: message.role,
 		content: message.content,
 	};
+}
+
+/**
+ * Helper function to group threads by pinned status and recency.
+ * Returns an object with keys: pinned, today, yesterday, last7Days, last30Days.
+ */
+export function groupThreadsByStatusAndRecency(threads: Thread[] | undefined) {
+	if (!threads)
+		return {
+			pinned: [],
+			today: [],
+			yesterday: [],
+			last7Days: [],
+			last30Days: [],
+			archived: [],
+		};
+
+	const now = new Date();
+	const startOfToday = new Date(
+		now.getFullYear(),
+		now.getMonth(),
+		now.getDate()
+	);
+
+	const startOfYesterday = new Date(startOfToday);
+	startOfYesterday.setDate(startOfToday.getDate() - 1);
+	const startOf7DaysAgo = new Date(startOfToday);
+	startOf7DaysAgo.setDate(startOfToday.getDate() - 6); // includes today
+	const startOf30DaysAgo = new Date(startOfToday);
+	startOf30DaysAgo.setDate(startOfToday.getDate() - 29); // includes today
+
+	const groups = {
+		pinned: [] as Thread[],
+		today: [] as Thread[],
+		yesterday: [] as Thread[],
+		last7Days: [] as Thread[],
+		last30Days: [] as Thread[],
+		archived: [] as Thread[],
+	};
+
+	for (const thread of threads) {
+		if (thread.archived) {
+			groups.archived.push(thread);
+			continue;
+		}
+		if (thread.pinned) {
+			groups.pinned.push(thread);
+			continue;
+		}
+		const createdAt = new Date(thread._creationTime);
+
+		if (createdAt >= startOfToday) {
+			groups.today.push(thread);
+		} else if (createdAt >= startOfYesterday && createdAt < startOfToday) {
+			groups.yesterday.push(thread);
+		} else if (createdAt >= startOf7DaysAgo && createdAt < startOfYesterday) {
+			groups.last7Days.push(thread);
+		} else if (createdAt >= startOf30DaysAgo && createdAt < startOf7DaysAgo) {
+			groups.last30Days.push(thread);
+		}
+	}
+	return groups;
 }
