@@ -4,6 +4,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/sidebar/app-sidebar';
 import { ConvexClientProvider } from '@/auth/convex-client-provider';
 import { ClerkProvider } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { Toaster } from '@/components/ui/sonner';
 import { cookies } from 'next/headers';
 import { NextSSRPlugin } from '@uploadthing/react/next-ssr-plugin';
@@ -30,6 +31,7 @@ export default async function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
+	const { userId } = await auth();
 	const cookieStore = await cookies();
 	const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
 
@@ -37,21 +39,25 @@ export default async function RootLayout({
 		<html
 			lang="en"
 			className="dark">
-			{/* <head>
-				<script
-					crossOrigin="anonymous"
-					src="//unpkg.com/react-scan/dist/auto.global.js"
+			<head>
+				<meta
+					name="apple-mobile-web-app-title"
+					content="Quriosity"
 				/>
-			</head> */}
+			</head>
 			<body
 				className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
 				<ClerkProvider>
 					<ConvexClientProvider>
 						<NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
-						<SidebarProvider defaultOpen={defaultOpen}>
-							<AppSidebar />
+						{userId ? (
+							<SidebarProvider defaultOpen={defaultOpen}>
+								<AppSidebar />
+								<main className="flex-1 relative">{children}</main>
+							</SidebarProvider>
+						) : (
 							<main className="flex-1 relative">{children}</main>
-						</SidebarProvider>
+						)}
 						<Toaster />
 					</ConvexClientProvider>
 				</ClerkProvider>

@@ -21,7 +21,7 @@ import { SidebarMenuSub, SidebarMenuSubItem } from '@/components/ui/sidebar';
 import { Authenticated, Unauthenticated, useConvexAuth } from 'convex/react';
 import { SignInButton, UserButton } from '@clerk/nextjs';
 import { useStoreUserEffect } from '@/hooks/use-store-user';
-import { useThreads } from '@/hooks/use-threads';
+import { useThreadId, useThreads } from '@/hooks/use-threads';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -45,6 +45,8 @@ import {
 } from '../ui/disclosure';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { useProjects } from '@/hooks/use-projects';
+import { Skeleton } from '../ui/skeleton';
 
 const funnelDisplay = Funnel_Display({
 	subsets: ['latin'],
@@ -55,11 +57,11 @@ const funnelDisplay = Funnel_Display({
  * AppSidebar component with threads grouped by pinned, today, yesterday, last 7 days, last 30 days.
  */
 export function AppSidebar() {
-	const pathname = usePathname();
 	const router = useRouter();
-	const threadId = pathname.includes('/chat/')
-		? pathname.split('/chat/')[1]
-		: null;
+	const threadId = useThreadId();
+
+	const projects = useProjects();
+
 	const { isAuthenticated, isLoading } = useConvexAuth();
 
 	useStoreUserEffect();
@@ -98,7 +100,7 @@ export function AppSidebar() {
 
 	return (
 		<Sidebar variant="floating">
-			<SidebarHeader className="flex flex-col items-center justify-between pt-1">
+			<SidebarHeader className="flex flex-col items-center justify-between pt-1 relative">
 				<Link
 					href="/"
 					className="rounded-lg w-full">
@@ -118,7 +120,7 @@ export function AppSidebar() {
 						asChild>
 						<Link href="/">New chat</Link>
 					</Button>
-					<Button
+					{/* <Button
 						variant="ghost"
 						className="w-full"
 						size="lg"
@@ -129,15 +131,22 @@ export function AppSidebar() {
 							<FolderIcon className="size-4" />
 							Projects
 						</Link>
-					</Button>
+					</Button> */}
 				</div>
+				<div className="h-10 absolute bottom-0 left-0 translate-y-full w-full bg-gradient-to-b from-[#141414] to-transparent z-50 pointer-events-none" />
 			</SidebarHeader>
-			<SidebarContent className="h-full gap-0 ">
+
+			<SidebarContent className="h-full gap-0 scrollbar-hide pt-4">
 				{isLoading ? (
 					<SidebarGroup>
 						<SidebarGroupContent>
-							<SidebarMenu>
-								<div className="text-sm text-muted-foreground">Loading...</div>
+							<SidebarMenu className="flex flex-col gap-1">
+								{Array.from({ length: 10 }).map((_, index) => (
+									<Skeleton
+										key={index}
+										className="h-8 w-full"
+									/>
+								))}
 							</SidebarMenu>
 						</SidebarGroupContent>
 					</SidebarGroup>
@@ -154,6 +163,20 @@ export function AppSidebar() {
 						</SidebarGroup>
 					) : (
 						<>
+							{projects && projects.length > 0 && (
+								<SidebarGroup>
+									<SidebarGroupLabel>Projects</SidebarGroupLabel>
+									<SidebarGroupContent>
+										<SidebarMenu>
+											{projects.slice(0, 5).map((project) => (
+												<SidebarMenuItem key={project._id}>
+													<SidebarMenuButton>{project.name}</SidebarMenuButton>
+												</SidebarMenuItem>
+											))}
+										</SidebarMenu>
+									</SidebarGroupContent>
+								</SidebarGroup>
+							)}
 							{sidebarGroups.map((group) => {
 								if (group.threads.length === 0 || group.name === 'Archived')
 									return null;

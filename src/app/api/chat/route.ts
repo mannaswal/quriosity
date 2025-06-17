@@ -140,7 +140,6 @@ export async function POST(request: NextRequest) {
 		let status: 'streaming' | 'done' | 'error' | 'reasoning' | undefined =
 			undefined;
 		let updateAccepted = true;
-		let needsUpdate = false;
 
 		return createDataStreamResponse({
 			execute: async (dataStream) => {
@@ -152,7 +151,7 @@ export async function POST(request: NextRequest) {
 
 					(async () => {
 						let lastSent = Date.now();
-
+						let needsUpdate = true;
 						for await (const chunk of response.fullStream) {
 							if (chunk.type === 'text-delta') {
 								content += chunk.textDelta;
@@ -166,7 +165,7 @@ export async function POST(request: NextRequest) {
 							}
 
 							const now = Date.now();
-							if (now - lastSent > 400) {
+							if (now - lastSent > 500 && needsUpdate) {
 								needsUpdate = false;
 
 								updateMessage({
@@ -176,9 +175,11 @@ export async function POST(request: NextRequest) {
 								})
 									.then((result) => {
 										updateAccepted = result;
-										needsUpdate = true;
 									})
 									.catch((error) => {
+										console.error('[API] updateMessage error:', error);
+									})
+									.finally(() => {
 										needsUpdate = true;
 									});
 

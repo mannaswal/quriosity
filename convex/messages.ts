@@ -120,19 +120,11 @@ export const updateMessage = mutation({
 	},
 	returns: v.boolean(),
 	handler: async (ctx, args) => {
-		const user = await getUser(ctx);
-		if (!user) throw new Error('User not authenticated');
-
 		const message = await ctx.db.get(args.messageId);
 
 		if (!message) {
 			console.log('[CONVEX] Message not found, returning false');
 			return false; // Message may have been deleted during the update
-		}
-
-		if (message.userId !== user._id) {
-			console.log('[CONVEX] User not authorized to access this message.');
-			return false;
 		}
 
 		if (message.status === 'done' || message.status === 'error') {
@@ -149,15 +141,11 @@ export const updateMessage = mutation({
 		// console.log('[CONVEX] Patching message with data', patchData.status);
 		await ctx.db.patch(args.messageId, patchData);
 
-		if (args.status) {
+		if (args.status && message.status !== args.status) {
 			const threadStatus =
 				args.status === 'reasoning' ? 'streaming' : args.status;
-
-			const thread = await ctx.db.get(message.threadId);
-			if (thread && thread.status !== threadStatus) {
-				// Make sure thread hasn't been deleted
-				await ctx.db.patch(message.threadId, { status: threadStatus });
-			}
+			// Make sure thread hasn't been deleted
+			await ctx.db.patch(message.threadId, { status: threadStatus });
 		}
 
 		return true;

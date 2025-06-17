@@ -242,8 +242,8 @@ function Sidebar({
 				<div
 					data-sidebar="sidebar"
 					data-slot="sidebar-inner"
-					className="group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-2xl group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm 
-				  border-[0.5px] border-input/60 bg-neutral-900/80 backdrop-blur rounded-2xl p-0 shadow-inner/20">
+					className="group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-2xl group-data-[variant=floating]:border-[0.5px] group-data-[variant=floating]:shadow-sm 
+				  border-[0.5px] border-input/60 backdrop-blur rounded-2xl p-0 shadow-inner/20 dark:bg-neutral-900/80">
 					{children}
 				</div>
 			</div>
@@ -464,7 +464,7 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<'li'>) {
 		<li
 			data-slot="sidebar-menu-item"
 			data-sidebar="menu-item"
-			className={cn('group/menu-item relative', className)}
+			className={cn('group/menu-item relative cursor-pointer', className)}
 			{...props}
 		/>
 	);

@@ -50,7 +50,7 @@ export const ThreadItem = ({
 	currentThreadId,
 }: {
 	thread: Thread;
-	currentThreadId: string | null;
+	currentThreadId: Id<'threads'> | undefined;
 }) => {
 	const router = useRouter();
 	// State for inline editing
@@ -212,10 +212,11 @@ export const ThreadItem = ({
 						)}
 					</SidebarMenuButton>
 					{isStreaming && (
-						<div className="absolute top-1/2 -translate-y-1/2 right-1 flex items-center justify-center h-full p-1 transition-opacity z-[5] animate-in fade-in-0 duration-200 fade-out-0">
+						<div className="absolute top-1/2 -translate-y-1/2 right-1 flex items-center justify-center p-1 transition-opacity z-[5] animate-in fade-in-0 duration-200 fade-out-0 rounded-sm bg-sidebar-accent size-6">
 							<Loader
 								variant="pulse"
 								size="sm"
+								className="scale-90"
 							/>
 						</div>
 					)}
