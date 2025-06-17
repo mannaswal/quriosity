@@ -409,9 +409,9 @@ export function AttachmentManager({
 					side="top"
 					align="center"
 					className="w-auto">
-					<div className="text-xs text-muted-foreground space-y-1">
+					<div className="text-xs space-y-1">
 						<div>Accepts: {capabilities.acceptedTypesText}</div>
-						<div className="text-xs opacity-75">
+						<div className=" opacity-75 text-muted-foreground">
 							Click to browse, or paste files directly
 						</div>
 					</div>

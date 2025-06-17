@@ -45,9 +45,9 @@ export function ProjectSelector() {
 		if (!project) return null;
 
 		return (
-			<Tooltip>
+			<Tooltip delayDuration={400}>
 				<TooltipTrigger>
-					<div className="rounded-md hover:bg-muted/50  px-2.5 h-9 flex items-center gap-2 cursor-default text-muted-foreground">
+					<div className="rounded-md hover:bg-muted/50  px-2.5 h-9 flex items-center gap-2 cursor-default text-muted-foreground animate-in fade-in-0 duration-75">
 						<FolderIcon
 							className="size-4"
 							strokeWidth={1.2}

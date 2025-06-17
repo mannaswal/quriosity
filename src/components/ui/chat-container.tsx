@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { StickToBottom } from 'use-stick-to-bottom';
+import { useState, useEffect } from 'react';
 
 export type ChatContainerRootProps = {
 	children: React.ReactNode;
@@ -25,7 +26,7 @@ function ChatContainerRoot({
 }: ChatContainerRootProps) {
 	return (
 		<StickToBottom
-			className={cn('flex overflow-y-auto', className)}
+			className={cn('flex overflow-y-auto ', className)}
 			resize="smooth"
 			initial="instant"
 			role="log"
@@ -40,9 +41,20 @@ function ChatContainerContent({
 	className,
 	...props
 }: ChatContainerContentProps) {
+	const [isReady, setIsReady] = useState(false);
+
+	useEffect(() => {
+		// Use a small delay to allow initial positioning
+		const timer = setTimeout(() => setIsReady(true), 80);
+		return () => clearTimeout(timer);
+	}, []);
 	return (
 		<StickToBottom.Content
-			className={cn('flex w-full flex-col', className)}
+			className={cn(
+				'flex w-full flex-col transition-opacity duration-200',
+				isReady ? 'opacity-100' : 'opacity-0',
+				className
+			)}
 			{...props}>
 			{children}
 		</StickToBottom.Content>

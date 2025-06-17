@@ -6,6 +6,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
+import { TooltipWrapper } from '@/components/ui/tooltip-wrapper';
 import { useModel, useUpdateModel } from '@/hooks/use-model';
 import { ReasoningEffort } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -38,7 +39,6 @@ export const ReasoningSelector = () => {
 		(option) => option.value === reasoningEffort
 	);
 	const currentValue = currentOption?.value;
-	const currentLabel = currentOption?.label;
 
 	const dotBaseClass =
 		'rounded-full size-1 bg-accent-foreground/20 transition-all duration-100';
@@ -49,47 +49,51 @@ export const ReasoningSelector = () => {
 			onValueChange={(value) =>
 				handleReasoningChange(value as ReasoningEffort)
 			}>
-			<Button
-				variant="ghost"
-				className="has-[>svg]:px-2.5"
-				asChild>
-				<SelectTrigger
-					hideChevron
-					className="border-none not-hover:dark:bg-transparent cursor-pointer gap-0.5">
-					<BrainIcon
-						className="size-4 text-foreground"
-						strokeWidth={1.2}
-					/>
-					<div className="flex flex-col gap-px -mb-[1px] -mr-px">
-						<div
-							className={cn(
-								dotBaseClass,
-								'-ml-[0.5px]',
-								noMedium && 'opacity-0',
-								currentValue === 'high' &&
-									'bg-accent-foreground/50 border-transparent'
-							)}
+			<TooltipWrapper
+				delayDuration={400}
+				tooltip="Reasoning effort">
+				<Button
+					variant="ghost"
+					className="has-[>svg]:px-2.5"
+					asChild>
+					<SelectTrigger
+						hideChevron
+						className="border-none not-hover:dark:bg-transparent cursor-pointer gap-0.5">
+						<BrainIcon
+							className="size-4 text-foreground"
+							strokeWidth={1.2}
 						/>
+						<div className="flex flex-col gap-px -mb-[1px] -mr-px">
+							<div
+								className={cn(
+									dotBaseClass,
+									'-ml-[0.5px]',
+									noMedium && 'opacity-0',
+									currentValue === 'high' &&
+										'bg-accent-foreground/50 border-transparent'
+								)}
+							/>
 
-						<div
-							className={cn(
-								dotBaseClass,
-								'ml-px',
-								(currentValue === 'medium' || currentValue === 'high') &&
-									'bg-accent-foreground/50 border-transparent'
-							)}
-						/>
+							<div
+								className={cn(
+									dotBaseClass,
+									'ml-px',
+									(currentValue === 'medium' || currentValue === 'high') &&
+										'bg-accent-foreground/50 border-transparent'
+								)}
+							/>
 
-						<div
-							className={cn(
-								dotBaseClass,
-								'bg-accent-foreground/50 border-transparent'
-							)}
-						/>
-					</div>
-					{/* </Button> */}
-				</SelectTrigger>
-			</Button>
+							<div
+								className={cn(
+									dotBaseClass,
+									'bg-accent-foreground/50 border-transparent'
+								)}
+							/>
+						</div>
+						{/* </Button> */}
+					</SelectTrigger>
+				</Button>
+			</TooltipWrapper>
 			<SelectContent
 				align="center"
 				className="rounded-lg min-w-20">

@@ -1,6 +1,6 @@
 'use client';
 
-import { FileIcon, SendIcon, StopCircleIcon } from 'lucide-react';
+import { SendIcon, StopCircleIcon } from 'lucide-react';
 import {
 	PromptInput,
 	PromptInputAction,
@@ -8,11 +8,9 @@ import {
 	PromptInputTextarea,
 } from '@/components/ui/prompt-input';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
 import { useSendMessage } from '@/hooks/use-messages';
 import { useStopStream } from '@/hooks/use-threads';
 import { ModelSelectorAdvanced } from './model-selector-advanced';
-import { useThread } from '@/hooks/use-threads';
 import { ReasoningSelector } from './reasoning-selector';
 import {
 	useAllAttachmentsUploaded,
@@ -31,6 +29,7 @@ import { toast } from 'sonner';
 import { ProjectSelector } from './project-selector';
 import { Thread, User } from '@/lib/types';
 import { ModelId } from '@/lib/models';
+import { TooltipWrapper } from '@/components/ui/tooltip-wrapper';
 
 export function ChatInput({
 	thread,
@@ -106,11 +105,7 @@ export function ChatInput({
 				/>
 				<PromptInputActions className="w-full flex items-center justify-between pt-2">
 					<div className="flex items-center gap-0">
-						<PromptInputAction
-							delayDuration={300}
-							tooltip="Model">
-							<ModelSelectorAdvanced modelId={modelId} />
-						</PromptInputAction>
+						<ModelSelectorAdvanced modelId={modelId} />
 						{hasEffortControl(modelId) && (
 							<PromptInputAction
 								delayDuration={300}
@@ -129,9 +124,17 @@ export function ChatInput({
 							<ProjectSelector />
 						</PromptInputAction>
 					</div>
-					<PromptInputAction
+					<TooltipWrapper
 						delayDuration={300}
-						tooltip={isProcessing ? 'Stop' : 'Send'}>
+						tooltip={
+							isProcessing
+								? 'Stop'
+								: disabled
+								? !allAttachmentsUploaded
+									? 'Attachments are still uploading'
+									: "Can't send empty message"
+								: 'Send'
+						}>
 						{isProcessing ? (
 							<Button
 								onClick={handleStop}
@@ -150,7 +153,7 @@ export function ChatInput({
 								<SendIcon className="size-4" />
 							</Button>
 						)}
-					</PromptInputAction>
+					</TooltipWrapper>
 				</PromptInputActions>
 			</PromptInput>
 		</div>

@@ -12,12 +12,9 @@ import {
 import { Button } from '@/components/ui/button';
 import {
 	BrainIcon,
-	ChevronDownIcon,
 	EyeIcon,
-	FileText,
 	FileTextIcon,
 	GlobeIcon,
-	PaperclipIcon,
 	AlertTriangleIcon,
 	EyeOffIcon,
 } from 'lucide-react';
@@ -25,27 +22,14 @@ import FileTextOffIcon from 'public/icons/FileTextOffIcon.svg';
 
 import {
 	ModelId,
-	models,
 	modelsData,
 	providerModelNames,
 	ModelProvider,
-	ModelProperty,
 } from '@/lib/models';
 import { modelProviderLogos } from '@/lib/provider-logos';
-import {
-	useModel,
-	useModelsByProvider,
-	useUpdateModel,
-} from '@/hooks/use-model';
-import { useMemo } from 'react';
-import Image from 'next/image';
+import { useModelsByProvider, useUpdateModel } from '@/hooks/use-model';
 import { cn, getRestrictions } from '@/lib/utils';
-import {
-	useModelFiltering,
-	getRestrictionsMessage,
-	useModelsCompatibility,
-} from '@/hooks/use-model-filtering';
-import { TempAttachment } from '@/lib/types';
+import { useModelsCompatibility } from '@/hooks/use-model-filtering';
 import { useTempAttachments } from '@/stores/use-temp-data-store';
 
 /**
@@ -75,10 +59,11 @@ export const ModelSelectorAdvanced = ({ modelId }: { modelId: ModelId }) => {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Button
-					variant="ghost"
-					className="justify-between font-normal pl-2.5 pr-3">
+			<Button
+				variant="ghost"
+				className="justify-between font-normal pl-2.5 pr-3"
+				asChild>
+				<DropdownMenuTrigger>
 					<div
 						className={cn(
 							'flex items-center gap-2',
@@ -95,8 +80,9 @@ export const ModelSelectorAdvanced = ({ modelId }: { modelId: ModelId }) => {
 							<AlertTriangleIcon className="size-4 text-red-400" />
 						)}
 					</div>
-				</Button>
-			</DropdownMenuTrigger>
+				</DropdownMenuTrigger>
+			</Button>
+
 			<DropdownMenuContent
 				side="top"
 				align="start"
