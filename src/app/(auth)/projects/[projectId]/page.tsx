@@ -1,19 +1,23 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { redirect, useParams } from 'next/navigation';
 import { useProjectData } from '@/hooks/use-projects';
 import { Id } from 'convex/_generated/dataModel';
-import { ProjectHeader } from '../components/project-header';
-import { ProjectAttachmentsGrid } from '../components/project-attachments-grid';
-import { ProjectThreadsSection } from '../components/project-threads-section';
-import { ProjectBreadcrumbs } from '../components/project-breadcrumbs';
+import { ProjectHeader } from '../../../../components/projects/project-header';
+import { ProjectAttachmentsGrid } from '../../../../components/projects/project-attachments-grid';
+import { ProjectThreadsSection } from '../../../../components/projects/project-threads-section';
+import { ProjectBreadcrumbs } from '../../../../components/projects/project-breadcrumbs';
 import { ProjectWithAttachments } from '@/lib/types';
-import { ProjectUploadButton } from '../components/project-upload-button';
+import { ProjectUploadButton } from '../../../../components/projects/project-upload-button';
 
 export default function ProjectDetailPage() {
 	const params = useParams();
 	const projectId = params.projectId as Id<'projects'>;
 	const projectData = useProjectData(projectId);
+
+	if (projectData === null) {
+		redirect('/projects');
+	}
 
 	return (
 		<div className="w-full flex flex-col">

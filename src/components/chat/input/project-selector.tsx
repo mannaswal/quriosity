@@ -16,6 +16,11 @@ import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { useThread } from '@/hooks/use-threads';
 import { cn } from '@/lib/utils';
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export function ProjectSelector() {
 	const thread = useThread();
@@ -40,13 +45,21 @@ export function ProjectSelector() {
 		if (!project) return null;
 
 		return (
-			<div className="rounded-md hover:bg-muted/50  px-2.5 h-9 flex items-center gap-2 cursor-default text-muted-foreground">
-				<FolderIcon
-					className="size-4"
-					strokeWidth={1.2}
-				/>
-				<span className="text-sm">{project.name}</span>
-			</div>
+			<Tooltip>
+				<TooltipTrigger>
+					<div className="rounded-md hover:bg-muted/50  px-2.5 h-9 flex items-center gap-2 cursor-default text-muted-foreground">
+						<FolderIcon
+							className="size-4"
+							strokeWidth={1.2}
+						/>
+						<span className="text-sm">{project.name}</span>
+					</div>
+				</TooltipTrigger>
+				<TooltipContent>
+					This chat is a part of the project{' '}
+					<span className="font-medium">{project.name}</span>
+				</TooltipContent>
+			</Tooltip>
 		);
 	}
 

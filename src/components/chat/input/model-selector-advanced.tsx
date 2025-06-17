@@ -53,15 +53,14 @@ import { useTempAttachments } from '@/stores/use-temp-data-store';
  * Supports nested menus for providers and reasoning levels
  * @param attachments - Optional array of temp attachments to filter models by
  */
-export const ModelSelectorAdvanced = () => {
-	const { model } = useModel();
+export const ModelSelectorAdvanced = ({ modelId }: { modelId: ModelId }) => {
 	const updateModel = useUpdateModel();
 	const attachments = useTempAttachments();
 
 	// Group all models by provider (both compatible and incompatible)
 	const modelsByProvider = useModelsByProvider(attachments);
 
-	const currentModelData = modelsData[model];
+	const currentModelData = modelsData[modelId];
 	const modelsCompatibility = useModelsCompatibility(attachments);
 	const restrictions = getRestrictions(attachments);
 
@@ -69,7 +68,7 @@ export const ModelSelectorAdvanced = () => {
 		updateModel({ model: selectedModel });
 	};
 
-	const isCurrentModelIncompatible = !modelsCompatibility[model].isCompatible;
+	const isCurrentModelIncompatible = !modelsCompatibility[modelId].isCompatible;
 
 	const currentModelProviderLogo =
 		modelProviderLogos[currentModelData?.provider];
@@ -84,7 +83,7 @@ export const ModelSelectorAdvanced = () => {
 						className={cn(
 							'flex items-center gap-2',
 							!currentModelData && 'text-muted-foreground',
-							!modelsCompatibility[model].isCompatible && 'text-red-400'
+							!modelsCompatibility[modelId].isCompatible && 'text-red-400'
 						)}>
 						{currentModelData && (
 							<div className="size-4">

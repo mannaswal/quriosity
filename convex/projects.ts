@@ -50,7 +50,7 @@ export const getProjectDataById = query({
 		if (!user) throw new Error('User not authenticated');
 
 		const project = await ctx.db.get(args.projectId);
-		if (!project) throw new Error('Project not found');
+		if (!project) return null;
 
 		if (project.userId !== user._id)
 			throw new Error('Unauthorized: You can only access your own projects');

@@ -1,11 +1,11 @@
 'use client';
 
 import { useProjects } from '@/hooks/use-projects';
-import { ProjectCard } from './components/project-card';
+import { ProjectCard } from '../../../components/projects/project-card';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, FolderIcon } from 'lucide-react';
 import { useState } from 'react';
-import { ProjectCreateDialog } from './components/project-create-dialog';
+import { ProjectCreateDialog } from '../../../components/projects/project-create-dialog';
 import { Project } from '@/lib/types';
 
 export default function ProjectsPage() {

@@ -1,5 +1,5 @@
 import { deleteFromUploadThing } from '@/app/api/uploadthing/route';
-import { ModelId } from '@/lib/models';
+import { DEFAULT_MODEL, ModelId } from '@/lib/models';
 import { ReasoningEffort, TempAttachment } from '@/lib/types';
 import { mimeTypeToAttachmentType } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -28,7 +28,7 @@ export const createFileFingerprintFromFile = (file: File): string => {
 
 export type TempDataState = {
 	inputText: string;
-	model: ModelId | undefined;
+	model: ModelId;
 	reasoningEffort: ReasoningEffort | undefined;
 	attachments: TempAttachment[];
 	selectedProjectId: Id<'projects'> | undefined;
@@ -53,7 +53,7 @@ const useTempDataStore = create<TempDataStore>()(
 	persist(
 		(set, get) => ({
 			inputText: '',
-			model: undefined,
+			model: DEFAULT_MODEL,
 			reasoningEffort: undefined,
 			attachments: [],
 			selectedProjectId: undefined,

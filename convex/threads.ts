@@ -22,12 +22,19 @@ const openrouter = createOpenRouter({
 });
 
 export const getThreadById = query({
-	args: { threadId: v.id('threads') },
+	args: { threadId: v.optional(v.id('threads')) },
 	handler: async (ctx, args) => {
+		if (!args.threadId) return null;
+
 		const user = await getUser(ctx);
 		if (!user) throw new Error('User not authenticated');
 
-		return await ctx.db.get(args.threadId);
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread) return null;
+
+		if (thread.userId !== user._id) throw new Error('Unauthorized');
+
+		return thread;
 	},
 });
 

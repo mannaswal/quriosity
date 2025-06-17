@@ -29,8 +29,17 @@ import {
 import { InputAttachmentList } from './attachment-list';
 import { toast } from 'sonner';
 import { ProjectSelector } from './project-selector';
+import { Thread, User } from '@/lib/types';
+import { ModelId } from '@/lib/models';
 
-export function ChatInput() {
+export function ChatInput({
+	thread,
+	user,
+}: {
+	thread: Thread | undefined;
+	user: User | undefined;
+}) {
+	const tempModel = useTempModel();
 	const textInput = useTempInputText();
 	const { setInputText } = useTempActions();
 	const { clearAttachments, addUploadedAttachment } = useTempActions();
@@ -38,11 +47,13 @@ export function ChatInput() {
 	const allAttachmentsUploaded = useAllAttachmentsUploaded();
 
 	const { scrollToBottom } = useStickToBottomContext();
-	const thread = useThread();
 
 	const sendMessage = useSendMessage();
 	const stopStream = useStopStream();
-	const modelId = useTempModel();
+
+	const modelId = (thread?.model ??
+		user?.lastModelUsed ??
+		tempModel) as ModelId;
 
 	const isProcessing =
 		thread?.status === 'streaming' || thread?.status === 'pending';
@@ -98,7 +109,7 @@ export function ChatInput() {
 						<PromptInputAction
 							delayDuration={300}
 							tooltip="Model">
-							<ModelSelectorAdvanced />
+							<ModelSelectorAdvanced modelId={modelId} />
 						</PromptInputAction>
 						{hasEffortControl(modelId) && (
 							<PromptInputAction

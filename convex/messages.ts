@@ -14,14 +14,17 @@ import {
 } from './schema';
 
 export const getMessagesByThread = query({
-	args: { threadId: v.id('threads') },
+	args: { threadId: v.optional(v.id('threads')) },
 	handler: async (ctx, args) => {
+		const threadId = args.threadId;
+		if (!threadId || threadId === undefined) return [];
+
 		const user = await getUser(ctx);
 		if (!user) throw new Error('User not authenticated');
 
 		return await ctx.db
 			.query('messages')
-			.withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
+			.withIndex('by_thread', (q) => q.eq('threadId', threadId))
 			.collect();
 	},
 });

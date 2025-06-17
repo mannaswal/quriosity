@@ -5,7 +5,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import { ModelId, models, modelsData } from '@/lib/models';
+import { ModelId, models } from '@/lib/models';
 import { useModel, useUpdateModel } from '@/hooks/use-model';
 
 export const ModelSelector = () => {

@@ -1,34 +1,47 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import ChatContainer from '@/components/chat/chat-container';
-import { ChatInput } from '@/components/chat/input/chat-input';
-import { useThread, useThreadId } from '@/hooks/use-threads';
-import { toast } from 'sonner';
 import { ProgressiveBlur } from '../ui/progressive-blur';
+import { Id } from 'convex/_generated/dataModel';
+import { api } from 'convex/_generated/api';
+import { getAuthToken } from '@/server/clerk';
+import { fetchQuery, preloadQuery } from 'convex/nextjs';
 
-export function ChatView() {
-	const router = useRouter();
-	const thread = useThread();
-	const threadId = useThreadId();
+/**
+ * Server component that preloads the thread, messages, and user.
+ */
+export async function ChatView({
+	threadId,
+}: {
+	threadId: Id<'threads'> | undefined;
+}) {
+	const token = await getAuthToken();
 
-	const [isThreadDeleted, setIsThreadDeleted] = useState(false);
-
-	// Handle thread deletion detection
-	useEffect(() => {
-		if (thread === null && !isThreadDeleted) {
-			// Thread was deleted (query returned null, not undefined which means loading)
-			setIsThreadDeleted(true);
-			toast.error('This conversation has been deleted');
-			router.push('/');
-		}
-	}, [thread, isThreadDeleted, router]);
-
-	// Prevent rendering chat interface for a deleted thread
-	if (isThreadDeleted) {
-		return null; // or a "thread deleted" message
-	}
+	const serverMessages = token
+		? await fetchQuery(
+				api.messages.getMessagesByThread,
+				{
+					threadId,
+				},
+				{
+					token,
+				}
+		  )
+		: [];
+	const serverThread =
+		(token
+			? await fetchQuery(
+					api.threads.getThreadById,
+					{
+						threadId,
+					},
+					{
+						token,
+					}
+			  )
+			: undefined) ?? undefined;
+	const serverUser =
+		(token
+			? await fetchQuery(api.users.getCurrentUser, {}, { token })
+			: undefined) ?? undefined;
 
 	return (
 		<div className="w-full h-screen max-h-screen relative">
@@ -39,7 +52,11 @@ export function ChatView() {
 				direction="top"
 			/>
 			<div className="absolute top-0 left-0 h-16 w-full bg-gradient-to-t from-transparent to-background/95" />
-			<ChatContainer />
+			<ChatContainer
+				serverMessages={serverMessages}
+				serverThread={serverThread}
+				serverUser={serverUser}
+			/>
 		</div>
 	);
 }

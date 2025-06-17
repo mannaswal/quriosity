@@ -5,8 +5,6 @@ import { NextResponse } from 'next/server';
 const isProtectedRoute = createRouteMatcher([
 	'/chat(.*)',
 	'/projects(.*)',
-	'/api/chat(.*)',
-	'/api/uploadthing(.*)',
 	// Add other specific routes you want to protect here
 ]);
 

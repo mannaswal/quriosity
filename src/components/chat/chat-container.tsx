@@ -10,13 +10,31 @@ import { ProgressiveBlur } from '../ui/progressive-blur';
 import { ScrollButton } from '../ui/scroll-button';
 import { Magnetic } from '../ui/magnetic';
 import { MessageItem } from './message/message-item';
-import { useThreadId } from '@/hooks/use-threads';
+import { useThread, useThreadId } from '@/hooks/use-threads';
 import { cn } from '@/lib/utils';
 import { ChatInput } from './input/chat-input';
+import { Preloaded } from 'convex/react';
+import { api } from 'convex/_generated/api';
+import { usePreloadedQuery } from 'convex/react';
+import { Message, Thread, User } from '@/lib/types';
+import { useCurrentUser } from '@/hooks/use-user';
 
-const ChatContainer = memo(function ChatContainer() {
-	const threadId = useThreadId();
-	const messages = useThreadMessages(threadId);
+const ChatContainer = memo(function ChatContainer({
+	serverMessages,
+	serverThread,
+	serverUser,
+}: {
+	serverMessages: Message[];
+	serverThread: Thread | undefined;
+	serverUser: User | undefined;
+}) {
+	const clientMessages = useThreadMessages();
+	const clientThread = useThread();
+	const clientUser = useCurrentUser();
+
+	const messages = clientMessages ?? serverMessages;
+	const thread = clientThread ?? serverThread;
+	const user = clientUser ?? serverUser;
 
 	return (
 		<div className="flex h-screen flex-col overflow-hidden justify-end relative">
@@ -40,7 +58,11 @@ const ChatContainer = memo(function ChatContainer() {
 						<ScrollButton className="shadow-sm h-6 w-12 backdrop-blur-sm hover:translate-y-0.5 transition-transform duration-150" />
 					</Magnetic>
 				</div>
-				<ChatInput />
+
+				<ChatInput
+					thread={thread}
+					user={user}
+				/>
 				<div className="h-2 bg-background absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl" />
 			</ChatContainerRoot>
 		</div>

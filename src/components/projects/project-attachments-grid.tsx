@@ -12,7 +12,7 @@ import Image from 'next/image';
 import { useRemoveProjectAttachment } from '@/hooks/use-projects';
 import { useState } from 'react';
 import { Id } from 'convex/_generated/dataModel';
-import { ProjectUploadButton } from './project-upload-button';
+import { ProjectUploadButton } from '../../app/(auth)/projects/components/project-upload-button';
 import Link from 'next/link';
 
 interface ProjectAttachmentsGridProps {

@@ -43,6 +43,8 @@ export type ModelProperty = {
 	experimental?: boolean;
 };
 
+export const DEFAULT_MODEL: ModelId = 'google/gemini-2.5-flash-preview-05-20';
+
 export const modelsData: Record<ModelId, ModelProperty> = {
 	'google/gemini-2.5-flash-preview-05-20': {
 		provider: 'google' as ModelProvider,
