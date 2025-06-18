@@ -1,10 +1,11 @@
 import { ModelProvider } from './models';
+
 import Gemini from 'public/providers/Gemini.svg';
 import OpenAI from 'public/providers/OpenAI.svg';
 import Claude from 'public/providers/Claude.svg';
 import Llama from 'public/providers/Llama.svg';
-import DeepSeek from 'public/providers/DeepSeek.svg';
 import Qwen from 'public/providers/Qwen.svg';
+import DeepSeek from 'public/providers/DeepSeek.svg';
 import Grok from 'public/providers/Grok.svg';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
