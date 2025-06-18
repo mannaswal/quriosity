@@ -17,11 +17,11 @@ const isAuthRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-	console.log('Middleware - Path:', req.nextUrl.pathname);
+	// console.log('Middleware - Path:', req.nextUrl.pathname);
 
 	// Skip auth checks for auth routes to avoid redirect loops
 	if (isAuthRoute(req)) {
-		console.log('Middleware - Skipping auth check for auth route');
+		// console.log('Middleware - Skipping auth check for auth route');
 		return;
 	}
 
@@ -30,11 +30,11 @@ export default clerkMiddleware(async (auth, req) => {
 		try {
 			// Try to get auth status
 			const { userId, sessionId } = await auth();
-			console.log('Middleware - userId:', userId, 'sessionId:', sessionId);
+			// console.log('Middleware - userId:', userId, 'sessionId:', sessionId);
 
 			// If user is not authenticated, redirect to auth page
 			if (!userId || !sessionId) {
-				console.log('Middleware - No valid auth, redirecting to auth');
+				// console.log('Middleware - No valid auth, redirecting to auth');
 				const authUrl = new URL('/auth', req.url);
 				// Preserve the intended destination
 				authUrl.searchParams.set(
@@ -44,9 +44,9 @@ export default clerkMiddleware(async (auth, req) => {
 				return NextResponse.redirect(authUrl);
 			}
 
-			console.log('Middleware - User authenticated, allowing access');
+			// console.log('Middleware - User authenticated, allowing access');
 		} catch (error) {
-			console.error('Middleware - Auth error:', error);
+			// console.error('Middleware - Auth error:', error);
 			// If auth fails, redirect to login
 			const authUrl = new URL('/auth', req.url);
 			authUrl.searchParams.set(

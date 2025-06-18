@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useConvexAuth, useMutation } from 'convex/react';
 import { useUser } from '@clerk/nextjs';
@@ -14,7 +14,7 @@ import LoginPrompt from '@/components/home/login-prompt';
  * - Redirecting to intended destination
  * Note: Returning users (sign-ins) skip this page and go directly to their destination
  */
-export default function AuthCompletePage() {
+function AuthCompletePageContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const { isLoading: isConvexLoading, isAuthenticated } = useConvexAuth();
@@ -108,5 +108,21 @@ export default function AuthCompletePage() {
 				<div className="text-muted-foreground">Setting up your account...</div>
 			</div>
 		</div>
+	);
+}
+
+export default function AuthCompletePage() {
+	return (
+		<Suspense
+			fallback={
+				<div className="flex items-center justify-center min-h-screen">
+					<div className="text-center gap-2 flex items-center">
+						<Loader size="lg" />
+						<div className="text-muted-foreground">Loading...</div>
+					</div>
+				</div>
+			}>
+			<AuthCompletePageContent />
+		</Suspense>
 	);
 }
