@@ -1,5 +1,4 @@
 import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
 
 export async function getAuthToken() {
 	try {
@@ -8,7 +7,6 @@ export async function getAuthToken() {
 		return token ?? undefined;
 	} catch (e) {
 		console.error('Failed to get auth token:', e);
-		redirect('/');
 		return undefined;
 	}
 }

@@ -1,37 +1,36 @@
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/app-sidebar';
-import LoginPrompt from '@/components/home/login-prompt';
 import { getAuthToken } from '@/server/clerk';
-import { auth } from '@clerk/nextjs/server';
 import { api } from 'convex/_generated/api';
 import { cookies } from 'next/headers';
 import { fetchQuery } from 'convex/nextjs';
 import { AppBreadcrumbs } from '@/components/layout/app-breadcrumbs';
+import { redirect } from 'next/navigation';
 
 export default async function AuthLayout({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
-	const { userId } = await auth();
-
-	// if user is not logged in, show login prompt
-	if (!userId) return <LoginPrompt />;
-
+	// At this point, the middleware and auth completion page have ensured
+	// the user is properly authenticated, so we can trust the auth state
 	const cookieStore = await cookies();
 	const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
 
 	const token = await getAuthToken();
 
-	const [user, serverThreads, serverProjects] = token
-		? await Promise.all([
-				fetchQuery(api.users.getCurrentUser, {}, { token }),
-				fetchQuery(api.threads.getUserThreads, {}, { token }),
-				fetchQuery(api.projects.getUserProjects, {}, { token }),
-		  ])
-		: [undefined, [], []];
+	// If no valid token, redirect to auth page (this shouldn't happen due to middleware, but safety check)
+	if (!token) {
+		redirect('/auth');
+	}
 
-	// if user is logged in, show the sidebar
+	// Get user data for the sidebar
+	const [user, serverThreads, serverProjects] = await Promise.all([
+		fetchQuery(api.users.getCurrentUser, {}, { token }),
+		fetchQuery(api.threads.getUserThreads, {}, { token }),
+		fetchQuery(api.projects.getUserProjects, {}, { token }),
+	]);
+
 	return (
 		<SidebarProvider defaultOpen={defaultOpen}>
 			<AppSidebar

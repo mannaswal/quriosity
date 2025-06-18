@@ -1,8 +1,11 @@
+'use client';
+
 import { SignInButton } from '@clerk/nextjs';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
 import { Funnel_Display } from 'next/font/google';
 import { ArrowRightIcon } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
 const funnelDisplay = Funnel_Display({
 	subsets: ['latin'],
@@ -10,6 +13,17 @@ const funnelDisplay = Funnel_Display({
 });
 
 export default function LoginPrompt() {
+	const searchParams = useSearchParams();
+	const redirectTo = searchParams.get('redirectTo') || '/';
+
+	// For sign-in (returning users): go directly to intended destination
+	const signInRedirectUrl = redirectTo;
+
+	// For sign-up (first-time users): go to auth completion to store user in DB
+	const signUpRedirectUrl = `/auth/complete?redirectTo=${encodeURIComponent(
+		redirectTo
+	)}`;
+
 	return (
 		<main className="w-full h-dvh flex flex-col items-center justify-center">
 			<h1
@@ -19,7 +33,10 @@ export default function LoginPrompt() {
 				)}>
 				Quriosity
 			</h1>
-			<SignInButton>
+			<SignInButton
+				fallbackRedirectUrl={signInRedirectUrl}
+				signUpForceRedirectUrl={signUpRedirectUrl}
+				signUpFallbackRedirectUrl={signUpRedirectUrl}>
 				<Button
 					size="lg"
 					className="rounded-lg w-48">

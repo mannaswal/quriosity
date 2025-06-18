@@ -13,15 +13,8 @@ import {
 	SidebarMenuButton,
 	SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Authenticated, Unauthenticated } from 'convex/react';
-import {
-	SignInButton,
-	SignOutButton,
-	useClerk,
-	UserButton,
-	useUser,
-} from '@clerk/nextjs';
-import { useStoreUserEffect } from '@/hooks/use-store-user';
+import { SignOutButton, useClerk } from '@clerk/nextjs';
+
 import { useThreadId } from '@/hooks/use-threads';
 import Link from 'next/link';
 
@@ -67,7 +60,6 @@ export function AppSidebar({
 	serverProjects: Project[];
 }) {
 	const router = useRouter();
-	useStoreUserEffect();
 
 	const { user } = useClerk();
 
@@ -133,7 +125,7 @@ export function AppSidebar({
 					<SidebarGroup>
 						<SidebarGroupContent>
 							<SidebarMenu>
-								<div className="text-sm text-muted-foreground text-center">
+								<div className="text-sm text-muted-foreground text-center pt-6">
 									No conversations yet
 								</div>
 							</SidebarMenu>

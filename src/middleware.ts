@@ -2,22 +2,58 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 // Define which routes are protected
+// All routes in the (auth) layout group should be protected
 const isProtectedRoute = createRouteMatcher([
+	'/', // Home page (inside auth layout)
 	'/chat(.*)',
 	'/projects(.*)',
 	// Add other specific routes you want to protect here
 ]);
 
+// Define which routes should be excluded from auth checks
+const isAuthRoute = createRouteMatcher([
+	'/auth', // Login page
+	'/auth/complete', // Auth completion page
+]);
+
 export default clerkMiddleware(async (auth, req) => {
+	console.log('Middleware - Path:', req.nextUrl.pathname);
+
+	// Skip auth checks for auth routes to avoid redirect loops
+	if (isAuthRoute(req)) {
+		console.log('Middleware - Skipping auth check for auth route');
+		return;
+	}
+
 	// Check if the current route is protected
 	if (isProtectedRoute(req)) {
-		// Get the user's authentication status
-		const { userId } = await auth();
+		try {
+			// Try to get auth status
+			const { userId, sessionId } = await auth();
+			console.log('Middleware - userId:', userId, 'sessionId:', sessionId);
 
-		// If user is not authenticated, redirect to home page
-		if (!userId) {
-			const homeUrl = new URL('/', req.url);
-			return NextResponse.redirect(homeUrl);
+			// If user is not authenticated, redirect to auth page
+			if (!userId || !sessionId) {
+				console.log('Middleware - No valid auth, redirecting to auth');
+				const authUrl = new URL('/auth', req.url);
+				// Preserve the intended destination
+				authUrl.searchParams.set(
+					'redirectTo',
+					req.nextUrl.pathname + req.nextUrl.search
+				);
+				return NextResponse.redirect(authUrl);
+			}
+
+			console.log('Middleware - User authenticated, allowing access');
+		} catch (error) {
+			console.error('Middleware - Auth error:', error);
+			// If auth fails, redirect to login
+			const authUrl = new URL('/auth', req.url);
+			authUrl.searchParams.set(
+				'redirectTo',
+				req.nextUrl.pathname + req.nextUrl.search
+			);
+			return NextResponse.redirect(authUrl);
 		}
 	}
 });
