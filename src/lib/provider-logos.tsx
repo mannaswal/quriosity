@@ -1,12 +1,12 @@
 import { ModelProvider } from './models';
 
-import Claude from 'public/providers/Claude.svg';
-import DeepSeek from 'public/providers/DeepSeek.svg';
-import Gemini from 'public/providers/Gemini.svg';
-import Grok from 'public/providers/Grok.svg';
-import Llama from 'public/providers/Llama.svg';
-import OpenAI from 'public/providers/OpenAI.svg';
-import Qwen from 'public/providers/Qwen.svg';
+import Claude from '@/lib/assets/Claude.svg';
+import DeepSeek from '@/lib/assets/DeepSeek.svg';
+import Gemini from '@/lib/assets/Gemini.svg';
+import Grok from '@/lib/assets/Grok.svg';
+import Llama from '@/lib/assets/Llama.svg';
+import OpenAI from '@/lib/assets/OpenAI.svg';
+import Qwen from '@/lib/assets/Qwen.svg';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const modelProviderLogos: Record<ModelProvider, { monochrome: any }> = {
