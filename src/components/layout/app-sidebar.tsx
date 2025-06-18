@@ -11,28 +11,26 @@ import {
 	SidebarMenu,
 	SidebarMenuItem,
 	SidebarMenuButton,
-	SidebarGroupAction,
+	SidebarTrigger,
 } from '@/components/ui/sidebar';
+import { Authenticated, Unauthenticated } from 'convex/react';
 import {
-	Authenticated,
-	Preloaded,
-	Unauthenticated,
-	useConvexAuth,
-	usePreloadedQuery,
-} from 'convex/react';
-import { SignInButton, UserButton } from '@clerk/nextjs';
+	SignInButton,
+	SignOutButton,
+	useClerk,
+	UserButton,
+	useUser,
+} from '@clerk/nextjs';
 import { useStoreUserEffect } from '@/hooks/use-store-user';
-import { useThreadId, useThreads } from '@/hooks/use-threads';
+import { useThreadId } from '@/hooks/use-threads';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
-import { useMemo } from 'react';
-import { ThreadItem } from './thread-item';
+import { useEffect, useMemo } from 'react';
+import { SidebarThreadItem } from '../threads/sidebar-thread-item';
 
 import { Funnel_Display } from 'next/font/google';
 import { cn, groupThreadsByStatusAndRecency } from '@/lib/utils';
-import { EyeIcon, EyeOffIcon } from 'lucide-react';
+import { FolderIcon, LogOutIcon } from 'lucide-react';
 import {
 	Disclosure,
 	DisclosureContent,
@@ -40,9 +38,16 @@ import {
 } from '../ui/disclosure';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Thread } from '@/lib/types';
+import { Thread, User } from '@/lib/types';
 import { Project } from '@/lib/types';
-import { useProjects } from '@/hooks/use-projects';
+import {
+	DropdownMenu,
+	DropdownMenuItem,
+	DropdownMenuContent,
+	DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
+import { useRouter } from 'next/navigation';
 
 const funnelDisplay = Funnel_Display({
 	subsets: ['latin'],
@@ -53,21 +58,40 @@ const funnelDisplay = Funnel_Display({
  * AppSidebar component with threads grouped by pinned, today, yesterday, last 7 days, last 30 days.
  */
 export function AppSidebar({
-	serverThreads,
-	serverProjects,
+	userData,
+	serverThreads: threads,
+	serverProjects: projects,
 }: {
+	userData: User | undefined;
 	serverThreads: Thread[];
 	serverProjects: Project[];
 }) {
-	const clientThreads = useThreads();
-	const clientProjects = useProjects();
+	const router = useRouter();
+	useStoreUserEffect();
 
-	const threads = clientThreads ?? serverThreads;
-	const projects = clientProjects ?? serverProjects;
+	const { signOut, user } = useClerk();
 
 	const threadId = useThreadId();
 
-	useStoreUserEffect();
+	useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (
+				(event.metaKey || event.ctrlKey) &&
+				event.shiftKey &&
+				(event.key === 'o' || event.key === 'O')
+			) {
+				event.preventDefault();
+				router.push('/');
+			}
+		};
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	}, []);
+
+	const handleSignOut = async () => {
+		await signOut();
+		router.push('/');
+	};
 
 	const groupedThreads = useMemo(() => {
 		return groupThreadsByStatusAndRecency(threads);
@@ -83,8 +107,8 @@ export function AppSidebar({
 	];
 
 	return (
-		<Sidebar variant="floating">
-			<SidebarHeader className="flex flex-col items-center justify-between pt-1 relative">
+		<Sidebar variant="sidebar">
+			<SidebarHeader className="flex flex-col items-center justify-between relative">
 				<Link
 					href="/"
 					className="rounded-lg w-full">
@@ -96,6 +120,7 @@ export function AppSidebar({
 						Quriosity
 					</h1>
 				</Link>
+				<SidebarTrigger className="absolute top-4.5 left-4.5" />
 				<div className="w-full space-y-2">
 					<Button
 						variant="ghost"
@@ -104,28 +129,16 @@ export function AppSidebar({
 						asChild>
 						<Link href="/">New chat</Link>
 					</Button>
-					{/* <Button
-						variant="ghost"
-						className="w-full"
-						size="lg"
-						asChild>
-						<Link
-							href="/projects"
-							className="flex items-center gap-2">
-							<FolderIcon className="size-4" />
-							Projects
-						</Link>
-					</Button> */}
 				</div>
-				<div className="h-10 absolute bottom-0 left-0 translate-y-full w-full bg-gradient-to-b from-[#141414] to-transparent z-50 pointer-events-none" />
+				<div className="h-6 absolute bottom-0 left-0 translate-y-full w-full bg-gradient-to-b from-[#141414] to-transparent z-50 pointer-events-none" />
 			</SidebarHeader>
 
-			<SidebarContent className="h-full gap-0 scrollbar-hide pt-4">
+			<SidebarContent className="h-full gap-0 scrollbar-hide relative">
 				{!threads || threads.length === 0 ? (
 					<SidebarGroup>
 						<SidebarGroupContent>
 							<SidebarMenu>
-								<div className="text-sm text-muted-foreground">
+								<div className="text-sm text-muted-foreground text-center">
 									No conversations yet
 								</div>
 							</SidebarMenu>
@@ -142,6 +155,7 @@ export function AppSidebar({
 											<SidebarMenuItem key={project._id}>
 												<SidebarMenuButton asChild>
 													<Link href={`/projects/${project._id}`}>
+														<FolderIcon className="size-3.5!" />
 														{project.name}
 													</Link>
 												</SidebarMenuButton>
@@ -160,10 +174,10 @@ export function AppSidebar({
 									<SidebarGroupContent>
 										<SidebarMenu>
 											{group.threads.map((thread) => (
-												<ThreadItem
+												<SidebarThreadItem
 													key={thread._id}
 													thread={thread}
-													currentThreadId={threadId}
+													activeThreadId={threadId}
 												/>
 											))}
 										</SidebarMenu>
@@ -172,33 +186,33 @@ export function AppSidebar({
 							);
 						})}
 						{groupedThreads.archived.length > 0 && (
-							<Disclosure className="group/collapsible mt-auto">
-								<SidebarGroup>
-									<SidebarGroupLabel>
-										Archived
-										<Badge
-											variant="secondary"
-											className="ml-2 text-[10px] text-muted-foreground py-px">
-											{groupedThreads.archived.length}
-										</Badge>
-									</SidebarGroupLabel>
+							<Disclosure className="group/collapsible sticky bottom-0 left-0 right-0 bg-[#141414] z-10">
+								<div className="h-6 absolute top-0 left-0 -translate-y-full w-full bg-gradient-to-t from-[#141414] to-transparent z-20 pointer-events-none" />
+
+								<SidebarGroup className="pt-1 pb-0">
 									<DisclosureTrigger>
-										<SidebarGroupAction
-											title="Archived"
-											className="group/archived">
-											<EyeOffIcon className="size-3! hidden group-aria-expanded/archived:block transition-opacity text-muted-foreground" />
-											<EyeIcon className="size-3! block group-aria-expanded/archived:hidden transition-opacity text-muted-foreground" />
-											<span className="sr-only">Archived</span>
-										</SidebarGroupAction>
+										<SidebarGroupLabel asChild>
+											<Button
+												size="sm"
+												variant="ghost"
+												className="w-full text-xs justify-start text-sidebar-foreground/70">
+												Archived
+												<Badge
+													variant="secondary"
+													className="ml-auto text-[10px] text-muted-foreground py-px">
+													{groupedThreads.archived.length}
+												</Badge>
+											</Button>
+										</SidebarGroupLabel>
 									</DisclosureTrigger>
 									<DisclosureContent>
-										<SidebarGroupContent>
+										<SidebarGroupContent className="scrollbar-hide">
 											<SidebarMenu>
 												{groupedThreads.archived?.map((thread) => (
-													<ThreadItem
+													<SidebarThreadItem
 														key={thread._id}
 														thread={thread}
-														currentThreadId={threadId}
+														activeThreadId={threadId}
 													/>
 												))}
 											</SidebarMenu>
@@ -211,12 +225,36 @@ export function AppSidebar({
 				)}
 			</SidebarContent>
 			<SidebarFooter>
-				<Authenticated>
-					<UserButton />
-				</Authenticated>
-				<Unauthenticated>
-					<SignInButton />
-				</Unauthenticated>
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant="ghost"
+							className="w-full justify-start h-12">
+							<Avatar>
+								<AvatarImage src={user?.imageUrl} />
+								<AvatarFallback>
+									{user?.fullName?.charAt(0) ?? userData?.name?.charAt(0)}
+								</AvatarFallback>
+							</Avatar>
+							<span className="ml-2">{user?.fullName ?? userData?.name}</span>
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent
+						side="right"
+						className="min-w-48">
+						<SignOutButton>
+							<Button
+								variant="ghost"
+								className="w-full justify-start"
+								asChild>
+								<DropdownMenuItem>
+									<LogOutIcon className="size-3.5! mr-2" />
+									Sign out
+								</DropdownMenuItem>
+							</Button>
+						</SignOutButton>
+					</DropdownMenuContent>
+				</DropdownMenu>
 			</SidebarFooter>
 		</Sidebar>
 	);

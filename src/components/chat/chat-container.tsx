@@ -16,25 +16,21 @@ import { ChatInput } from './input/chat-input';
 import { Preloaded } from 'convex/react';
 import { api } from 'convex/_generated/api';
 import { usePreloadedQuery } from 'convex/react';
-import { Message, Thread, User } from '@/lib/types';
+import { Message, Thread, ThreadId, User } from '@/lib/types';
 import { useCurrentUser } from '@/hooks/use-user';
 
 const ChatContainer = memo(function ChatContainer({
-	serverMessages,
-	serverThread,
-	serverUser,
+	threadId,
 }: {
-	serverMessages: Message[];
-	serverThread: Thread | undefined;
-	serverUser: User | undefined;
+	threadId: ThreadId | undefined;
 }) {
 	const clientMessages = useThreadMessages();
 	const clientThread = useThread();
 	const clientUser = useCurrentUser();
 
-	const messages = clientMessages ?? serverMessages;
-	const thread = clientThread ?? serverThread;
-	const user = clientUser ?? serverUser;
+	const messages = clientMessages; // ?? serverMessages;
+	const thread = clientThread; // ?? serverThread;
+	const user = clientUser; // ?? serverUser;
 
 	return (
 		<div className="flex h-screen flex-col overflow-hidden justify-end relative">
@@ -60,10 +56,9 @@ const ChatContainer = memo(function ChatContainer({
 				</div>
 
 				<ChatInput
-					thread={thread}
-					user={user}
+					thread={thread ?? undefined}
+					user={user ?? undefined}
 				/>
-				<div className="h-2 bg-background absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl" />
 			</ChatContainerRoot>
 		</div>
 	);

@@ -16,12 +16,12 @@ import { DialogClose, DialogTrigger } from '@radix-ui/react-dialog';
 import { PencilIcon } from 'lucide-react';
 
 interface ProjectEditDialogProps {
-	project: Project;
+	project: Project | undefined;
 }
 
 export function ProjectEditDialog({ project }: ProjectEditDialogProps) {
-	const [name, setName] = useState(project.name);
-	const [systemPrompt, setSystemPrompt] = useState(project.systemPrompt);
+	const [name, setName] = useState(project?.name);
+	const [systemPrompt, setSystemPrompt] = useState(project?.systemPrompt);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);
 
@@ -30,21 +30,22 @@ export function ProjectEditDialog({ project }: ProjectEditDialogProps) {
 	// Reset form when project changes or dialog opens
 	useEffect(() => {
 		if (isOpen) {
-			setName(project.name);
-			setSystemPrompt(project.systemPrompt);
+			setName(project?.name);
+			setSystemPrompt(project?.systemPrompt);
 		}
 	}, [project, isOpen]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
+		if (!project) return;
 		e.preventDefault();
-		if (!name.trim()) return;
+		if (!name?.trim()) return;
 
 		setIsLoading(true);
 		try {
 			await updateProject({
 				projectId: project._id,
 				name: name.trim(),
-				systemPrompt: systemPrompt.trim(),
+				systemPrompt: systemPrompt?.trim(),
 			});
 
 			setIsOpen(false);
@@ -62,8 +63,8 @@ export function ProjectEditDialog({ project }: ProjectEditDialogProps) {
 	};
 
 	const hasChanges =
-		name.trim() !== project.name ||
-		systemPrompt.trim() !== project.systemPrompt;
+		name?.trim() !== project?.name ||
+		systemPrompt?.trim() !== project?.systemPrompt;
 
 	return (
 		<Dialog
@@ -114,7 +115,7 @@ export function ProjectEditDialog({ project }: ProjectEditDialogProps) {
 						</DialogClose>
 						<Button
 							type="submit"
-							disabled={!name.trim() || !hasChanges || isLoading}>
+							disabled={!name?.trim() || !hasChanges || isLoading}>
 							{isLoading ? 'Saving...' : 'Save Changes'}
 						</Button>
 					</DialogFooter>

@@ -50,6 +50,7 @@ export default defineSchema({
 
 		lastModelUsed: v.optional(v.string()),
 		lastReasoningEffortUsed: v.optional(ReasoningEffort),
+		useWebSearch: v.optional(v.boolean()),
 	}).index('by_auth_id', ['authId']),
 
 	projects: defineTable({

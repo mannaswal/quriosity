@@ -1,18 +1,10 @@
 import { ProjectWithAttachments } from '@/lib/types';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-	FileIcon,
-	ImageIcon,
-	FileTextIcon,
-	XIcon,
-	ArrowUpRightIcon,
-} from 'lucide-react';
+import { FileIcon, FileTextIcon, XIcon, ArrowUpRightIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useRemoveProjectAttachment } from '@/hooks/use-projects';
 import { useState } from 'react';
 import { Id } from 'convex/_generated/dataModel';
-import { ProjectUploadButton } from '../../app/(auth)/projects/components/project-upload-button';
 import Link from 'next/link';
 
 interface ProjectAttachmentsGridProps {
@@ -45,7 +37,7 @@ export function ProjectAttachmentsGrid({
 		}
 	};
 
-	if (!project) return <div>Loading...</div>;
+	if (!project) return null;
 
 	if (project.attachments.length === 0) {
 		return (

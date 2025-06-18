@@ -16,11 +16,11 @@ Made for the T3 Chat Cloneathon
 - [ ] Bring Your Own Key
 - [ ] Chat Sharing
 - [ ] Temporary chats
-- [ ] Image Generation Support
 - [ ] Memory
 - [ ] Summarise and start a new thread
 - [ ] Web Search
 
+- [-] Image and file previews
 - [x] Attachment Support
 - [x] Syntax Highlighting
 - [x] Resumable Streams
@@ -28,11 +28,11 @@ Made for the T3 Chat Cloneathon
 - [x] Stop messages mid-stream losslessly
 - [x] Handle mid-stream errors losslessly
 - [x] Disable models for retrying based on message
-- [-] Image and file previews
-- [ ] Add HEIC/HEIF support
 - [x] Attachments on paste
-- [ ] Cancel uploads mid-upload
-
-- [x] Projects
-- [ ] Experts
 - [x] Archive
+- [x] Projects
+- [ ] Add HEIC/HEIF support
+- [ ] Cancel uploads mid-upload
+- [ ] Image Generation Support
+
+- [ ] Experts

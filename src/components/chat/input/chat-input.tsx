@@ -16,6 +16,7 @@ import {
 	useAllAttachmentsUploaded,
 	useTempInputText,
 	useTempModel,
+	useTempUseWebSearch,
 } from '@/stores/use-temp-data-store';
 import { hasEffortControl } from '@/lib/utils';
 import { useStickToBottomContext } from 'use-stick-to-bottom';
@@ -30,6 +31,7 @@ import { ProjectSelector } from './project-selector';
 import { Thread, User } from '@/lib/types';
 import { ModelId } from '@/lib/models';
 import { TooltipWrapper } from '@/components/ui/tooltip-wrapper';
+import { useThreads } from '@/hooks/use-threads';
 
 export function ChatInput({
 	thread,
@@ -38,21 +40,23 @@ export function ChatInput({
 	thread: Thread | undefined;
 	user: User | undefined;
 }) {
-	const tempModel = useTempModel();
+	const modelId = useTempModel();
 	const textInput = useTempInputText();
-	const { setInputText } = useTempActions();
-	const { clearAttachments, addUploadedAttachment } = useTempActions();
+	const useWebSearch = useTempUseWebSearch();
 	const tempAttachments = useTempAttachments();
 	const allAttachmentsUploaded = useAllAttachmentsUploaded();
+
+	const {
+		setInputText,
+		clearAttachments,
+		addUploadedAttachment,
+		setUseWebSearch,
+	} = useTempActions();
 
 	const { scrollToBottom } = useStickToBottomContext();
 
 	const sendMessage = useSendMessage();
 	const stopStream = useStopStream();
-
-	const modelId = (thread?.model ??
-		user?.lastModelUsed ??
-		tempModel) as ModelId;
 
 	const isProcessing =
 		thread?.status === 'streaming' || thread?.status === 'pending';

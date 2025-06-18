@@ -3,25 +3,22 @@
 import { redirect, useParams } from 'next/navigation';
 import { useProjectData } from '@/hooks/use-projects';
 import { Id } from 'convex/_generated/dataModel';
-import { ProjectHeader } from '../../../../components/projects/project-header';
-import { ProjectAttachmentsGrid } from '../../../../components/projects/project-attachments-grid';
-import { ProjectThreadsSection } from '../../../../components/projects/project-threads-section';
-import { ProjectBreadcrumbs } from '../../../../components/projects/project-breadcrumbs';
+import { ProjectHeader } from '@/components/projects/project-header';
+import { ProjectAttachmentsGrid } from '@/components/projects/project-attachments-grid';
+import { ProjectThreadsSection } from '@/components/projects/project-threads-section';
 import { ProjectWithAttachments } from '@/lib/types';
-import { ProjectUploadButton } from '../../../../components/projects/project-upload-button';
+import { ProjectUploadButton } from '@/components/projects/project-upload-button';
 
 export default function ProjectDetailPage() {
 	const params = useParams();
 	const projectId = params.projectId as Id<'projects'>;
 	const projectData = useProjectData(projectId);
 
-	if (projectData === null) {
-		redirect('/projects');
-	}
+	if (projectData === null) redirect('/projects');
 
 	return (
 		<div className="w-full flex flex-col">
-			<ProjectBreadcrumbs currentProjectId={projectId} />
+			{/* <ProjectBreadcrumbs currentProjectId={projectId} /> */}
 			<ProjectHeader projectId={projectId} />
 			<ProjectDetailPageContent
 				projectId={projectId}
@@ -50,7 +47,7 @@ const ProjectDetailPageContent = ({
 					<h2 className="text-xl font-semibold mb-4">Project knowledge</h2>
 					<div className="max-h-36 min-h-20 truncate relative">
 						<p className="text-sm whitespace-pre-wrap dark:prose-invert text-muted-foreground truncate">
-							{isLoading ? 'Loading...' : projectData?.systemPrompt}
+							{isLoading ? null : projectData?.systemPrompt}
 						</p>
 					</div>
 				</div>

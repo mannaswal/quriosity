@@ -1,14 +1,19 @@
-import { Doc } from 'convex/_generated/dataModel';
+import { Doc, Id } from 'convex/_generated/dataModel';
 
 export type Message = Doc<'messages'>;
+export type MessageId = Id<'messages'>;
 
 export type Thread = Doc<'threads'>;
+export type ThreadId = Id<'threads'>;
 
 export type User = Doc<'users'>;
+export type UserId = Id<'users'>;
 
 export type Attachment = Doc<'attachments'>;
+export type AttachmentId = Id<'attachments'>;
 
 export type Project = Doc<'projects'>;
+export type ProjectId = Id<'projects'>;
 
 export type ProjectWithAttachments = Project & {
 	attachments: Attachment[];

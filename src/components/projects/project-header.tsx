@@ -15,13 +15,11 @@ export function ProjectHeader({ projectId }: ProjectHeaderProps) {
 	const project = projects?.find((project) => project._id === projectId);
 
 	return (
-		<div className="flex items-start justify-between mb-8">
+		<div className="flex items-start justify-between mb-8 h-9">
 			<div className="space-y-2">
-				<h1 className="text-3xl font-medium">
-					{project?.name || 'Project not found'}
-				</h1>
+				<h1 className="text-3xl font-medium">{project?.name}</h1>
 			</div>
-			{project && <ProjectEditDialog project={project} />}
+			<ProjectEditDialog project={project} />
 		</div>
 	);
 }

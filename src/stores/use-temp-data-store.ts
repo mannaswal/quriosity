@@ -32,6 +32,7 @@ export type TempDataState = {
 	reasoningEffort: ReasoningEffort | undefined;
 	attachments: TempAttachment[];
 	selectedProjectId: Id<'projects'> | undefined;
+	useWebSearch: boolean;
 };
 
 type TempDataActions = {
@@ -43,6 +44,7 @@ type TempDataActions = {
 	removeAttachment: (fingerprint: string) => void;
 	clearAttachments: () => void;
 	setSelectedProjectId: (projectId: Id<'projects'> | undefined) => void;
+	setUseWebSearch: (useWebSearch: boolean) => void;
 };
 
 type TempDataStore = TempDataState & {
@@ -57,6 +59,7 @@ const useTempDataStore = create<TempDataStore>()(
 			reasoningEffort: undefined,
 			attachments: [],
 			selectedProjectId: undefined,
+			useWebSearch: false,
 			actions: {
 				setInputText: (text: string) => set({ inputText: text }),
 				setModel: (model: ModelId) => set({ model }),
@@ -130,6 +133,7 @@ const useTempDataStore = create<TempDataStore>()(
 					}
 				},
 				clearAttachments: () => set({ attachments: [] }),
+				setUseWebSearch: (useWebSearch: boolean) => set({ useWebSearch }),
 			},
 		}),
 		{
@@ -140,6 +144,7 @@ const useTempDataStore = create<TempDataStore>()(
 				reasoningEffort: state.reasoningEffort,
 				attachments: state.attachments,
 				selectedProjectId: state.selectedProjectId,
+				useWebSearch: state.useWebSearch,
 			}),
 		}
 	)
@@ -160,6 +165,9 @@ export const useTempActions = () => useTempDataStore((state) => state.actions);
 
 export const useTempSelectedProjectId = () =>
 	useTempDataStore((state) => state.selectedProjectId);
+
+export const useTempUseWebSearch = () =>
+	useTempDataStore((state) => state.useWebSearch);
 
 export const useAllAttachmentsUploaded = () => {
 	const attachments = useTempAttachments();

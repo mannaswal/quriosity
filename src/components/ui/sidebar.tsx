@@ -228,7 +228,7 @@ function Sidebar({
 			<div
 				data-slot="sidebar-container"
 				className={cn(
-					'fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-out md:flex',
+					'fixed inset-y-0 z-20 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-out md:flex',
 					side === 'left'
 						? 'left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]'
 						: 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]',
@@ -243,7 +243,7 @@ function Sidebar({
 					data-sidebar="sidebar"
 					data-slot="sidebar-inner"
 					className="group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-2xl group-data-[variant=floating]:border-[0.5px] group-data-[variant=floating]:shadow-sm 
-				  border-[0.5px] border-input/60 backdrop-blur rounded-2xl p-0 shadow-inner/20 dark:bg-neutral-900/80">
+				  border-[0.5px] border-input/60 backdrop-blur rounded-r-2xl p-0 shadow-inner/20 dark:bg-neutral-900/80">
 					{children}
 				</div>
 			</div>
@@ -403,7 +403,7 @@ function SidebarGroupLabel({
 			data-sidebar="group-label"
 			className={cn(
 				'text-sidebar-foreground/70 ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium outline-hidden transition-[margin,opacity] duration-200 ease-out focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0',
-				'group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0',
+				'group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 font-theme',
 				className
 			)}
 			{...props}

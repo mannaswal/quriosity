@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { StickToBottom } from 'use-stick-to-bottom';
+import { StickToBottom, useStickToBottom } from 'use-stick-to-bottom';
 import { useState, useEffect } from 'react';
 
 export type ChatContainerRootProps = {
@@ -30,6 +30,7 @@ function ChatContainerRoot({
 			resize="smooth"
 			initial="instant"
 			role="log"
+			// damping={0}
 			{...props}>
 			{children}
 		</StickToBottom>
@@ -44,10 +45,10 @@ function ChatContainerContent({
 	const [isReady, setIsReady] = useState(false);
 
 	useEffect(() => {
-		// Use a small delay to allow initial positioning
 		const timer = setTimeout(() => setIsReady(true), 80);
 		return () => clearTimeout(timer);
 	}, []);
+
 	return (
 		<StickToBottom.Content
 			className={cn(

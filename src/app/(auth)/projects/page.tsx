@@ -28,23 +28,17 @@ export default function ProjectsPage() {
 					</Button>
 				</ProjectCreateDialog>
 			</div>
-			<ProjectPageContent projects={projects} />
+			<ProjectsPageContent projects={projects} />
 		</div>
 	);
 }
 
-const ProjectPageContent = ({
+const ProjectsPageContent = ({
 	projects,
 }: {
 	projects: Project[] | undefined;
 }) => {
-	if (projects === undefined) {
-		return (
-			<div className="text-center py-8 text-muted-foreground">
-				Loading projects...
-			</div>
-		);
-	}
+	if (projects === undefined) return null;
 
 	if (!projects.length)
 		return (
