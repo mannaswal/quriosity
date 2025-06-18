@@ -190,9 +190,7 @@ export const RetryButtonAdvanced = ({
 										iconClassName="text-muted-foreground opacity-50 -mr-1.5">
 										<div className="flex items-center gap-2.5">
 											<div className="size-4">
-												{createElement(modelProviderLogo.monochrome, {
-													className: 'text-muted-foreground size-4 shrink-0',
-												})}
+												{modelProviderLogo.monochrome}
 											</div>
 											{providerModelNames[provider as ModelProvider]}
 										</div>

@@ -1,34 +1,87 @@
 import { ModelProvider } from './models';
 
-import Claude from '@/lib/assets/Claude.svg';
-import DeepSeek from '@/lib/assets/DeepSeek.svg';
-import Gemini from '@/lib/assets/Gemini.svg';
-import Grok from '@/lib/assets/Grok.svg';
-import Llama from '@/lib/assets/Llama.svg';
-import OpenAI from '@/lib/assets/OpenAI.svg';
-import Qwen from '@/lib/assets/Qwen.svg';
+import ClaudeLogo from '@/lib/assets/Claude.svg';
+import DeepSeekLogo from '@/lib/assets/DeepSeek.svg';
+import GeminiLogo from '@/lib/assets/Gemini.svg';
+import GrokLogo from '@/lib/assets/Grok.svg';
+import LlamaLogo from '@/lib/assets/Llama.svg';
+import OpenAILogo from '@/lib/assets/OpenAI.svg';
+import QwenLogo from '@/lib/assets/Qwen.svg';
+import Image from 'next/image';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const modelProviderLogos: Record<ModelProvider, { monochrome: any }> = {
+export const modelProviderLogos: Record<
+	ModelProvider,
+	{ monochrome: React.ReactNode }
+> = {
 	google: {
-		monochrome: Gemini,
+		monochrome: (
+			<Image
+				src={GeminiLogo}
+				alt="Gemini"
+				width={16}
+				height={16}
+			/>
+		),
 	},
 	openai: {
-		monochrome: OpenAI,
+		monochrome: (
+			<Image
+				src={OpenAILogo}
+				alt="OpenAI"
+				width={16}
+				height={16}
+			/>
+		),
 	},
 	anthropic: {
-		monochrome: Claude,
+		monochrome: (
+			<Image
+				src={ClaudeLogo}
+				alt="Claude"
+				width={16}
+				height={16}
+			/>
+		),
 	},
 	meta: {
-		monochrome: Llama,
+		monochrome: (
+			<Image
+				src={LlamaLogo}
+				alt="Llama"
+				width={16}
+				height={16}
+			/>
+		),
 	},
 	deepseek: {
-		monochrome: DeepSeek,
+		monochrome: (
+			<Image
+				src={DeepSeekLogo}
+				alt="DeepSeek"
+				width={16}
+				height={16}
+			/>
+		),
 	},
 	xai: {
-		monochrome: Grok,
+		monochrome: (
+			<Image
+				src={GrokLogo}
+				alt="Grok"
+				width={16}
+				height={16}
+			/>
+		),
 	},
 	alibaba: {
-		monochrome: Qwen,
+		monochrome: (
+			<Image
+				src={QwenLogo}
+				alt="Qwen"
+				width={16}
+				height={16}
+			/>
+		),
 	},
 };
