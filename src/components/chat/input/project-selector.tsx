@@ -21,6 +21,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { ProjectId } from '@/lib/types';
 
 export function ProjectSelector() {
 	const thread = useThread();
@@ -65,11 +66,11 @@ export function ProjectSelector() {
 
 	const selectedProject = projects?.find((p) => p._id === selectedProjectId);
 
-	const handleProjectChange = (value: string) => {
+	const handleProjectChange = (value: ProjectId | 'none') => {
 		if (value === 'none') {
 			setSelectedProjectId(undefined);
 		} else {
-			setSelectedProjectId(value as Id<'projects'>);
+			setSelectedProjectId(value);
 		}
 	};
 

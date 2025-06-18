@@ -86,7 +86,7 @@ const useTempDataStore = create<TempDataStore>()(
 						newAttachments = [...currentAttachments, attachment];
 					}
 
-					console.log('attachments', newAttachments);
+					// console.log('attachments', newAttachments);
 					set({ attachments: newAttachments });
 				},
 				addOptimisticAttachment: (file: File, processedName: string) => {

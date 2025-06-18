@@ -49,16 +49,14 @@ export function useModel(): {
 	const modelData = modelsData[modelId];
 
 	const reasoning =
-		// modelData && modelData.effortControl
-		// 	?
-		(thread?.reasoningEffort ??
-			user?.lastReasoningEffortUsed ??
-			tempReasoningEffort) as ReasoningEffort;
-	// : undefined;
+		thread?.reasoningEffort ??
+		user?.lastReasoningEffortUsed ??
+		tempReasoningEffort ??
+		'medium';
 
 	useEffect(() => {
 		setModel(modelId);
-		setReasoningEffort(reasoning as ReasoningEffort);
+		setReasoningEffort(reasoning);
 	}, [modelId, reasoning, setModel, setReasoningEffort]);
 
 	return {

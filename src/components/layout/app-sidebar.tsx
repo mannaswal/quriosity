@@ -243,11 +243,15 @@ export function AppSidebar({
 								<AvatarFallback>
 									{user?.fullName?.charAt(0) ??
 										userData?.name?.charAt(0) ??
-										userData?.email?.charAt(0)}
+										userData?.email?.charAt(0) ??
+										'A'}
 								</AvatarFallback>
 							</Avatar>
 							<span className="ml-2">
-								{user?.fullName ?? userData?.name ?? userData?.email}
+								{user?.fullName ??
+									userData?.name ??
+									userData?.email ??
+									'Anonymous'}
 							</span>
 						</Button>
 					</DropdownMenuTrigger>
