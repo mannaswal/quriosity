@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
 						},
 					},
 				],
-				as: '*.js',
+				as: '*.tsx',
 			},
 		},
 	},
