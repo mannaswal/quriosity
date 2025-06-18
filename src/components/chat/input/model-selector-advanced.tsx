@@ -78,12 +78,12 @@ export const ModelSelectorAdvanced = ({
 						)}>
 						{currentModelData && (
 							<div className="size-4">
-								{(() => {
+								{/* {(() => {
 									const LogoComponent = currentModelProviderLogo.monochrome;
 									return (
 										<LogoComponent className="text-muted-foreground size-4 shrink-0" />
 									);
-								})()}
+								})()} */}
 							</div>
 						)}
 						{currentModelData ? currentModelData.name : 'Select model'}
