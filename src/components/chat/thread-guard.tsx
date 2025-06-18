@@ -33,7 +33,7 @@ export function ThreadGuard({ children }: { children: React.ReactNode }) {
 		return () => {
 			window.removeEventListener('keydown', handler);
 		};
-	}, []);
+	}, [router]);
 
 	return <>{children}</>;
 }

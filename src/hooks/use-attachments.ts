@@ -1,7 +1,5 @@
 import { Message } from '@/lib/types';
-import { useAuth } from '@clerk/nextjs';
 import { api } from 'convex/_generated/api';
-import { Id } from 'convex/_generated/dataModel';
 import { useConvexAuth, useQuery } from 'convex/react';
 import { useMemo } from 'react';
 
@@ -30,7 +28,7 @@ export const useMessageAttachments = (message: Message) => {
 			.filter(Boolean)
 			.filter((a) => a !== undefined);
 		return attachments ?? [];
-	}, [message.attachmentIds, allAttachments]);
+	}, [message.attachmentIds, allAttachments, hasAttachments]);
 
 	return messageAttachments;
 };

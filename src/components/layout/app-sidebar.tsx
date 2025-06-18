@@ -69,7 +69,7 @@ export function AppSidebar({
 	const router = useRouter();
 	useStoreUserEffect();
 
-	const { signOut, user } = useClerk();
+	const { user } = useClerk();
 
 	const threadId = useThreadId();
 
@@ -86,12 +86,7 @@ export function AppSidebar({
 		};
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, []);
-
-	const handleSignOut = async () => {
-		await signOut();
-		router.push('/');
-	};
+	});
 
 	const groupedThreads = useMemo(() => {
 		return groupThreadsByStatusAndRecency(threads);

@@ -46,7 +46,7 @@ export const ModelSelectorAdvanced = ({
 	const attachments = useTempAttachments();
 
 	// Group all models by provider (both compatible and incompatible)
-	const modelsByProvider = useModelsByProvider(attachments);
+	const modelsByProvider = useModelsByProvider();
 
 	const currentModelData = modelsData[currentModelId];
 	const modelsCompatibility = useModelsCompatibility(attachments);

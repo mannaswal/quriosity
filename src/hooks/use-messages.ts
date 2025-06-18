@@ -34,24 +34,27 @@ import {
 	useProjects,
 } from './use-projects';
 
-/**
- * Hook to get messages for a thread - now subscribes to both DB and streaming store
- */
-export function useThreadMessages(threadIdParam?: Id<'threads'>): Message[] {
-	const currentThreadId = useThreadId();
-
-	const threadId = threadIdParam ?? currentThreadId;
-
+export function useMessages(): Message[] {
+	const threadId = useThreadId();
 	const { isAuthenticated } = useConvexAuth();
-
-	// Subscribe to the streaming message for this thread
-	const streamingMessage = useStreamingMessage(threadId);
 
 	const dbMessages =
 		useQuery(
 			api.messages.getMessagesByThread,
 			threadId && isAuthenticated ? { threadId } : 'skip'
 		) ?? [];
+
+	return dbMessages;
+}
+
+/**
+ * Hook to get messages for a thread - now subscribes to both DB and streaming store
+ */
+export function useThreadMessages(): Message[] {
+	const threadId = useThreadId();
+	const dbMessages = useMessages();
+	// Subscribe to the streaming message for this thread
+	const streamingMessage = useStreamingMessage(threadId);
 
 	// Memoize the merged messages array to prevent infinite re-renders
 	// This is crucial for XAI models that send rapid reasoning updates
@@ -101,7 +104,13 @@ function useStreamMessage() {
 	// Throttle updates to prevent React update depth exceeded errors
 	// XAI models send reasoning chunks very rapidly
 	const lastUpdateTime = useRef(0);
-	const pendingUpdate = useRef<any>(null);
+	const pendingUpdate = useRef<{
+		threadId: Id<'threads'>;
+		messageId: Id<'messages'>;
+		content: string;
+		reasoning: string;
+		status: 'streaming' | 'reasoning' | 'done';
+	} | null>(null);
 	const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
 	const throttledUpdate = useCallback(

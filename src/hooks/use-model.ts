@@ -59,7 +59,7 @@ export function useModel(): {
 	useEffect(() => {
 		setModel(modelId);
 		setReasoningEffort(reasoning as ReasoningEffort);
-	}, [modelId, reasoning]);
+	}, [modelId, reasoning, setModel, setReasoningEffort]);
 
 	return {
 		model: modelId,
@@ -144,9 +144,7 @@ export const useReasoningEffort = () => {
 	return getReasoningEffort;
 };
 
-export function useModelsByProvider(
-	messageAttachments: { type: AttachmentType }[]
-) {
+export function useModelsByProvider() {
 	return useMemo(() => {
 		const grouped: ModelsByProvider = {} as ModelsByProvider;
 
@@ -165,5 +163,5 @@ export function useModelsByProvider(
 		});
 
 		return grouped;
-	}, [messageAttachments]);
+	}, []);
 }

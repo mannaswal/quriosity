@@ -84,7 +84,7 @@ export const RetryButtonAdvanced = ({
 	if (isAssistant && previousMessage) retryMessage = previousMessage;
 
 	const messageAttachments = useMessageAttachments(retryMessage);
-	const modelsByProvider = useModelsByProvider(messageAttachments);
+	const modelsByProvider = useModelsByProvider();
 	const modelsCompatibility = useModelsCompatibility(messageAttachments);
 
 	const restrictions = getRestrictions(messageAttachments);

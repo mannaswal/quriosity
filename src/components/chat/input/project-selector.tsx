@@ -38,7 +38,7 @@ export function ProjectSelector() {
 		} else {
 			setSelectedProjectId(undefined);
 		}
-	}, [pathname]);
+	}, [pathname, setSelectedProjectId]);
 
 	if (thread || pathname.startsWith('/chat/')) {
 		const project = projects?.find((p) => p._id === thread?.projectId);

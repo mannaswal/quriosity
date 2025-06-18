@@ -7,6 +7,7 @@ import DeepSeek from 'public/providers/DeepSeek.svg';
 import Grok from 'public/providers/Grok.svg';
 import Qwen from 'public/providers/Qwen.svg';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const modelProviderLogos: Record<ModelProvider, { monochrome: any }> = {
 	google: {
 		monochrome: Gemini,

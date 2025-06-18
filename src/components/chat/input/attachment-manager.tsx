@@ -293,7 +293,7 @@ export function AttachmentManager({
 			// Start upload
 			startUpload(validFiles);
 		},
-		[startUpload, addOptimisticAttachment, removeAttachment, capabilities]
+		[startUpload, addOptimisticAttachment]
 	);
 
 	/**

@@ -39,9 +39,9 @@ export default async function RootLayout({
 			lang="en"
 			className="dark">
 			<head>
-				<script
+				{/* <script
 					crossOrigin="anonymous"
-					src="//unpkg.com/react-scan/dist/auto.global.js"></script>
+					src="//unpkg.com/react-scan/dist/auto.global.js"></script> */}
 				<meta
 					name="apple-mobile-web-app-title"
 					content="Quriosity"

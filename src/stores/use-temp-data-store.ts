@@ -1,4 +1,4 @@
-import { deleteFromUploadThing } from '@/app/api/uploadthing/route';
+import { deleteFromUploadThing } from '@/server/uploadthing';
 import { DEFAULT_MODEL, ModelId } from '@/lib/models';
 import { ReasoningEffort, TempAttachment } from '@/lib/types';
 import { mimeTypeToAttachmentType } from '@/lib/utils';
