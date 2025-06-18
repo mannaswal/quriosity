@@ -32,6 +32,7 @@ import { cn, getRestrictions } from '@/lib/utils';
 import { useModelsCompatibility } from '@/hooks/use-model-filtering';
 import { useTempAttachments } from '@/stores/use-temp-data-store';
 import { createElement } from 'react';
+import Image from 'next/image';
 
 /**
  * Advanced model selector with organized provider-based navigation
@@ -79,7 +80,14 @@ export const ModelSelectorAdvanced = ({
 						)}>
 						{currentModelData && (
 							<div className="size-4">
-								{currentModelProviderLogo.monochrome}
+								<Image
+									src={currentModelProviderLogo.colored.src}
+									className={currentModelProviderLogo.colored.className}
+									alt={currentModelData.provider}
+									width={16}
+									height={16}
+									unoptimized
+								/>
 							</div>
 						)}
 						{currentModelData ? currentModelData.name : 'Select model'}
@@ -107,16 +115,41 @@ export const ModelSelectorAdvanced = ({
 						([provider, providerModels]) => {
 							const modelProviderLogo =
 								modelProviderLogos[provider as ModelProvider];
+							const selected = provider === currentModelData?.provider;
 							return (
 								<DropdownMenuSub key={provider}>
 									<DropdownMenuSubTrigger
-										className={cn(
-											provider === currentModelData?.provider && 'bg-muted'
-										)}
-										iconClassName="text-muted-foreground opacity-50 -mr-1">
+										className={cn('group', selected && 'bg-muted')}
+										iconClassName="text-muted-foreground -mr-1">
 										<div className="flex items-center gap-2.5">
-											<div className="size-4">
-												{modelProviderLogo.monochrome}
+											<div className="size-4 relative shrink-0">
+												<Image
+													src={modelProviderLogo.monochrome.src}
+													className={cn(
+														modelProviderLogo.monochrome.className,
+														!selected &&
+															'absolute top-0 left-0 group-hover:opacity-0',
+														selected && 'hidden'
+													)}
+													alt={provider}
+													width={16}
+													height={16}
+													unoptimized
+													priority
+												/>
+												<Image
+													src={modelProviderLogo.colored.src}
+													className={cn(
+														modelProviderLogo.colored.className,
+														!selected &&
+															'absolute top-0 left-0 group-hover:opacity-100 opacity-0'
+													)}
+													alt={provider}
+													width={16}
+													height={16}
+													unoptimized
+													priority
+												/>
 											</div>
 											{providerModelNames[provider as ModelProvider]}
 										</div>
