@@ -135,7 +135,14 @@ export function AppSidebar({
 					<>
 						{projects && projects.length > 0 && (
 							<SidebarGroup>
-								<SidebarGroupLabel>Projects</SidebarGroupLabel>
+								<Link href="/projects">
+									<Button
+										variant="ghost"
+										size={'sm'}
+										className="w-full justify-start px-0">
+										<SidebarGroupLabel>Projects</SidebarGroupLabel>
+									</Button>
+								</Link>
 								<SidebarGroupContent>
 									<SidebarMenu>
 										{projects.slice(0, 5).map((project) => (
