@@ -218,8 +218,6 @@ export function useDeleteThread() {
 			);
 			localStore.setQuery(api.threads.getUserThreads, {}, updatedList);
 		}
-
-		// The individual thread query will naturally become undefined when deleted
 	});
 
 	return async (threadId: Id<'threads'>) => {

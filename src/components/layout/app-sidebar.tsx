@@ -41,6 +41,8 @@ import {
 } from '../ui/dropdown-menu';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { useRouter } from 'next/navigation';
+import { useQuery } from 'convex/react';
+import { api } from 'convex/_generated/api';
 
 const funnelDisplay = Funnel_Display({
 	subsets: ['latin'],
@@ -52,8 +54,8 @@ const funnelDisplay = Funnel_Display({
  */
 export function AppSidebar({
 	userData,
-	serverThreads: threads,
-	serverProjects: projects,
+	serverThreads,
+	serverProjects,
 }: {
 	userData: User | undefined;
 	serverThreads: Thread[];
@@ -64,6 +66,11 @@ export function AppSidebar({
 	const { user } = useClerk();
 
 	const threadId = useThreadId();
+	const clientThreads = useQuery(api.threads.getUserThreads);
+	const clientProjects = useQuery(api.projects.getUserProjects);
+
+	const threads = clientThreads ?? serverThreads;
+	const projects = clientProjects ?? serverProjects;
 
 	useEffect(() => {
 		const handleKeyDown = (event: KeyboardEvent) => {
