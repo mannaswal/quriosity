@@ -41,7 +41,7 @@ import {
 } from '../ui/dropdown-menu';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { useRouter } from 'next/navigation';
-import { useQuery } from 'convex/react';
+import { useConvexAuth, useQuery } from 'convex/react';
 import { api } from 'convex/_generated/api';
 
 const funnelDisplay = Funnel_Display({
@@ -64,10 +64,17 @@ export function AppSidebar({
 	const router = useRouter();
 
 	const { user } = useClerk();
+	const { isAuthenticated } = useConvexAuth();
 
 	const threadId = useThreadId();
-	const clientThreads = useQuery(api.threads.getUserThreads);
-	const clientProjects = useQuery(api.projects.getUserProjects);
+	const clientThreads = useQuery(
+		api.threads.getUserThreads,
+		isAuthenticated ? {} : 'skip'
+	);
+	const clientProjects = useQuery(
+		api.projects.getUserProjects,
+		isAuthenticated ? {} : 'skip'
+	);
 
 	const threads = clientThreads ?? serverThreads;
 	const projects = clientProjects ?? serverProjects;

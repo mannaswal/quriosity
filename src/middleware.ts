@@ -36,6 +36,7 @@ export default clerkMiddleware(async (auth, req) => {
 			if (!userId || !sessionId) {
 				// console.log('Middleware - No valid auth, redirecting to auth');
 				const authUrl = new URL('/auth', req.url);
+
 				// Preserve the intended destination
 				authUrl.searchParams.set(
 					'redirectTo',

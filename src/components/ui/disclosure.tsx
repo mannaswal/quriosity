@@ -8,7 +8,14 @@ import {
 	Variant,
 	Variants,
 } from 'motion/react';
-import { createContext, useContext, useState, useId, useEffect } from 'react';
+import {
+	createContext,
+	useContext,
+	useState,
+	useId,
+	useEffect,
+	Fragment,
+} from 'react';
 import { cn } from '@/lib/utils';
 
 export type DisclosureContextType = {
@@ -111,30 +118,33 @@ export function DisclosureTrigger({
 
 	return (
 		<>
-			{React.Children.map(children, (child) => {
-				return React.isValidElement(child)
-					? React.cloneElement(child, {
-							// @ts-expect-error - TODO: fix this
-							onClick: toggle,
-							role: 'button',
-							'aria-expanded': open,
-							tabIndex: 0,
-							onKeyDown: (e: { key: string; preventDefault: () => void }) => {
-								if (e.key === 'Enter' || e.key === ' ') {
-									e.preventDefault();
-									toggle();
-								}
-							},
-							className: cn(
-								className,
-								((child as React.ReactElement).props as { className?: string })
-									.className
-							),
-							...((child as React.ReactElement).props as {
-								[key: string]: unknown;
-							}),
-					  })
-					: child;
+			{React.Children.map(children, (child, index) => {
+				return React.isValidElement(child) ? (
+					React.cloneElement(child, {
+						key: index,
+						// @ts-expect-error - TODO: fix this
+						onClick: toggle,
+						role: 'button',
+						'aria-expanded': open,
+						tabIndex: 0,
+						onKeyDown: (e: { key: string; preventDefault: () => void }) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								toggle();
+							}
+						},
+						className: cn(
+							className,
+							((child as React.ReactElement).props as { className?: string })
+								.className
+						),
+						...((child as React.ReactElement).props as {
+							[key: string]: unknown;
+						}),
+					})
+				) : (
+					<Fragment key={index}>{child}</Fragment>
+				);
 			})}
 		</>
 	);

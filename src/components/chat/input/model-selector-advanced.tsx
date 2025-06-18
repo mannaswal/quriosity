@@ -132,12 +132,12 @@ export const ModelSelectorAdvanced = ({
 													!modelsCompatibility[modelId].isCompatible;
 												return (
 													<DropdownMenuItem
+														key={modelId}
 														className={cn(
 															'cursor-pointer',
 															modelId === currentModelId && 'bg-muted',
 															isIncompatible && 'opacity-50 cursor-not-allowed'
 														)}
-														key={modelId}
 														disabled={isIncompatible}
 														onClick={() => {
 															if (!isIncompatible) {
