@@ -27,7 +27,7 @@ function AuthPageContent() {
 	}, [isLoaded, isSignedIn, router, searchParams]);
 
 	// Show loading while Clerk is loading
-	if (!isLoaded || isSignedIn) {
+	if (!isLoaded) {
 		return (
 			<div className="flex items-center justify-center min-h-screen">
 				<div className="text-center gap-2 flex items-center">
@@ -44,14 +44,14 @@ function AuthPageContent() {
 	}
 
 	// Show loading while redirecting (user is signed in)
-	// return (
-	// 	<div className="flex items-center justify-center min-h-screen">
-	// 		<div className="text-center gap-2 flex items-center">
-	// 			<Loader size="lg" />
-	// 			<div className="text-muted-foreground">Redirecting...</div>
-	// 		</div>
-	// 	</div>
-	// );
+	return (
+		<div className="flex items-center justify-center min-h-screen">
+			<div className="text-center gap-2 flex items-center">
+				<Loader size="lg" />
+				<div className="text-muted-foreground">Redirecting...</div>
+			</div>
+		</div>
+	);
 }
 
 export default function AuthPage() {
