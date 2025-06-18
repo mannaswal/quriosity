@@ -13,25 +13,26 @@ Made for the T3 Chat Cloneathon
 
 ## Bonus Features
 
-- [x] Attachment Support
+- [ ] Bring Your Own Key
+- [ ] Chat Sharing
+- [ ] Temporary chats
 - [ ] Image Generation Support
-- [-] Syntax Highlighting
+- [ ] Memory
+- [ ] Summarise and start a new thread
+- [ ] Web Search
+
+- [x] Attachment Support
+- [x] Syntax Highlighting
 - [x] Resumable Streams
 - [x] Chat Branching
 - [x] Stop messages mid-stream losslessly
 - [x] Handle mid-stream errors losslessly
-- [ ] Chat Sharing
-- [ ] Web Search
-- [ ] Bring Your Own Key
 - [x] Disable models for retrying based on message
-- [ ] Image and file previews
+- [-] Image and file previews
 - [ ] Add HEIC/HEIF support
-- [ ] Attachments on paste
+- [x] Attachments on paste
 - [ ] Cancel uploads mid-upload
 
-- [ ] Temporary chats
-- [ ] Projects
+- [x] Projects
 - [ ] Experts
-- [ ] Archive
-- [ ] Memory
-- [ ] Summarise and start a new thread
+- [x] Archive

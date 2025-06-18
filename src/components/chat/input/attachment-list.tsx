@@ -66,13 +66,15 @@ const ImageItem = ({
 					/>
 				)}
 			</div>
-			<Button
-				variant="secondary"
-				size="icon"
-				className="absolute top-0 right-0 m-px opacity-0 group-hover:opacity-100 duration-200 z-10 size-5 hover:bg-neutral-700 transition-[colors, opacity]"
-				onClick={() => handleRemove(attachment.fingerprint)}>
-				<X className="size-2.5" />
-			</Button>
+			{attachment.uploaded && (
+				<Button
+					variant="secondary"
+					size="icon"
+					className="absolute top-0 right-0 m-px opacity-0 group-hover:opacity-100 duration-200 z-10 size-5 hover:bg-neutral-700 transition-[colors, opacity]"
+					onClick={() => handleRemove(attachment.fingerprint)}>
+					<X className="size-2.5" />
+				</Button>
+			)}
 		</div>
 	);
 };
@@ -114,13 +116,15 @@ const FileNameItem = ({
 					{attachment.name}
 				</span>
 			</div>
-			<Button
-				variant="secondary"
-				size="icon"
-				className="absolute top-0 right-0 m-px opacity-0 group-hover:opacity-100 duration-200 z-10 size-5 hover:bg-neutral-700 transition-[colors, opacity]"
-				onClick={() => handleRemove(attachment.fingerprint)}>
-				<X className="size-2.5" />
-			</Button>
+			{attachment.uploaded && (
+				<Button
+					variant="secondary"
+					size="icon"
+					className="absolute top-0 right-0 m-px opacity-0 group-hover:opacity-100 duration-200 z-10 size-5 hover:bg-neutral-700 transition-[colors, opacity]"
+					onClick={() => handleRemove(attachment.fingerprint)}>
+					<X className="size-2.5" />
+				</Button>
+			)}
 		</div>
 	);
 };

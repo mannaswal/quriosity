@@ -1,22 +1,11 @@
-import { after, NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import {
-	streamText,
-	CoreMessage,
-	createDataStreamResponse,
-	UserContent,
-	CoreSystemMessage,
-} from 'ai';
+import { streamText, createDataStreamResponse } from 'ai';
 import { auth } from '@clerk/nextjs/server';
 import { api } from 'convex/_generated/api';
 import { ConvexHttpClient } from 'convex/browser';
 import { markdownJoinerTransform } from '@/utils/markdown-joiner-transform';
-import {
-	filterAttachmentsByModelCapabilities,
-	messageToCoreMessage,
-} from '@/lib/utils';
-import { Attachment, Message } from '@/lib/types';
-import { error } from 'console';
+import { getCoreMessages } from '@/server/utils';
 
 export const maxDuration = 500;
 
@@ -37,83 +26,50 @@ export async function POST(request: NextRequest) {
 
 		if (!token) return new NextResponse('Unauthorized', { status: 401 });
 
+		if (!process.env.NEXT_PUBLIC_CONVEX_URL)
+			throw new Error('Missing NEXT_PUBLIC_CONVEX_URL');
+
 		const convexClient = new ConvexHttpClient(
-			process.env.NEXT_PUBLIC_CONVEX_URL!
+			process.env.NEXT_PUBLIC_CONVEX_URL
 		);
 		convexClient.setAuth(token);
 
 		// 2. Extract request payload
 		const {
+			// Required
 			threadId,
-			model,
-			messages: allMessages,
 			messageId,
+			messages: allMessages,
+			model,
+			// Optional
 			reasoningEffort,
 			projectData,
 		} = await request.json();
 
-		if (!threadId || !model || !allMessages || !messageId || !userId) {
+		if (
+			!threadId ||
+			!model ||
+			!allMessages ||
+			!allMessages.length ||
+			!messageId ||
+			!userId
+		) {
 			return new NextResponse('Missing required fields', { status: 400 });
-		}
-
-		// 3. Format message history for AI (exclude the empty assistant message)
-		const messages = allMessages.filter(
-			(msg: Message) => msg.status !== 'pending'
-		);
-
-		const coreMessages: CoreMessage[] = await Promise.all(
-			messages.map(async (msg: Message, index: number) => {
-				const attachments: Attachment[] = [];
-
-				if (msg.attachmentIds?.length) {
-					try {
-						const fetchedAttachments = await convexClient.query(
-							api.attachments.getAttachmentsByIds,
-							{ ids: msg.attachmentIds }
-						);
-						const filteredAttachments = filterAttachmentsByModelCapabilities(
-							model,
-							fetchedAttachments
-						);
-						attachments.push(...filteredAttachments);
-					} catch (error) {
-						console.error('Failed to fetch attachments for message:', error);
-					}
-				}
-
-				// For the first user message in a project thread, inject project attachments
-				if (
-					projectData &&
-					index === 0 &&
-					msg.role === 'user' &&
-					projectData.attachments?.length > 0
-				) {
-					const filteredAttachments = filterAttachmentsByModelCapabilities(
-						model,
-						projectData.attachments as Attachment[]
-					);
-					attachments.push(...filteredAttachments);
-				}
-
-				return await messageToCoreMessage(msg, attachments);
-			})
-		);
-
-		// Inject system prompt at the beginning if thread belongs to a project
-		if (projectData?.systemPrompt) {
-			const systemMessage: CoreSystemMessage = {
-				role: 'system',
-				content: projectData.systemPrompt,
-			};
-			coreMessages.unshift(systemMessage);
 		}
 
 		// 4. Create our own AbortController to properly stop AI token generation
 		const abortController = new AbortController();
 
+		const coreMessages = await getCoreMessages(
+			allMessages,
+			model,
+			projectData,
+			convexClient
+		);
+
 		const response = streamText({
 			model: openrouter.chat(model, {
-				reasoning: { effort: reasoningEffort },
+				...(reasoningEffort && { reasoning: { effort: reasoningEffort } }),
 			}),
 			messages: coreMessages,
 			abortSignal: abortController.signal,
@@ -162,6 +118,8 @@ export async function POST(request: NextRequest) {
 							} else if (chunk.type === 'error') {
 								console.log('[API] Error chunk received:', chunk.error);
 								break;
+							} else {
+								console.dir(chunk, { depth: null });
 							}
 
 							const now = Date.now();

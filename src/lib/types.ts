@@ -14,6 +14,8 @@ export type ProjectWithAttachments = Project & {
 	attachments: Attachment[];
 };
 
+export type ProjectData = ProjectWithAttachments;
+
 export type ReasoningEffort = 'low' | 'medium' | 'high';
 
 export type AttachmentType = 'text' | 'image' | 'pdf';

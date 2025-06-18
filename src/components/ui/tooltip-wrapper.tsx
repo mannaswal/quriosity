@@ -9,11 +9,19 @@ export function TooltipWrapper({
 	tooltip,
 	defaultOpen,
 	delayDuration,
+	align = 'center',
+	side = 'top',
+	sideOffset = 0,
+	alignOffset = 0,
 }: {
 	children: React.ReactNode;
 	tooltip: React.ReactNode | string;
 	defaultOpen?: boolean;
 	delayDuration?: number;
+	align?: 'center' | 'start' | 'end';
+	side?: 'top' | 'right' | 'bottom' | 'left';
+	sideOffset?: number;
+	alignOffset?: number;
 }) {
 	return (
 		<Tooltip
@@ -22,7 +30,13 @@ export function TooltipWrapper({
 			<TooltipTrigger asChild>
 				<div>{children}</div>
 			</TooltipTrigger>
-			<TooltipContent>{tooltip}</TooltipContent>
+			<TooltipContent
+				align={align}
+				side={side}
+				sideOffset={sideOffset}
+				alignOffset={alignOffset}>
+				{tooltip}
+			</TooltipContent>
 		</Tooltip>
 	);
 }

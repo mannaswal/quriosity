@@ -41,6 +41,8 @@ export type ModelProperty = {
 	fast?: boolean;
 	/** Whether the model is considered experimental or in preview. */
 	experimental?: boolean;
+	/** Whether the model should not use reasoning. */
+	disableReasoning?: boolean;
 };
 
 export const DEFAULT_MODEL: ModelId = 'google/gemini-2.5-flash-preview-05-20';
@@ -84,24 +86,23 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		reasoning: true,
 		effortControl: true,
 	},
+	'anthropic/claude-sonnet-4:reasoning': {
+		provider: 'anthropic' as ModelProvider,
+		name: 'Claude 4 Sonnet (Reasoning)',
+		id: 'anthropic/claude-sonnet-4:reasoning' as const,
+		vision: true,
+		docs: true,
+		reasoning: true,
+		effortControl: true,
+		disableReasoning: true,
+	},
 	'anthropic/claude-sonnet-4': {
 		provider: 'anthropic' as ModelProvider,
 		name: 'Claude 4 Sonnet',
 		id: 'anthropic/claude-sonnet-4' as const,
 		vision: true,
 		docs: true,
-		reasoning: true,
-		effortControl: true,
 	},
-	// 'anthropic/claude-sonnet-4:reasoning': {
-	// 	provider: 'anthropic' as ModelProvider,
-	// 	name: 'Claude 4 Sonnet (Reasoning)',
-	// 	id: 'anthropic/claude-sonnet-4:reasoning' as const,
-	// 	vision: true,
-	// 	docs: true,
-	// 	reasoning: true,
-	// 	effortControl: true,
-	// },
 	'google/gemini-2.0-flash-001': {
 		provider: 'google' as ModelProvider,
 		name: 'Gemini 2.0 Flash',
@@ -315,6 +316,7 @@ export type ModelId =
 	// Anthropic
 	| 'anthropic/claude-opus-4'
 	| 'anthropic/claude-sonnet-4'
+	| 'anthropic/claude-sonnet-4:reasoning'
 	| 'anthropic/claude-3.7-sonnet:thinking'
 	| 'anthropic/claude-3.7-sonnet'
 	| 'anthropic/claude-3.5-sonnet-20240620'

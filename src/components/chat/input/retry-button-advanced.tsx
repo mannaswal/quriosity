@@ -46,6 +46,7 @@ import { cn, getRestrictions } from '@/lib/utils';
 import { usePreviousMessage } from '@/hooks/use-messages';
 import { useAttachments, useMessageAttachments } from '@/hooks/use-attachments';
 import { modelProviderLogos } from '@/lib/provider-logos';
+import { TooltipWrapper } from '@/components/ui/tooltip-wrapper';
 
 interface RetryButtonAdvancedProps {
 	message: Message;
@@ -125,6 +126,12 @@ export const RetryButtonAdvanced = ({
 			onOpenChange={handleOpenChange}>
 			<DropdownMenuTrigger asChild>
 				<Button
+					onContextMenu={(e) => {
+						handleRegenerate();
+						e.preventDefault();
+						e.stopPropagation();
+					}}
+					onClick={() => handleOpenChange(true)}
 					variant="ghost"
 					size="icon"
 					className="size-8 dark:aria-expanded:bg-accent/50">
@@ -132,7 +139,7 @@ export const RetryButtonAdvanced = ({
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
-				align={isAssistant ? 'center' : 'end'}
+				align={isAssistant ? 'start' : 'end'}
 				side="bottom"
 				className="w-40 rounded-lg border-[0.5px]">
 				{restrictions.message && (
@@ -144,14 +151,24 @@ export const RetryButtonAdvanced = ({
 					</>
 				)}
 				<DropdownMenuGroup>
-					<DropdownMenuItem
-						className="cursor-pointer"
-						onClick={() => handleRegenerate()}>
-						<div className="flex items-center gap-2">
-							<RefreshCcwIcon className="size-4 opacity-60" />
-							Retry Same
-						</div>
-					</DropdownMenuItem>
+					<TooltipWrapper
+						side={isAssistant ? 'left' : 'right'}
+						sideOffset={8}
+						tooltip={
+							<div className="text-xs flex items-center gap-1">
+								Tip: right-click{' '}
+								<RefreshCcwIcon className="size-3 opacity-60" />
+							</div>
+						}>
+						<DropdownMenuItem
+							className="cursor-pointer"
+							onClick={() => handleRegenerate()}>
+							<div className="flex items-center gap-2">
+								<RefreshCcwIcon className="size-4 opacity-60" />
+								Retry Same
+							</div>
+						</DropdownMenuItem>
+					</TooltipWrapper>
 
 					<DropdownMenuSeparator className="h-[0.5px]" />
 

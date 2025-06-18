@@ -7,7 +7,7 @@ import { Markdown } from '../../ui/markdown';
 import { Message } from '@/components/ui/message';
 import { CheckIcon, CopyIcon, RefreshCcwIcon, SplitIcon } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
-import { useRegenerate } from '@/hooks/use-messages';
+import { usePreviousMessage, useRegenerate } from '@/hooks/use-messages';
 import { Message as ChatMessage, ReasoningEffort } from '@/lib/types';
 import {
 	Reasoning,
@@ -32,6 +32,8 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 	const [copied, setCopied] = useState(false);
 	const [isBranching, setIsBranching] = useState(false);
 	const [isRetryMenuOpen, setIsRetryMenuOpen] = useState(false);
+
+	const userMessage = usePreviousMessage(message._id);
 
 	const branch = useBranchThread();
 	const regenerate = useRegenerate();
@@ -137,6 +139,21 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 				}`}>
 				{(message.status === 'error' || message.status === 'done') && (
 					<div className="flex items-center -ml-0.5">
+						<RetryButtonAdvanced
+							handleRegenerate={handleRegenerate}
+							onOpenChange={setIsRetryMenuOpen}
+							message={message}
+						/>
+
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-8"
+							disabled={isBranching}
+							onClick={handleBranch}>
+							<SplitIcon className="size-4 rotate-180" />
+						</Button>
+
 						<Button
 							variant="ghost"
 							size="icon"
@@ -148,21 +165,6 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 								<CopyIcon className="w-4 h-4" />
 							)}
 						</Button>
-
-						<Button
-							variant="ghost"
-							size="icon"
-							className="size-8"
-							disabled={isBranching}
-							onClick={handleBranch}>
-							<SplitIcon className="size-4 rotate-180" />
-						</Button>
-
-						<RetryButtonAdvanced
-							handleRegenerate={handleRegenerate}
-							onOpenChange={setIsRetryMenuOpen}
-							message={message}
-						/>
 
 						<div className="flex gap-1 text-xs ml-2">
 							<div className="text-neutral-500">
