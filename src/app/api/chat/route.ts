@@ -9,8 +9,12 @@ import { getCoreMessages, cleanModelId, getReasoning } from '@/server/utils';
 
 export const maxDuration = 500;
 
+if (!process.env.OPENROUTER_API_KEY) {
+	throw new Error('Missing OPENROUTER_API_KEY');
+}
+
 const openrouter = createOpenRouter({
-	apiKey: process.env.OPENROUTER_API_KEY!,
+	apiKey: process.env.OPENROUTER_API_KEY,
 });
 
 /**

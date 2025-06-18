@@ -31,6 +31,7 @@ import { useModelsByProvider, useUpdateModel } from '@/hooks/use-model';
 import { cn, getRestrictions } from '@/lib/utils';
 import { useModelsCompatibility } from '@/hooks/use-model-filtering';
 import { useTempAttachments } from '@/stores/use-temp-data-store';
+import { createElement } from 'react';
 
 /**
  * Advanced model selector with organized provider-based navigation
@@ -78,12 +79,9 @@ export const ModelSelectorAdvanced = ({
 						)}>
 						{currentModelData && (
 							<div className="size-4">
-								{(() => {
-									const LogoComponent = currentModelProviderLogo.monochrome;
-									return (
-										<LogoComponent className="text-muted-foreground size-4 shrink-0" />
-									);
-								})()}
+								{createElement(currentModelProviderLogo.monochrome, {
+									className: 'text-muted-foreground size-4 shrink-0',
+								})}
 							</div>
 						)}
 						{currentModelData ? currentModelData.name : 'Select model'}
@@ -120,12 +118,9 @@ export const ModelSelectorAdvanced = ({
 										iconClassName="text-muted-foreground opacity-50 -mr-1">
 										<div className="flex items-center gap-2.5">
 											<div className="size-4">
-												{(() => {
-													const LogoComponent = modelProviderLogo.monochrome;
-													return (
-														<LogoComponent className="text-muted-foreground size-4 shrink-0" />
-													);
-												})()}
+												{createElement(modelProviderLogo.monochrome, {
+													className: 'text-muted-foreground size-4 shrink-0',
+												})}
 											</div>
 											{providerModelNames[provider as ModelProvider]}
 										</div>
