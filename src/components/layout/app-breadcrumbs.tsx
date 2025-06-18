@@ -53,8 +53,9 @@ export function AppBreadcrumbs() {
 			)}>
 			<div
 				className={cn(
-					'z-10 fixed top-4.5 left-4.5 transition-all duration-100 flex items-center pr-1.5 border-r border-border',
-					open ? 'opacity-0' : 'opacity-100'
+					'z-10 fixed top-4.5 left-4.5 transition-all duration-100 flex items-center pr-1.5',
+					open ? 'opacity-0' : 'opacity-100',
+					!open && route === 'projects' && 'border-r border-border'
 				)}>
 				<SidebarTrigger />
 				<Link href="/">
