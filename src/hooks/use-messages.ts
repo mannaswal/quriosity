@@ -320,7 +320,7 @@ export function useSendMessage(opts?: {
 				reasoningEffort: getReasoningEffort(model, reasoningEffort),
 				assistantMessageId,
 				messageHistory: allMessages,
-				projectData: projectData,
+				projectData: projectData ?? undefined,
 			});
 
 			opts?.onSuccess?.();
@@ -363,8 +363,8 @@ export function useRegenerate(opts?: {
 	return async (args: {
 		messageId: Id<'messages'>;
 		threadId: Id<'threads'>;
-		model?: ModelId;
-		reasoningEffort?: ReasoningEffort;
+		model: ModelId;
+		reasoningEffort: ReasoningEffort | undefined;
 	}) => {
 		try {
 			if (getStreamingMessage(args.threadId)) {
@@ -377,10 +377,7 @@ export function useRegenerate(opts?: {
 				blockStreaming(args.threadId);
 			}
 
-			const effort = getReasoningEffort(
-				args.model as ModelId,
-				args.reasoningEffort
-			);
+			const effort = getReasoningEffort(args.model, args.reasoningEffort);
 
 			const { assistantMessageId, assistantMessage, messages } =
 				await regenerateMutation({
@@ -441,8 +438,8 @@ export function useEditAndResubmit(opts?: {
 		userMessageId: Id<'messages'>;
 		threadId: Id<'threads'>;
 		newContent: string;
-		model?: ModelId;
-		reasoningEffort?: ReasoningEffort;
+		model: ModelId;
+		reasoningEffort: ReasoningEffort | undefined;
 	}) => {
 		try {
 			const currentStreamingMessage = getStreamingMessage(args.threadId);
@@ -456,10 +453,7 @@ export function useEditAndResubmit(opts?: {
 				blockStreaming(args.threadId);
 			}
 
-			const effort = getReasoningEffort(
-				args.model as ModelId,
-				args.reasoningEffort
-			);
+			const effort = getReasoningEffort(args.model, args.reasoningEffort);
 
 			const { assistantMessageId, assistantMessage, messages } =
 				await editMutation({

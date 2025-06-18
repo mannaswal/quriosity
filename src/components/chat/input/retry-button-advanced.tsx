@@ -120,6 +120,10 @@ export const RetryButtonAdvanced = ({
 		onOpenChange?.(open);
 	};
 
+	const currentModelId = message.model as ModelId;
+	const currentModelData = modelsData[currentModelId];
+	const currentReasoningEffort = message.reasoningEffort;
+
 	return (
 		<DropdownMenu
 			open={isOpen}
@@ -179,7 +183,11 @@ export const RetryButtonAdvanced = ({
 								modelProviderLogos[provider as ModelProvider];
 							return (
 								<DropdownMenuSub key={provider}>
-									<DropdownMenuSubTrigger iconClassName="text-muted-foreground opacity-50 -mr-1.5">
+									<DropdownMenuSubTrigger
+										className={cn(
+											provider === currentModelData?.provider && 'bg-muted'
+										)}
+										iconClassName="text-muted-foreground opacity-50 -mr-1.5">
 										<div className="flex items-center gap-2.5">
 											<div className="size-4">
 												<modelProviderLogo.monochrome className="text-muted-foreground size-4 shrink-0" />
@@ -205,6 +213,7 @@ export const RetryButtonAdvanced = ({
 															<DropdownMenuSubTrigger
 																className={cn(
 																	'cursor-pointer',
+																	modelId === currentModelId && 'bg-muted',
 																	isIncompatible &&
 																		'opacity-50 cursor-not-allowed'
 																)}
@@ -230,7 +239,11 @@ export const RetryButtonAdvanced = ({
 																	getReasoningOptionsForModel(modelId).map(
 																		(option) => (
 																			<DropdownMenuItem
-																				className="cursor-pointer"
+																				className={cn(
+																					'cursor-pointer',
+																					option.value ===
+																						currentReasoningEffort && 'bg-muted'
+																				)}
 																				key={option.value}
 																				onClick={() =>
 																					handleModelChangeAndRetry(

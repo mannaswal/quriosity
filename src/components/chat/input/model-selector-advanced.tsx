@@ -37,14 +37,18 @@ import { useTempAttachments } from '@/stores/use-temp-data-store';
  * Supports nested menus for providers and reasoning levels
  * @param attachments - Optional array of temp attachments to filter models by
  */
-export const ModelSelectorAdvanced = ({ modelId }: { modelId: ModelId }) => {
+export const ModelSelectorAdvanced = ({
+	modelId: currentModelId,
+}: {
+	modelId: ModelId;
+}) => {
 	const updateModel = useUpdateModel();
 	const attachments = useTempAttachments();
 
 	// Group all models by provider (both compatible and incompatible)
 	const modelsByProvider = useModelsByProvider(attachments);
 
-	const currentModelData = modelsData[modelId];
+	const currentModelData = modelsData[currentModelId];
 	const modelsCompatibility = useModelsCompatibility(attachments);
 	const restrictions = getRestrictions(attachments);
 
@@ -52,7 +56,8 @@ export const ModelSelectorAdvanced = ({ modelId }: { modelId: ModelId }) => {
 		updateModel({ model: selectedModel });
 	};
 
-	const isCurrentModelIncompatible = !modelsCompatibility[modelId].isCompatible;
+	const isCurrentModelIncompatible =
+		!modelsCompatibility[currentModelId].isCompatible;
 
 	const currentModelProviderLogo =
 		modelProviderLogos[currentModelData?.provider];
@@ -68,7 +73,8 @@ export const ModelSelectorAdvanced = ({ modelId }: { modelId: ModelId }) => {
 						className={cn(
 							'flex items-center gap-2',
 							!currentModelData && 'text-muted-foreground',
-							!modelsCompatibility[modelId].isCompatible && 'text-red-400'
+							!modelsCompatibility[currentModelId].isCompatible &&
+								'text-red-400'
 						)}>
 						{currentModelData && (
 							<div className="size-4">
@@ -102,7 +108,11 @@ export const ModelSelectorAdvanced = ({ modelId }: { modelId: ModelId }) => {
 								modelProviderLogos[provider as ModelProvider];
 							return (
 								<DropdownMenuSub key={provider}>
-									<DropdownMenuSubTrigger iconClassName="text-muted-foreground opacity-50 -mr-1">
+									<DropdownMenuSubTrigger
+										className={cn(
+											provider === currentModelData?.provider && 'bg-muted'
+										)}
+										iconClassName="text-muted-foreground opacity-50 -mr-1">
 										<div className="flex items-center gap-2.5">
 											<div className="size-4">
 												{
@@ -124,6 +134,7 @@ export const ModelSelectorAdvanced = ({ modelId }: { modelId: ModelId }) => {
 													<DropdownMenuItem
 														className={cn(
 															'cursor-pointer',
+															modelId === currentModelId && 'bg-muted',
 															isIncompatible && 'opacity-50 cursor-not-allowed'
 														)}
 														key={modelId}

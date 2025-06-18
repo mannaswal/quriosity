@@ -2,17 +2,16 @@ import { useState } from 'react';
 import { useBranchThread } from '@/hooks/use-threads';
 import { ModelId, modelsData } from '@/lib/models';
 import { canReason, cap, cn } from '@/lib/utils';
-import { Button } from '../../ui/button';
-import { Markdown } from '../../ui/markdown';
+import { Button } from '@/components/ui/button';
+import { Markdown } from '@/components/ui/markdown';
 import { Message } from '@/components/ui/message';
-import { CheckIcon, CopyIcon, RefreshCcwIcon, SplitIcon } from 'lucide-react';
+import { CheckIcon, CopyIcon, SplitIcon } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
-import { usePreviousMessage, useRegenerate } from '@/hooks/use-messages';
+import { useRegenerate } from '@/hooks/use-messages';
 import { Message as ChatMessage, ReasoningEffort } from '@/lib/types';
 import {
 	Reasoning,
 	ReasoningContent,
-	ReasoningResponse,
 	ReasoningTrigger,
 } from '@/components/ui/reasoning';
 import { TextShimmer } from '@/components/ui/text-shimmer';
@@ -32,8 +31,6 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 	const [copied, setCopied] = useState(false);
 	const [isBranching, setIsBranching] = useState(false);
 	const [isRetryMenuOpen, setIsRetryMenuOpen] = useState(false);
-
-	const userMessage = usePreviousMessage(message._id);
 
 	const branch = useBranchThread();
 	const regenerate = useRegenerate();
@@ -74,8 +71,8 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 			await regenerate({
 				messageId: message._id,
 				threadId: message.threadId,
-				model,
-				reasoningEffort,
+				model: model ?? (message.model as ModelId),
+				reasoningEffort: reasoningEffort ?? message.reasoningEffort,
 			});
 		} catch (error) {
 			toast.error('Failed to regenerate message');

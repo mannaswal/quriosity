@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { streamText, createDataStreamResponse } from 'ai';
 import { auth } from '@clerk/nextjs/server';
 import { api } from 'convex/_generated/api';
 import { ConvexHttpClient } from 'convex/browser';
 import { markdownJoinerTransform } from '@/utils/markdown-joiner-transform';
-import { getCoreMessages } from '@/server/utils';
+import { getCoreMessages, cleanModelId, getReasoning } from '@/server/utils';
 
 export const maxDuration = 500;
 
@@ -67,9 +67,11 @@ export async function POST(request: NextRequest) {
 			convexClient
 		);
 
+		const cleanModel = cleanModelId(model);
+
 		const response = streamText({
-			model: openrouter.chat(model, {
-				...(reasoningEffort && { reasoning: { effort: reasoningEffort } }),
+			model: openrouter.chat(cleanModel, {
+				reasoning: getReasoning(model, reasoningEffort),
 			}),
 			messages: coreMessages,
 			abortSignal: abortController.signal,
@@ -105,19 +107,22 @@ export async function POST(request: NextRequest) {
 						sendUsage: true,
 					});
 
-					(async () => {
-						let lastSent = Date.now();
-						let needsUpdate = true;
+					let errorOccurred = false; // Flag to track if an error happened
+					let lastSent = Date.now();
+					let needsUpdate = true;
+
+					try {
 						for await (const chunk of response.fullStream) {
-							if (chunk.type === 'text-delta') {
+							if (chunk.type === 'error') {
+								console.log('[API] Error chunk received:', chunk.error);
+								errorOccurred = true; // Set flag on error
+								break; // Exit loop on error
+							} else if (chunk.type === 'text-delta') {
 								content += chunk.textDelta;
 								status = 'streaming';
 							} else if (chunk.type === 'reasoning') {
 								reasoning += chunk.textDelta;
 								status = 'reasoning';
-							} else if (chunk.type === 'error') {
-								console.log('[API] Error chunk received:', chunk.error);
-								break;
 							} else {
 								console.dir(chunk, { depth: null });
 							}
@@ -125,12 +130,7 @@ export async function POST(request: NextRequest) {
 							const now = Date.now();
 							if (now - lastSent > 500 && needsUpdate) {
 								needsUpdate = false;
-
-								updateMessage({
-									content,
-									reasoning,
-									status,
-								})
+								await updateMessage({ content, reasoning, status }) // Use await for clarity
 									.then((result) => {
 										updateAccepted = result;
 									})
@@ -140,25 +140,36 @@ export async function POST(request: NextRequest) {
 									.finally(() => {
 										needsUpdate = true;
 									});
-
 								lastSent = now;
 							}
 
 							if (!updateAccepted) {
-								abortController.abort(); // Actually stop the AI stream to save tokens
+								abortController.abort();
 								break;
 							}
 						}
+					} catch (error) {
+						console.error('[API] Stream error in execute:', error);
+						errorOccurred = true; // Ensure flag is set for any unhandled errors
+					}
 
-						(async () => {
-							updateMessage({
-								content,
-								reasoning,
-								status: 'done',
-								stopReason: 'completed',
-							});
-						})();
-					})();
+					// Only set 'done' if no error occurred
+					if (!errorOccurred) {
+						await updateMessage({
+							content,
+							reasoning,
+							status: 'done',
+							stopReason: 'completed',
+						});
+					} else {
+						console.log('Stream ended with error, skipping done status');
+						await updateMessage({
+							status: 'error',
+							stopReason: 'error',
+							content: content,
+							reasoning: reasoning,
+						});
+					}
 				}
 			},
 			onError: (error) => {
@@ -169,15 +180,6 @@ export async function POST(request: NextRequest) {
 					return 'Stream aborted by user';
 				}
 				console.error('[API] onError triggered - Streaming error:', error);
-
-				(async () => {
-					updateMessage({
-						status: 'error',
-						stopReason: 'error',
-						content: content,
-						reasoning: reasoning,
-					});
-				})();
 
 				return 'Error generating response';
 			},

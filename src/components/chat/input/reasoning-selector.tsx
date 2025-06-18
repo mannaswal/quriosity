@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/select';
 import { TooltipWrapper } from '@/components/ui/tooltip-wrapper';
 import { useModel, useUpdateModel } from '@/hooks/use-model';
+import { modelsData } from '@/lib/models';
 import { ReasoningEffort } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { BrainIcon } from 'lucide-react';
@@ -23,13 +24,19 @@ export const ReasoningSelector = () => {
 	const { reasoningEffort, model } = useModel();
 	const updateModel = useUpdateModel();
 
-	const handleReasoningChange = (reasoningEffort: ReasoningEffort) => {
-		updateModel({ reasoningEffort });
+	const handleReasoningChange = (
+		reasoningEffort: ReasoningEffort | 'disable'
+	) => {
+		if (reasoningEffort === 'disable')
+			updateModel({ model: modelsData[model].nonThinkingVariant });
+		else updateModel({ reasoningEffort });
 	};
 
 	const options = useMemo(() => {
 		if (model === 'x-ai/grok-3-mini-beta')
 			return [reasoningOptions[0], reasoningOptions[2]];
+		if (modelsData[model].nonThinkingVariant)
+			return [...reasoningOptions, { label: 'Disable', value: 'disable' }];
 		return reasoningOptions;
 	}, [model]);
 

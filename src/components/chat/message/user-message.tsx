@@ -43,8 +43,8 @@ export function UserMessage({ message }: UserMessageProps) {
 				await regenerate({
 					messageId: message._id,
 					threadId: message.threadId,
-					model,
-					reasoningEffort,
+					model: model ?? (message.model as ModelId),
+					reasoningEffort: reasoningEffort ?? message.reasoningEffort,
 				});
 			} else if (editedContent.trim()) {
 				// If the edited content is different, edit and resubmit the message
@@ -52,8 +52,8 @@ export function UserMessage({ message }: UserMessageProps) {
 					userMessageId: message._id,
 					threadId: message.threadId,
 					newContent: editedContent,
-					model,
-					reasoningEffort,
+					model: model ?? (message.model as ModelId),
+					reasoningEffort: reasoningEffort ?? message.reasoningEffort,
 				});
 			}
 		} catch (error) {
@@ -68,6 +68,8 @@ export function UserMessage({ message }: UserMessageProps) {
 					userMessageId: message._id,
 					threadId: message.threadId,
 					newContent: editedContent,
+					model: message.model as ModelId,
+					reasoningEffort: message.reasoningEffort as ReasoningEffort,
 				});
 			} catch (error) {
 				toast.error('Failed to edit message');

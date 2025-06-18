@@ -41,8 +41,10 @@ export type ModelProperty = {
 	fast?: boolean;
 	/** Whether the model is considered experimental or in preview. */
 	experimental?: boolean;
-	/** Whether the model should not use reasoning. */
-	disableReasoning?: boolean;
+	/** Whether the model has a non-thinking variant of a model that supports reasoning. */
+	nonThinkingVariant?: ModelId;
+	/** The maximum number of tokens the model can process. */
+	maxThinkingTokens?: number;
 };
 
 export const DEFAULT_MODEL: ModelId = 'google/gemini-2.5-flash-preview-05-20';
@@ -65,6 +67,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		docs: true,
 		reasoning: true,
 		effortControl: true,
+		nonThinkingVariant: 'google/gemini-2.5-flash-preview-05-20',
 	},
 	'google/gemini-2.5-pro-preview-05-06': {
 		provider: 'google' as ModelProvider,
@@ -94,7 +97,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		docs: true,
 		reasoning: true,
 		effortControl: true,
-		disableReasoning: true,
+		nonThinkingVariant: 'anthropic/claude-sonnet-4',
 	},
 	'anthropic/claude-sonnet-4': {
 		provider: 'anthropic' as ModelProvider,
@@ -119,6 +122,25 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		docs: true,
 		fast: true,
 		experimental: true,
+	},
+	'google/gemini-2.5-flash-lite-preview-06-17:thinking': {
+		provider: 'google' as ModelProvider,
+		name: 'Gemini 2.5 Flash Lite (Thinking)',
+		id: 'google/gemini-2.5-flash-lite-preview-06-17:thinking' as const,
+		vision: true,
+		docs: true,
+		reasoning: true,
+		effortControl: true,
+		nonThinkingVariant: 'google/gemini-2.5-flash-lite-preview-06-17',
+		maxThinkingTokens: 24576,
+	},
+	'google/gemini-2.5-flash-lite-preview-06-17': {
+		provider: 'google' as ModelProvider,
+		name: 'Gemini 2.5 Flash Lite',
+		id: 'google/gemini-2.5-flash-lite-preview-06-17' as const,
+		vision: true,
+		docs: true,
+		fast: true,
 	},
 	'openai/gpt-4o-mini': {
 		provider: 'openai' as ModelProvider,
@@ -291,15 +313,17 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		vision: true,
 		docs: true,
 	},
-};
+} as const;
 
 export const models = Object.values(modelsData);
 
 export type ModelId =
 	// Google
-	| 'google/gemini-2.5-flash-preview-05-20'
-	| 'google/gemini-2.5-flash-preview-05-20:thinking'
 	| 'google/gemini-2.5-pro-preview-05-06'
+	| 'google/gemini-2.5-flash-preview-05-20:thinking'
+	| 'google/gemini-2.5-flash-preview-05-20'
+	| 'google/gemini-2.5-flash-lite-preview-06-17:thinking'
+	| 'google/gemini-2.5-flash-lite-preview-06-17'
 	| 'google/gemini-2.0-flash-001'
 	| 'google/gemini-2.0-flash-lite-001'
 	// OpenAI

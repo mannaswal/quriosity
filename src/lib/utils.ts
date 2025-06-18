@@ -72,21 +72,6 @@ export function getModelCompatibility(
 	};
 }
 
-export function filterAttachmentsByModelCapabilities<
-	T extends { type: AttachmentType }
->(modelId: ModelId, attachments: T[] = []): T[] {
-	const { isVisionCompatible, isDocsCompatible } = getModelCompatibility(
-		modelId,
-		attachments
-	);
-
-	return attachments.filter((att) => {
-		if (att.type === 'image' && !isVisionCompatible) return false;
-		if (att.type === 'pdf' && !isDocsCompatible) return false;
-		return true;
-	});
-}
-
 /**
  * Function to get restrictions based on attachments
  */
@@ -107,109 +92,6 @@ export function getRestrictions(attachments: { type: AttachmentType }[]): {
 		vision: needsVision,
 		docs: needsDocs,
 		message,
-	};
-}
-
-/**
- * Convert attachments to AI SDK CoreMessage format
- * Transforms attachment data into the content format expected by AI models
- */
-export async function attachmentsToParts(
-	attachments: {
-		url: string;
-		mimeType: string;
-		type: AttachmentType;
-		textContent?: string;
-	}[]
-): Promise<(TextPart | ImagePart | FilePart)[]> {
-	return Promise.all(
-		attachments.map(async (attachment) => {
-			if (attachment.type === 'image') {
-				return {
-					type: 'image' as const,
-					image: attachment.url,
-				};
-			} else if (attachment.type === 'text') {
-				let content = attachment.textContent;
-				if (!content) {
-					try {
-						const text = await fetchTextFromUrl(attachment.url);
-						content = text;
-					} catch (error) {
-						console.error('Failed to fetch text content:', error);
-					}
-				}
-
-				return {
-					type: 'text' as const,
-					text: content!,
-				};
-			} else if (attachment.type === 'pdf') {
-				// For PDFs, similar approach - reference the URL
-				return {
-					type: 'file' as const,
-					data: attachment.url,
-					mimeType: attachment.mimeType,
-				};
-			}
-			return {
-				type: 'file' as const,
-				data: attachment.url,
-				mimeType: attachment.mimeType,
-			};
-		})
-	);
-}
-
-const stringToTextPart = (text: string): TextPart => {
-	return {
-		type: 'text',
-		text,
-	};
-};
-
-export async function messageToCoreMessage(
-	message: Message,
-	attachments?: { url: string; mimeType: string; type: AttachmentType }[]
-): Promise<CoreMessage> {
-	const textContent = message.content;
-
-	if (message.role === 'user') {
-		const userContent: UserContent = [];
-
-		if (textContent) userContent.push(stringToTextPart(textContent));
-
-		if (attachments?.length) {
-			const parts = await attachmentsToParts(attachments);
-			userContent.push(...parts);
-		}
-
-		return {
-			role: 'user',
-			content: userContent,
-		};
-	}
-
-	if (message.role === 'assistant') {
-		const assistantContent: AssistantContent = [];
-
-		if (textContent) assistantContent.push(stringToTextPart(textContent));
-
-		if (message.reasoning)
-			assistantContent.push({
-				type: 'reasoning' as const,
-				text: message.reasoning,
-			});
-
-		return {
-			role: 'assistant',
-			content: assistantContent,
-		};
-	}
-
-	return {
-		role: message.role,
-		content: message.content,
 	};
 }
 
