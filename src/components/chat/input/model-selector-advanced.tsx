@@ -78,12 +78,12 @@ export const ModelSelectorAdvanced = ({
 						)}>
 						{currentModelData && (
 							<div className="size-4">
-								{/* {(() => {
+								{(() => {
 									const LogoComponent = currentModelProviderLogo.monochrome;
 									return (
 										<LogoComponent className="text-muted-foreground size-4 shrink-0" />
 									);
-								})()} */}
+								})()}
 							</div>
 						)}
 						{currentModelData ? currentModelData.name : 'Select model'}
@@ -120,12 +120,12 @@ export const ModelSelectorAdvanced = ({
 										iconClassName="text-muted-foreground opacity-50 -mr-1">
 										<div className="flex items-center gap-2.5">
 											<div className="size-4">
-												{/* {(() => {
+												{(() => {
 													const LogoComponent = modelProviderLogo.monochrome;
 													return (
 														<LogoComponent className="text-muted-foreground size-4 shrink-0" />
 													);
-												})()} */}
+												})()}
 											</div>
 											{providerModelNames[provider as ModelProvider]}
 										</div>
