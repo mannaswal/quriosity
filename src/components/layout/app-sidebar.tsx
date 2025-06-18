@@ -234,10 +234,14 @@ export function AppSidebar({
 							<Avatar>
 								<AvatarImage src={user?.imageUrl} />
 								<AvatarFallback>
-									{user?.fullName?.charAt(0) ?? userData?.name?.charAt(0)}
+									{user?.fullName?.charAt(0) ??
+										userData?.name?.charAt(0) ??
+										userData?.email?.charAt(0)}
 								</AvatarFallback>
 							</Avatar>
-							<span className="ml-2">{user?.fullName ?? userData?.name}</span>
+							<span className="ml-2">
+								{user?.fullName ?? userData?.name ?? userData?.email}
+							</span>
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent

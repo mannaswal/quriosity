@@ -44,7 +44,7 @@ export const AttachmentType = v.union(
 
 export default defineSchema({
 	users: defineTable({
-		name: v.string(),
+		name: v.optional(v.string()),
 		email: v.optional(v.string()),
 		authId: v.string(),
 
