@@ -43,7 +43,10 @@ export function ProjectAttachmentsGrid({
 		return (
 			<div className="text-center py-8 border-2 border-dashed border-muted rounded-lg">
 				<div className="max-w-sm mx-auto">
-					<FileIcon className="size-12 mx-auto text-muted-foreground/50 mb-3" />
+					<FileIcon
+						className="size-12 mx-auto text-muted-foreground/50 mb-3"
+						strokeWidth={0.8}
+					/>
 					<p className="text-muted-foreground mb-2">No attachments yet</p>
 					<p className="text-sm text-muted-foreground/80">
 						Project attachments will be available to all conversations in this

@@ -9,6 +9,14 @@ import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { toast } from 'sonner';
 import { Project, ProjectWithAttachments } from '@/lib/types';
+import {
+	categorizeConvexError,
+	getToastErrorMessage,
+	getErrorRedirectPath,
+	shouldRedirectOnError,
+	getRedirectDelay,
+} from '@/lib/error-handling';
+import { useRouter } from 'next/navigation';
 
 /**
  * Hook to get all user projects
@@ -107,7 +115,13 @@ export function useCreateProject() {
 			toast.success('Project created successfully!');
 			return projectId;
 		} catch (error) {
-			toast.error('Failed to create project');
+			const errorType = categorizeConvexError(error as Error);
+			const errorMessage = getToastErrorMessage(
+				errorType,
+				'project',
+				'create project'
+			);
+			toast.error(errorMessage);
 			throw error;
 		}
 	};
@@ -117,6 +131,7 @@ export function useCreateProject() {
  * Hook for updating a project's name and/or system prompt
  */
 export function useUpdateProject() {
+	const router = useRouter();
 	const updateMutation = useConvexMutation(
 		api.projects.updateProject
 	).withOptimisticUpdate((localStore, args) => {
@@ -163,7 +178,25 @@ export function useUpdateProject() {
 			await updateMutation(args);
 			toast.success('Project updated successfully!');
 		} catch (error) {
-			toast.error('Failed to update project');
+			const errorType = categorizeConvexError(error as Error);
+			const redirectPath = getErrorRedirectPath(errorType, 'project');
+
+			// Show appropriate error message
+			const errorMessage = getToastErrorMessage(
+				errorType,
+				'project',
+				'update project'
+			);
+			toast.error(errorMessage);
+
+			// Handle redirects for critical errors
+			if (shouldRedirectOnError(errorType) && redirectPath) {
+				const delay = getRedirectDelay(errorType);
+				setTimeout(() => {
+					router.push(redirectPath);
+				}, delay);
+			}
+
 			throw error;
 		}
 	};
@@ -173,6 +206,7 @@ export function useUpdateProject() {
  * Hook for deleting a project
  */
 export function useDeleteProject() {
+	const router = useRouter();
 	const deleteMutation = useConvexMutation(
 		api.projects.deleteProject
 	).withOptimisticUpdate((localStore, args) => {
@@ -202,7 +236,25 @@ export function useDeleteProject() {
 			await deleteMutation({ projectId });
 			toast.success('Project deleted successfully!');
 		} catch (error) {
-			toast.error('Failed to delete project');
+			const errorType = categorizeConvexError(error as Error);
+			const redirectPath = getErrorRedirectPath(errorType, 'project');
+
+			// Show appropriate error message
+			const errorMessage = getToastErrorMessage(
+				errorType,
+				'project',
+				'delete project'
+			);
+			toast.error(errorMessage);
+
+			// Handle redirects for critical errors (unauthorized, not found)
+			if (shouldRedirectOnError(errorType) && redirectPath) {
+				const delay = getRedirectDelay(errorType);
+				setTimeout(() => {
+					router.push(redirectPath);
+				}, delay);
+			}
+
 			throw error;
 		}
 	};
@@ -212,6 +264,7 @@ export function useDeleteProject() {
  * Hook for adding an attachment to a project
  */
 export function useAddProjectAttachment() {
+	const router = useRouter();
 	const addMutation = useConvexMutation(
 		api.projects.addProjectAttachment
 	).withOptimisticUpdate((localStore, args) => {
@@ -255,7 +308,25 @@ export function useAddProjectAttachment() {
 			await addMutation(args);
 			toast.success('Attachment added to project!');
 		} catch (error) {
-			toast.error('Failed to add attachment to project');
+			const errorType = categorizeConvexError(error as Error);
+			const redirectPath = getErrorRedirectPath(errorType, 'project');
+
+			// Show appropriate error message
+			const errorMessage = getToastErrorMessage(
+				errorType,
+				'project',
+				'add attachment'
+			);
+			toast.error(errorMessage);
+
+			// Handle redirects for critical errors
+			if (shouldRedirectOnError(errorType) && redirectPath) {
+				const delay = getRedirectDelay(errorType);
+				setTimeout(() => {
+					router.push(redirectPath);
+				}, delay);
+			}
+
 			throw error;
 		}
 	};
@@ -265,6 +336,7 @@ export function useAddProjectAttachment() {
  * Hook for removing an attachment from a project
  */
 export function useRemoveProjectAttachment() {
+	const router = useRouter();
 	const removeMutation = useConvexMutation(
 		api.projects.removeProjectAttachment
 	).withOptimisticUpdate((localStore, args) => {
@@ -312,7 +384,25 @@ export function useRemoveProjectAttachment() {
 			await removeMutation(args);
 			toast.success('Attachment removed from project!');
 		} catch (error) {
-			toast.error('Failed to remove attachment from project');
+			const errorType = categorizeConvexError(error as Error);
+			const redirectPath = getErrorRedirectPath(errorType, 'project');
+
+			// Show appropriate error message
+			const errorMessage = getToastErrorMessage(
+				errorType,
+				'project',
+				'remove attachment'
+			);
+			toast.error(errorMessage);
+
+			// Handle redirects for critical errors
+			if (shouldRedirectOnError(errorType) && redirectPath) {
+				const delay = getRedirectDelay(errorType);
+				setTimeout(() => {
+					router.push(redirectPath);
+				}, delay);
+			}
+
 			throw error;
 		}
 	};

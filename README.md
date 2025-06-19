@@ -16,6 +16,8 @@ Made for the T3 Chat Cloneathon
 - [ ] Temporary chats
 - [ ] Bring Your Own Key
 - [ ] Memory
+- [ ] Search chats
+- [ ] Drag and drop attachments
 - [x] Web Search
 - [x] Chat Sharing
 - [-] Image and file previews

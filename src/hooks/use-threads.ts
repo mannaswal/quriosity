@@ -15,6 +15,13 @@ import {
 } from '@/stores/use-streaming-store';
 import { ModelId } from '@/lib/models';
 import { ReasoningEffort } from '@/lib/types';
+import {
+	categorizeConvexError,
+	getToastErrorMessage,
+	getErrorRedirectPath,
+	shouldRedirectOnError,
+	getRedirectDelay,
+} from '@/lib/error-handling';
 
 /**
  * Hook to get all user threads
@@ -64,6 +71,7 @@ export function useThread() {
  */
 export function useUpdateThreadModel() {
 	const threadId = useThreadId();
+	const router = useRouter();
 
 	const updateThreadModelMutation = useConvexMutation(
 		api.threads.updateThreadModel
@@ -108,10 +116,33 @@ export function useUpdateThreadModel() {
 	}) => {
 		if (!threadId) return;
 
-		await updateThreadModelMutation({
-			threadId,
-			...args,
-		});
+		try {
+			await updateThreadModelMutation({
+				threadId,
+				...args,
+			});
+		} catch (error) {
+			const errorType = categorizeConvexError(error as Error);
+			const redirectPath = getErrorRedirectPath(errorType, 'thread');
+
+			// Show appropriate error message
+			const errorMessage = getToastErrorMessage(
+				errorType,
+				'thread',
+				'update thread settings'
+			);
+			toast.error(errorMessage);
+
+			// Handle redirects for critical errors
+			if (shouldRedirectOnError(errorType) && redirectPath) {
+				const delay = getRedirectDelay(errorType);
+				setTimeout(() => {
+					router.push(redirectPath);
+				}, delay);
+			}
+
+			throw error;
+		}
 	};
 }
 
@@ -119,6 +150,7 @@ export function useUpdateThreadModel() {
  * Hook for pinning/unpinning threads with optimistic updates
  */
 export function usePinThread() {
+	const router = useRouter();
 	const pinMutation = useConvexMutation(
 		api.threads.pinThread
 	).withOptimisticUpdate((localStore, args) => {
@@ -154,7 +186,22 @@ export function usePinThread() {
 		try {
 			await pinMutation(args);
 		} catch (error) {
-			toast.error('Failed to update thread');
+			const errorType = categorizeConvexError(error as Error);
+			const redirectPath = getErrorRedirectPath(errorType, 'thread');
+
+			// Show appropriate error message
+			const action = args.pinned ? 'pin thread' : 'unpin thread';
+			const errorMessage = getToastErrorMessage(errorType, 'thread', action);
+			toast.error(errorMessage);
+
+			// Handle redirects for critical errors
+			if (shouldRedirectOnError(errorType) && redirectPath) {
+				const delay = getRedirectDelay(errorType);
+				setTimeout(() => {
+					router.push(redirectPath);
+				}, delay);
+			}
+
 			throw error;
 		}
 	};
@@ -164,6 +211,7 @@ export function usePinThread() {
  * Hook for archiving threads with optimistic updates
  */
 export function useArchiveThread() {
+	const router = useRouter();
 	const archiveMutation = useConvexMutation(
 		api.threads.archiveThread
 	).withOptimisticUpdate((localStore, args) => {
@@ -195,7 +243,22 @@ export function useArchiveThread() {
 		try {
 			await archiveMutation(args);
 		} catch (error) {
-			toast.error('Failed to update thread');
+			const errorType = categorizeConvexError(error as Error);
+			const redirectPath = getErrorRedirectPath(errorType, 'thread');
+
+			// Show appropriate error message
+			const action = args.archived ? 'archive thread' : 'unarchive thread';
+			const errorMessage = getToastErrorMessage(errorType, 'thread', action);
+			toast.error(errorMessage);
+
+			// Handle redirects for critical errors
+			if (shouldRedirectOnError(errorType) && redirectPath) {
+				const delay = getRedirectDelay(errorType);
+				setTimeout(() => {
+					router.push(redirectPath);
+				}, delay);
+			}
+
 			throw error;
 		}
 	};
@@ -205,6 +268,7 @@ export function useArchiveThread() {
  * Hook for deleting threads with optimistic updates
  */
 export function useDeleteThread() {
+	const router = useRouter();
 	const deleteMutation = useConvexMutation(
 		api.threads.deleteThread
 	).withOptimisticUpdate((localStore, args) => {
@@ -225,7 +289,25 @@ export function useDeleteThread() {
 			await deleteMutation({ threadId });
 			toast.success('Thread deleted!');
 		} catch (error) {
-			toast.error('Failed to delete thread');
+			const errorType = categorizeConvexError(error as Error);
+			const redirectPath = getErrorRedirectPath(errorType, 'thread');
+
+			// Show appropriate error message
+			const errorMessage = getToastErrorMessage(
+				errorType,
+				'thread',
+				'delete thread'
+			);
+			toast.error(errorMessage);
+
+			// Handle redirects for critical errors
+			if (shouldRedirectOnError(errorType) && redirectPath) {
+				const delay = getRedirectDelay(errorType);
+				setTimeout(() => {
+					router.push(redirectPath);
+				}, delay);
+			}
+
 			throw error;
 		}
 	};
@@ -235,6 +317,7 @@ export function useDeleteThread() {
  * Hook for renaming threads with optimistic updates
  */
 export function useRenameThread() {
+	const router = useRouter();
 	const renameMutation = useConvexMutation(
 		api.threads.renameThread
 	).withOptimisticUpdate((localStore, args) => {
@@ -266,7 +349,25 @@ export function useRenameThread() {
 		try {
 			await renameMutation(args);
 		} catch (error) {
-			toast.error('Failed to rename thread');
+			const errorType = categorizeConvexError(error as Error);
+			const redirectPath = getErrorRedirectPath(errorType, 'thread');
+
+			// Show appropriate error message
+			const errorMessage = getToastErrorMessage(
+				errorType,
+				'thread',
+				'rename thread'
+			);
+			toast.error(errorMessage);
+
+			// Handle redirects for critical errors
+			if (shouldRedirectOnError(errorType) && redirectPath) {
+				const delay = getRedirectDelay(errorType);
+				setTimeout(() => {
+					router.push(redirectPath);
+				}, delay);
+			}
+
 			throw error;
 		}
 	};
@@ -285,7 +386,25 @@ export function useBranchThread() {
 			router.push(`/chat/${newThreadId}`);
 			return newThreadId;
 		} catch (error) {
-			toast.error('Failed to branch thread.');
+			const errorType = categorizeConvexError(error as Error);
+			const redirectPath = getErrorRedirectPath(errorType, 'thread');
+
+			// Show appropriate error message
+			const errorMessage = getToastErrorMessage(
+				errorType,
+				'thread',
+				'branch thread'
+			);
+			toast.error(errorMessage);
+
+			// Handle redirects for critical errors
+			if (shouldRedirectOnError(errorType) && redirectPath) {
+				const delay = getRedirectDelay(errorType);
+				setTimeout(() => {
+					router.push(redirectPath);
+				}, delay);
+			}
+
 			console.error('Branching error:', error);
 			throw error;
 		}

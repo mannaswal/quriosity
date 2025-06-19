@@ -8,23 +8,53 @@ import { ProjectAttachmentsGrid } from '@/components/projects/project-attachment
 import { ProjectThreadsSection } from '@/components/projects/project-threads-section';
 import { ProjectWithAttachments } from '@/lib/types';
 import { ProjectUploadButton } from '@/components/projects/project-upload-button';
+import { ConvexErrorBoundary } from '@/components/error/convex-error-boundary';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export default function ProjectDetailPage() {
 	const params = useParams();
+	const router = useRouter();
 	const projectId = params.projectId as Id<'projects'>;
 	const projectData = useProjectData(projectId);
 
-	if (projectData === null) redirect('/projects');
+	// Enhanced error handling for project access
+	useEffect(() => {
+		if (projectData === null) {
+			toast.error('Project not found or you do not have access to it');
+			router.push('/projects');
+		}
+	}, [projectData, router]);
+
+	// Show loading state while project data is being fetched
+	if (projectData === undefined) {
+		return (
+			<div className="w-full flex flex-col">
+				<div className="animate-pulse space-y-4">
+					<div className="h-8 bg-muted rounded w-1/3"></div>
+					<div className="h-4 bg-muted rounded w-2/3"></div>
+				</div>
+			</div>
+		);
+	}
+
+	// Don't render if project data is null (will redirect)
+	if (projectData === null) {
+		return null;
+	}
 
 	return (
-		<div className="w-full flex flex-col">
-			{/* <ProjectBreadcrumbs currentProjectId={projectId} /> */}
-			<ProjectHeader projectId={projectId} />
-			<ProjectDetailPageContent
-				projectId={projectId}
-				projectData={projectData}
-			/>
-		</div>
+		<ConvexErrorBoundary context="project">
+			<div className="w-full flex flex-col">
+				{/* <ProjectBreadcrumbs currentProjectId={projectId} /> */}
+				<ProjectHeader projectId={projectId} />
+				<ProjectDetailPageContent
+					projectId={projectId}
+					projectData={projectData}
+				/>
+			</div>
+		</ConvexErrorBoundary>
 	);
 }
 

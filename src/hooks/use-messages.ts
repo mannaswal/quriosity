@@ -5,6 +5,13 @@ import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { toast } from 'sonner';
 import {
+	categorizeConvexError,
+	getToastErrorMessage,
+	getErrorRedirectPath,
+	shouldRedirectOnError,
+	getRedirectDelay,
+} from '@/lib/error-handling';
+import {
 	Message,
 	Project,
 	ProjectWithAttachments,
@@ -350,8 +357,28 @@ export function useSendMessage(opts?: {
 				console.log('Send message was aborted');
 				return;
 			}
+
 			updateWebSearch(webSearchEnabledInitial);
-			toast.error('Failed to send message');
+
+			const errorType = categorizeConvexError(error as Error);
+			const redirectPath = getErrorRedirectPath(errorType, 'message');
+
+			// Show appropriate error message
+			const errorMessage = getToastErrorMessage(
+				errorType,
+				'message',
+				'send message'
+			);
+			toast.error(errorMessage);
+
+			// Handle redirects for critical errors
+			if (shouldRedirectOnError(errorType) && redirectPath) {
+				const delay = getRedirectDelay(errorType);
+				setTimeout(() => {
+					router.push(redirectPath);
+				}, delay);
+			}
+
 			opts?.onError?.(error as Error);
 			throw error;
 		}

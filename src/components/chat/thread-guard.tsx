@@ -1,22 +1,35 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useThread } from '@/hooks/use-threads';
 import { toast } from 'sonner';
+import { useErrorHandler } from '@/hooks/use-error-handler';
+import { ConvexErrorBoundary } from '@/components/error/convex-error-boundary';
 
 export function ThreadGuard({ children }: { children: React.ReactNode }) {
 	const router = useRouter();
 	const thread = useThread();
+	const [errorHandled, setErrorHandled] = useState(false);
+	const { handleError } = useErrorHandler({
+		context: 'thread',
+		showToast: false, // We'll handle toasts manually for better messaging
+	});
 
 	// Handle thread deletion detection - only runs on thread pages
 	useEffect(() => {
-		if (thread === null) {
-			// Thread was deleted (query returned null, not undefined which means loading)
-			toast.error('This conversation has been deleted');
+		if (thread === null && !errorHandled) {
+			// Thread was deleted or not found (query returned null, not undefined which means loading)
+			toast.error('This conversation has been deleted or does not exist');
 			router.push('/');
+			setErrorHandled(true);
 		}
-	}, [thread, router]);
+	}, [thread, router, errorHandled]);
+
+	// Reset error state when thread changes
+	useEffect(() => {
+		setErrorHandled(false);
+	}, [thread?._id]);
 
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
@@ -35,5 +48,13 @@ export function ThreadGuard({ children }: { children: React.ReactNode }) {
 		};
 	}, [router]);
 
-	return <>{children}</>;
+	return (
+		<ConvexErrorBoundary
+			context="thread"
+			onError={(error, errorType) => {
+				console.error('Thread error caught by boundary:', error, errorType);
+			}}>
+			{children}
+		</ConvexErrorBoundary>
+	);
 }

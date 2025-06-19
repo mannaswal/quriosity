@@ -9,6 +9,11 @@ import {
 	useTempUseWebSearch,
 } from '@/stores/use-temp-data-store';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
+import {
+	categorizeConvexError,
+	getToastErrorMessage,
+} from '@/lib/error-handling';
 
 /**
  * Hook to get the current user's data.
@@ -34,6 +39,13 @@ export function useUpdateLastModelUsed() {
 		try {
 			return await mutation(args);
 		} catch (error) {
+			const errorType = categorizeConvexError(error as Error);
+			const errorMessage = getToastErrorMessage(
+				errorType,
+				'user',
+				'update model preference'
+			);
+			toast.error(errorMessage);
 			console.error('Failed to update last model used:', error);
 			throw error;
 		}
@@ -50,6 +62,13 @@ export function useUpdateUseWebSearch() {
 		try {
 			return await mutation({ useWebSearch });
 		} catch (error) {
+			const errorType = categorizeConvexError(error as Error);
+			const errorMessage = getToastErrorMessage(
+				errorType,
+				'user',
+				'update web search preference'
+			);
+			toast.error(errorMessage);
 			console.error('Failed to update web search preference:', error);
 			throw error;
 		}
@@ -94,6 +113,13 @@ export function useUpdateWebSearch() {
 		try {
 			await updateUseWebSearch(useWebSearch);
 		} catch (error) {
+			const errorType = categorizeConvexError(error as Error);
+			const errorMessage = getToastErrorMessage(
+				errorType,
+				'user',
+				'update web search setting'
+			);
+			toast.error(errorMessage);
 			console.error('Failed to update web search preference:', error);
 			// Revert temp store on error
 			setUseWebSearch(!useWebSearch);
