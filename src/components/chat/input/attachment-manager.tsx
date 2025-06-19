@@ -17,6 +17,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { TooltipWrapper } from '@/components/ui/tooltip-wrapper';
 
 interface AttachmentManagerProps {
 	modelId?: ModelId;
@@ -381,43 +382,38 @@ export function AttachmentManager({
 
 	return (
 		<div className="flex items-center gap-2">
-			<Tooltip delayDuration={400}>
-				<TooltipTrigger asChild>
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={() => {
-							const input = document.createElement('input');
-							input.type = 'file';
-							input.multiple = true;
-							input.accept = capabilities.acceptString;
-							input.onchange = (e) => {
-								const files = Array.from(
-									(e.target as HTMLInputElement).files || []
-								);
-								handleFileSelection(files);
-							};
-							input.click();
-						}}
-						disabled={disabled}>
-						<PaperclipIcon
-							strokeWidth={1.4}
-							className="size-4 text-foreground"
-						/>
-					</Button>
-				</TooltipTrigger>
-				<TooltipContent
-					side="top"
-					align="center"
-					className="w-auto">
-					<div className="text-xs space-y-1">
+			<TooltipWrapper
+				tooltip={
+					<div>
 						<div>Accepts: {capabilities.acceptedTypesText}</div>
-						<div className=" opacity-75 text-muted-foreground">
-							Click to browse, or paste files directly
+						<div className="opacity-75 text-muted-foreground mt-0.5">
+							Click to browse, or simply paste
 						</div>
 					</div>
-				</TooltipContent>
-			</Tooltip>
+				}>
+				<Button
+					variant="ghost"
+					size="icon"
+					onClick={() => {
+						const input = document.createElement('input');
+						input.type = 'file';
+						input.multiple = true;
+						input.accept = capabilities.acceptString;
+						input.onchange = (e) => {
+							const files = Array.from(
+								(e.target as HTMLInputElement).files || []
+							);
+							handleFileSelection(files);
+						};
+						input.click();
+					}}
+					disabled={disabled}>
+					<PaperclipIcon
+						strokeWidth={1.4}
+						className="size-4 text-foreground"
+					/>
+				</Button>
+			</TooltipWrapper>
 		</div>
 	);
 }

@@ -53,7 +53,11 @@ export default async function RootLayout({
 					<ConvexClientProvider>
 						<NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
 						{children}
-						<Toaster />
+						<Toaster
+							toastOptions={{
+								className: 'rounded-2xl dark:bg-rose-500',
+							}}
+						/>
 					</ConvexClientProvider>
 				</ClerkProvider>
 			</body>

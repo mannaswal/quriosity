@@ -335,3 +335,56 @@ export function useStopStream() {
 		}
 	};
 }
+
+/**
+ * Hook for updating a thread's project assignment
+ */
+export function useUpdateThreadProject() {
+	const updateMutation = useConvexMutation(
+		api.threads.updateThreadProject
+	).withOptimisticUpdate((localStore, args) => {
+		const { threadId, projectId } = args;
+
+		// Update the specific thread
+		const currentThread = localStore.getQuery(api.threads.getThreadById, {
+			threadId,
+		});
+		if (currentThread) {
+			localStore.setQuery(
+				api.threads.getThreadById,
+				{ threadId },
+				{ ...currentThread, projectId }
+			);
+		}
+
+		// Update threads list if it exists
+		const threadsList = localStore.getQuery(api.threads.getUserThreads, {});
+		if (threadsList) {
+			const updatedList = threadsList.map((thread) =>
+				thread._id === threadId ? { ...thread, projectId } : thread
+			);
+			localStore.setQuery(api.threads.getUserThreads, {}, updatedList);
+		}
+	});
+
+	return async (args: {
+		threadId: Id<'threads'>;
+		projectId?: Id<'projects'>;
+	}) => {
+		try {
+			await updateMutation(args);
+			const actionText = args.projectId
+				? 'added to project'
+				: 'removed from project';
+			toast.success(`Thread ${actionText} successfully!`, {
+				description: args.projectId
+					? 'New messages will include project context.'
+					: undefined,
+				duration: args.projectId ? 4000 : undefined,
+			});
+		} catch (error) {
+			toast.error('Failed to update thread project');
+			throw error;
+		}
+	};
+}

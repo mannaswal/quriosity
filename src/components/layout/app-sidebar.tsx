@@ -108,11 +108,11 @@ export function AppSidebar({
 	];
 
 	return (
-		<Sidebar variant="sidebar">
+		<Sidebar>
 			<SidebarHeader className="flex flex-col items-center justify-between relative">
 				<Link
 					href="/"
-					className="rounded-lg w-full">
+					className="rounded-lg">
 					<h1
 						className={cn(
 							'text-xl font-medium p-2 tracking-tight text-center',
@@ -149,14 +149,15 @@ export function AppSidebar({
 					<>
 						{projects && projects.length > 0 && (
 							<SidebarGroup>
-								<Link href="/projects">
-									<Button
-										variant="ghost"
-										size={'sm'}
-										className="w-full justify-start px-0">
+								<Button
+									variant="ghost"
+									size={'sm'}
+									className="w-full justify-start px-0"
+									asChild>
+									<Link href="/projects">
 										<SidebarGroupLabel>Projects</SidebarGroupLabel>
-									</Button>
-								</Link>
+									</Link>
+								</Button>
 								<SidebarGroupContent>
 									<SidebarMenu>
 										{projects.slice(0, 5).map((project) => (
@@ -194,9 +195,8 @@ export function AppSidebar({
 							);
 						})}
 						{groupedThreads.archived.length > 0 && (
-							<Disclosure className="group/collapsible sticky bottom-0 left-0 right-0 bg-[#141414] z-10">
+							<Disclosure className="group/collapsible sticky -bottom-px left-0 right-0 bg-[#141414] z-10 pb-px mt-auto">
 								<div className="h-6 absolute top-0 left-0 -translate-y-full w-full bg-gradient-to-t from-[#141414] to-transparent z-20 pointer-events-none" />
-
 								<SidebarGroup className="pt-1 pb-0">
 									<DisclosureTrigger>
 										<SidebarGroupLabel asChild>

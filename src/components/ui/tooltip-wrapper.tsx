@@ -9,12 +9,13 @@ export function TooltipWrapper({
 	children,
 	tooltip,
 	defaultOpen,
-	delayDuration,
+	delayDuration = 400,
 	align = 'center',
 	side = 'top',
 	sideOffset = 4,
 	alignOffset = 0,
 	className,
+	disabled,
 }: {
 	children: React.ReactNode;
 	tooltip: React.ReactNode | string;
@@ -25,12 +26,15 @@ export function TooltipWrapper({
 	sideOffset?: number;
 	alignOffset?: number;
 	className?: string;
+	disabled?: boolean;
 }) {
 	return (
 		<Tooltip
 			defaultOpen={defaultOpen}
 			delayDuration={delayDuration}>
-			<TooltipTrigger asChild>
+			<TooltipTrigger
+				disabled={disabled}
+				asChild>
 				<div>{children}</div>
 			</TooltipTrigger>
 			<TooltipContent

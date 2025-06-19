@@ -527,3 +527,36 @@ export const getStreamingMessage = query({
 			.first();
 	},
 });
+
+/**
+ * Update a thread's project assignment
+ * Only the thread owner can update their thread's project
+ */
+export const updateThreadProject = mutation({
+	args: {
+		threadId: v.id('threads'),
+		projectId: v.optional(v.id('projects')), // undefined to remove from project
+	},
+	handler: async (ctx, args) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('Not authenticated');
+
+		// Verify thread ownership
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread) throw new Error('Thread not found');
+		if (thread.userId !== user._id) throw new Error('Unauthorized');
+
+		// Verify project ownership if projectId is provided
+		if (args.projectId) {
+			const project = await ctx.db.get(args.projectId);
+			if (!project) throw new Error('Project not found');
+			if (project.userId !== user._id) throw new Error('Unauthorized');
+		}
+
+		await ctx.db.patch(args.threadId, {
+			projectId: args.projectId,
+		});
+
+		return { success: true };
+	},
+});
