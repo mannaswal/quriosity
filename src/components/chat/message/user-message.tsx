@@ -34,7 +34,8 @@ export function UserMessage({ message }: UserMessageProps) {
 
 	const handleRegenerate = async (
 		model?: ModelId,
-		reasoningEffort?: ReasoningEffort
+		reasoningEffort?: ReasoningEffort,
+		useWebSearch?: boolean
 	) => {
 		try {
 			setIsEditing(false);
@@ -45,6 +46,7 @@ export function UserMessage({ message }: UserMessageProps) {
 					threadId: message.threadId,
 					model: model ?? (message.model as ModelId),
 					reasoningEffort: reasoningEffort ?? message.reasoningEffort,
+					useWebSearch: useWebSearch ?? message.useWebSearch,
 				});
 			} else if (editedContent.trim()) {
 				// If the edited content is different, edit and resubmit the message
@@ -54,26 +56,11 @@ export function UserMessage({ message }: UserMessageProps) {
 					newContent: editedContent,
 					model: model ?? (message.model as ModelId),
 					reasoningEffort: reasoningEffort ?? message.reasoningEffort,
+					useWebSearch: useWebSearch ?? message.useWebSearch,
 				});
 			}
 		} catch (error) {
 			toast.error('Failed to regenerate message');
-		}
-	};
-
-	const handleSaveEdit = async () => {
-		if (editedContent.trim()) {
-			try {
-				await editAndResubmit({
-					userMessageId: message._id,
-					threadId: message.threadId,
-					newContent: editedContent,
-					model: message.model as ModelId,
-					reasoningEffort: message.reasoningEffort as ReasoningEffort,
-				});
-			} catch (error) {
-				toast.error('Failed to edit message');
-			}
 		}
 	};
 
@@ -96,8 +83,7 @@ export function UserMessage({ message }: UserMessageProps) {
 					onKeyDown={(e) => {
 						if (e.key === 'Enter' && !e.shiftKey) {
 							e.preventDefault();
-							handleSaveEdit();
-							setIsEditing(false);
+							handleRegenerate();
 						} else if (e.key === 'Escape') {
 							setIsEditing(false);
 						}

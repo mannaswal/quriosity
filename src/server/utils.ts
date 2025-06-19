@@ -199,12 +199,21 @@ export async function messageToCoreMessage(
 	};
 }
 
-export const cleanModelId = (modelId: ModelId) => {
+export const cleanModelId = (modelId: ModelId, useWebSearch?: boolean) => {
+	let cleanId = modelId;
+
+	// Clean reasoning variants
 	if (modelId === 'anthropic/claude-sonnet-4:reasoning')
-		return 'anthropic/claude-sonnet-4';
+		cleanId = 'anthropic/claude-sonnet-4';
 	if (modelId === 'google/gemini-2.5-flash-lite-preview-06-17:thinking')
-		return 'google/gemini-2.5-flash-lite-preview-06-17';
-	return modelId;
+		cleanId = 'google/gemini-2.5-flash-lite-preview-06-17';
+
+	// Append :online for web search if enabled
+	if (useWebSearch) {
+		cleanId += ':online';
+	}
+
+	return cleanId;
 };
 
 const EffortToMaxTokensPercent = {

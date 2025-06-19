@@ -101,6 +101,7 @@ export default defineSchema({
 
 		model: v.string(),
 		reasoningEffort: v.optional(ReasoningEffort),
+		useWebSearch: v.optional(v.boolean()),
 
 		attachmentIds: v.optional(v.array(v.id('attachments'))),
 	})

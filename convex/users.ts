@@ -85,3 +85,20 @@ export const updateLastModelUsed = mutation({
 		});
 	},
 });
+
+/**
+ * Update the user's web search preference.
+ */
+export const updateUseWebSearch = mutation({
+	args: {
+		useWebSearch: v.boolean(),
+	},
+	handler: async (ctx, { useWebSearch }) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('User not found.');
+
+		return await ctx.db.patch(user._id, {
+			useWebSearch,
+		});
+	},
+});

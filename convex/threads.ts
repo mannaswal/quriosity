@@ -120,11 +120,11 @@ export const updateThreadModel = mutation({
 			throw new Error('Unauthorized');
 		}
 
-		const patch: Record<string, string | typeof ReasoningEffort> = {};
+		const patch: Record<string, string | typeof ReasoningEffort | boolean> = {};
 		if (args.model) patch.model = args.model;
 		if (args.reasoningEffort) patch.reasoningEffort = args.reasoningEffort;
 
-		// Update the thread's current model
+		// Update the thread's current settings
 		await ctx.db.patch(args.threadId, patch);
 	},
 });
@@ -145,7 +145,6 @@ export const createThread = mutation({
 		if (args.projectId) {
 			const project = await ctx.db.get(args.projectId);
 			if (!project) throw new Error('Project not found');
-
 			if (project.userId !== user._id) throw new Error('Unauthorized');
 		}
 
@@ -179,6 +178,7 @@ export const setupThread = mutation({
 		threadId: v.id('threads'),
 		model: v.string(),
 		reasoningEffort: v.optional(ReasoningEffort),
+		useWebSearch: v.optional(v.boolean()),
 		messageContent: v.string(),
 		attachmentIds: v.optional(v.array(v.id('attachments'))),
 	},
@@ -187,7 +187,8 @@ export const setupThread = mutation({
 		if (!user) throw new Error('Not authenticated');
 
 		const thread = await ctx.db.get(args.threadId);
-		if (!thread || thread.userId !== user._id) throw new Error('Unauthorized');
+		if (!thread) throw new Error('Thread not found');
+		if (thread.userId !== user._id) throw new Error('Unauthorized');
 
 		const userMessageId = await ctx.db.insert('messages', {
 			...DefaultUserMessage,
@@ -195,6 +196,7 @@ export const setupThread = mutation({
 			threadId: args.threadId,
 			model: args.model,
 			reasoningEffort: args.reasoningEffort,
+			useWebSearch: args.useWebSearch,
 			content: args.messageContent,
 			attachmentIds: args.attachmentIds || [],
 		});
@@ -205,6 +207,7 @@ export const setupThread = mutation({
 			threadId: args.threadId,
 			model: args.model,
 			reasoningEffort: args.reasoningEffort,
+			useWebSearch: args.useWebSearch,
 		});
 
 		const allMessages = await ctx.db

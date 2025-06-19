@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
 			// Optional
 			reasoningEffort,
 			projectData,
+			useWebSearch,
 		} = await request.json();
 
 		if (
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
 			convexClient
 		);
 
-		const cleanModel = cleanModelId(model);
+		const cleanModel = cleanModelId(model, useWebSearch);
 
 		const response = streamText({
 			model: openrouter.chat(cleanModel, {

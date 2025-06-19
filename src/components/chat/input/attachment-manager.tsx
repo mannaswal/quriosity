@@ -205,6 +205,7 @@ export function AttachmentManager({
 							try {
 								const response = await fetch(result.serverData.url);
 								textContent = await response.text();
+								console.log('textContent', textContent);
 							} catch (error) {
 								console.error('Failed to extract text content:', error);
 							}

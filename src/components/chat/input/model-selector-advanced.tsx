@@ -231,9 +231,9 @@ export const ModelSelectorItem = ({
 				{visionIncompatible && (
 					<EyeOffIcon className={cn('text-red-400 size-3 shrink-0')} />
 				)}
-				{modelData.webSearch && (
+				{/* {modelData.webSearch && (
 					<GlobeIcon className={cn('text-blue-400', iconClassName)} />
-				)}
+				)} */}
 				{modelData.docs && (
 					<FileTextIcon className={cn('text-gray-300', iconClassName)} />
 				)}

@@ -292,7 +292,3 @@
 	scrollbar-gutter: stable both-edges;
 	overflow-y: scroll;
 }
-
-#chat-container > :first-child * {
-	overflow-y: auto;
-}

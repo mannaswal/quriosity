@@ -79,19 +79,20 @@ export function AppBreadcrumbs() {
 							<Kbd>O</Kbd>
 						</>
 					}>
-					<Link
-						href="/"
-						className={cn(
-							'transition-opacity duration-100',
-							open ? 'opacity-0' : 'opacity-100'
-						)}>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="size-7 rounded-md z-30">
+					<Button
+						variant="ghost"
+						size="icon"
+						className="size-7 rounded-md z-30"
+						asChild>
+						<Link
+							href="/"
+							className={cn(
+								'transition-opacity duration-100',
+								open ? 'opacity-0' : 'opacity-100'
+							)}>
 							<PlusIcon className="size-4" />
-						</Button>
-					</Link>
+						</Link>
+					</Button>
 				</TooltipWrapper>
 			</div>
 			{route === 'projects' && (

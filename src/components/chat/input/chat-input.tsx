@@ -1,6 +1,6 @@
 'use client';
 
-import { SendIcon, StopCircleIcon } from 'lucide-react';
+import { SendIcon, StopCircleIcon, GlobeIcon } from 'lucide-react';
 import {
 	PromptInput,
 	PromptInputAction,
@@ -32,6 +32,7 @@ import { Thread, User } from '@/lib/types';
 import { ModelId } from '@/lib/models';
 import { TooltipWrapper } from '@/components/ui/tooltip-wrapper';
 import { useThreads } from '@/hooks/use-threads';
+import { useWebSearch, useUpdateWebSearch } from '@/hooks/use-user';
 
 export function ChatInput({
 	thread,
@@ -124,6 +125,11 @@ export function ChatInput({
 						</PromptInputAction>
 						<PromptInputAction
 							delayDuration={300}
+							tooltip="Web search">
+							<WebSearchToggle />
+						</PromptInputAction>
+						<PromptInputAction
+							delayDuration={300}
 							tooltip="Project">
 							<ProjectSelector />
 						</PromptInputAction>
@@ -161,5 +167,38 @@ export function ChatInput({
 				</PromptInputActions>
 			</PromptInput>
 		</div>
+	);
+}
+
+function WebSearchToggle() {
+	const webSearchEnabled = useWebSearch();
+	const updateWebSearch = useUpdateWebSearch();
+
+	const handleToggle = async () => {
+		try {
+			await updateWebSearch(!webSearchEnabled);
+		} catch (error) {
+			toast.error('Failed to update web search preference');
+		}
+	};
+
+	return (
+		<TooltipWrapper
+			tooltip={webSearchEnabled ? 'Disable web search' : 'Enable web search'}>
+			<Button
+				onClick={handleToggle}
+				variant="ghost"
+				size="icon"
+				className={` ${
+					webSearchEnabled
+						? 'bg-muted text-sky-400 hover:text-sky-400'
+						: 'text-foreground hover:text-foreground'
+				}`}>
+				<GlobeIcon
+					className="size-4"
+					strokeWidth={1.2}
+				/>
+			</Button>
+		</TooltipWrapper>
 	);
 }

@@ -160,8 +160,12 @@ export const regenerateResponse = mutation({
 		messageId: v.id('messages'),
 		updatedModel: v.optional(v.string()),
 		updatedReasoningEffort: v.optional(ReasoningEffort),
+		updatedUseWebSearch: v.optional(v.boolean()),
 	},
-	handler: async (ctx, { messageId, updatedModel, updatedReasoningEffort }) => {
+	handler: async (
+		ctx,
+		{ messageId, updatedModel, updatedReasoningEffort, updatedUseWebSearch }
+	) => {
 		const user = await getUser(ctx);
 		if (!user) {
 			throw new Error('User not authenticated.');
@@ -185,6 +189,12 @@ export const regenerateResponse = mutation({
 			? updatedReasoningEffort
 			: message.reasoningEffort;
 
+		// if there is an updated web search, use it, otherwise use the original web search
+		const useWebSearchUsed =
+			updatedUseWebSearch !== undefined
+				? updatedUseWebSearch
+				: message.useWebSearch;
+
 		if (message.role === 'user') {
 			// if the message that initiated this mutation is a user message, use it
 			userMessage = message;
@@ -207,14 +217,16 @@ export const regenerateResponse = mutation({
 			if (userMessage.role !== 'user') throw new Error('Invalid user message.');
 		}
 
-		// if the model or reasoning effort has been updated, update the user message
+		// if the model, reasoning effort, or web search has been updated, update the user message
 		if (
 			userMessage.model !== modelUsed ||
-			userMessage.reasoningEffort !== reasoningEffortUsed
+			userMessage.reasoningEffort !== reasoningEffortUsed ||
+			userMessage.useWebSearch !== useWebSearchUsed
 		) {
 			await ctx.db.patch(userMessage._id, {
 				model: modelUsed,
 				reasoningEffort: reasoningEffortUsed,
+				useWebSearch: useWebSearchUsed,
 			});
 		}
 
@@ -245,6 +257,7 @@ export const regenerateResponse = mutation({
 			threadId: userMessage.threadId,
 			model: modelUsed,
 			reasoningEffort: reasoningEffortUsed,
+			useWebSearch: useWebSearchUsed,
 		};
 
 		// Create a new placeholder message for the assistant
@@ -263,10 +276,17 @@ export const editAndResubmit = mutation({
 		newContent: v.string(),
 		updatedModel: v.optional(v.string()),
 		updatedReasoningEffort: v.optional(ReasoningEffort),
+		updatedUseWebSearch: v.optional(v.boolean()),
 	},
 	handler: async (
 		ctx,
-		{ userMessageId, newContent, updatedModel, updatedReasoningEffort }
+		{
+			userMessageId,
+			newContent,
+			updatedModel,
+			updatedReasoningEffort,
+			updatedUseWebSearch,
+		}
 	) => {
 		const user = await getUser(ctx);
 		if (!user) throw new Error('User not authenticated.');
@@ -292,11 +312,18 @@ export const editAndResubmit = mutation({
 			? updatedReasoningEffort
 			: userMessage.reasoningEffort;
 
+		// if there is an updated web search, use it, otherwise use the original web search
+		const useWebSearchUsed =
+			updatedUseWebSearch !== undefined
+				? updatedUseWebSearch
+				: userMessage.useWebSearch;
+
 		// 1. Update the user's message content
 		await ctx.db.patch(userMessage._id, {
 			content: newContent,
 			model: modelUsed,
 			reasoningEffort: reasoningEffortUsed,
+			useWebSearch: useWebSearchUsed,
 		});
 
 		// 2. Find and delete all messages that came after the user's message
@@ -327,6 +354,7 @@ export const editAndResubmit = mutation({
 			threadId: userMessage.threadId,
 			model: modelUsed,
 			reasoningEffort: reasoningEffortUsed,
+			useWebSearch: useWebSearchUsed,
 		};
 
 		// Create a new placeholder message for the assistant

@@ -33,6 +33,7 @@ import {
 	useProjectDataByThreadId,
 	useProjects,
 } from './use-projects';
+import { useUpdateWebSearch, useWebSearch } from './use-user';
 
 export function useMessages(): Message[] {
 	const threadId = useThreadId();
@@ -159,6 +160,7 @@ function useStreamMessage() {
 		assistantMessageId: Id<'messages'>;
 		messageHistory: Message[];
 		projectData?: ProjectWithAttachments;
+		useWebSearch?: boolean;
 	}) => {
 		const {
 			threadId,
@@ -167,6 +169,7 @@ function useStreamMessage() {
 			assistantMessageId,
 			messageHistory,
 			projectData,
+			useWebSearch,
 		} = input;
 		addStreamingMessage(threadId, assistantMessageId, '', '');
 
@@ -180,6 +183,7 @@ function useStreamMessage() {
 					reasoningEffort,
 					messages: messageHistory,
 					projectData,
+					useWebSearch,
 				}),
 			});
 
@@ -256,6 +260,8 @@ export function useSendMessage(opts?: {
 
 	const { model, reasoningEffort } = useModel();
 	const getReasoningEffort = useReasoningEffort();
+	const webSearchEnabled = useWebSearch();
+	const updateWebSearch = useUpdateWebSearch();
 
 	const tempAttachments = useTempAttachments();
 	const allAttachmentsUploaded = useAllAttachmentsUploaded();
@@ -279,6 +285,9 @@ export function useSendMessage(opts?: {
 			return;
 		}
 
+		const webSearchEnabledInitial = webSearchEnabled;
+		updateWebSearch(false);
+
 		try {
 			// Convert temp attachments to DB entries
 			let attachmentIds: Id<'attachments'>[] = [];
@@ -293,6 +302,7 @@ export function useSendMessage(opts?: {
 									url: tempAtt.url,
 									mimeType: tempAtt.mimeType,
 									key: tempAtt.uploadThingKey,
+									textContent: tempAtt.textContent,
 								};
 						})
 						.filter((item) => item !== undefined),
@@ -318,6 +328,7 @@ export function useSendMessage(opts?: {
 				threadId: targetThreadId,
 				model,
 				reasoningEffort: getReasoningEffort(model, reasoningEffort),
+				useWebSearch: webSearchEnabled,
 				messageContent,
 				attachmentIds,
 			});
@@ -330,6 +341,7 @@ export function useSendMessage(opts?: {
 				assistantMessageId,
 				messageHistory: allMessages,
 				projectData: projectData ?? undefined,
+				useWebSearch: webSearchEnabledInitial,
 			});
 
 			opts?.onSuccess?.();
@@ -338,6 +350,7 @@ export function useSendMessage(opts?: {
 				console.log('Send message was aborted');
 				return;
 			}
+			updateWebSearch(webSearchEnabledInitial);
 			toast.error('Failed to send message');
 			opts?.onError?.(error as Error);
 			throw error;
@@ -374,6 +387,7 @@ export function useRegenerate(opts?: {
 		threadId: Id<'threads'>;
 		model: ModelId;
 		reasoningEffort: ReasoningEffort | undefined;
+		useWebSearch: boolean | undefined;
 	}) => {
 		try {
 			if (getStreamingMessage(args.threadId)) {
@@ -393,6 +407,7 @@ export function useRegenerate(opts?: {
 					messageId: args.messageId,
 					updatedModel: args.model,
 					updatedReasoningEffort: effort,
+					updatedUseWebSearch: args.useWebSearch,
 				});
 
 			removeStreamingMessage(args.threadId);
@@ -405,6 +420,7 @@ export function useRegenerate(opts?: {
 				assistantMessageId,
 				messageHistory: messages,
 				projectData: projectData,
+				useWebSearch: args.useWebSearch,
 			});
 
 			opts?.onSuccess?.();
@@ -449,6 +465,7 @@ export function useEditAndResubmit(opts?: {
 		newContent: string;
 		model: ModelId;
 		reasoningEffort: ReasoningEffort | undefined;
+		useWebSearch: boolean | undefined;
 	}) => {
 		try {
 			const currentStreamingMessage = getStreamingMessage(args.threadId);
@@ -470,6 +487,7 @@ export function useEditAndResubmit(opts?: {
 					newContent: args.newContent,
 					updatedModel: args.model,
 					updatedReasoningEffort: effort,
+					updatedUseWebSearch: args.useWebSearch,
 				});
 
 			removeStreamingMessage(args.threadId);
@@ -482,6 +500,7 @@ export function useEditAndResubmit(opts?: {
 				assistantMessageId,
 				messageHistory: messages,
 				projectData: projectData,
+				useWebSearch: args.useWebSearch,
 			});
 
 			opts?.onSuccess?.();

@@ -47,12 +47,15 @@ import { usePreviousMessage } from '@/hooks/use-messages';
 import { useAttachments, useMessageAttachments } from '@/hooks/use-attachments';
 import { modelProviderLogos } from '@/lib/provider-logos';
 import { TooltipWrapper } from '@/components/ui/tooltip-wrapper';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface RetryButtonAdvancedProps {
 	message: Message;
 	handleRegenerate: (
 		model?: ModelId,
-		reasoningEffort?: ReasoningEffort
+		reasoningEffort?: ReasoningEffort,
+		useWebSearch?: boolean
 	) => Promise<void>;
 	onOpenChange?: (open: boolean) => void;
 }
@@ -73,6 +76,7 @@ export const RetryButtonAdvanced = ({
 	message,
 }: RetryButtonAdvancedProps) => {
 	const [isOpen, setIsOpen] = useState(false);
+	const [useWebSearch, setUseWebSearch] = useState(!!message.useWebSearch);
 	const getReasoningEffort = useReasoningEffort();
 	const updateModel = useUpdateModel();
 
@@ -101,7 +105,8 @@ export const RetryButtonAdvanced = ({
 			// Directly regenerate with the new model and reasoning level
 			await handleRegenerate(
 				selectedModel,
-				getReasoningEffort(selectedModel, reasoningLevel)
+				getReasoningEffort(selectedModel, reasoningLevel),
+				useWebSearch
 			);
 		} catch (error) {
 			console.error('Failed to change model and retry:', error);
@@ -156,8 +161,7 @@ export const RetryButtonAdvanced = ({
 				)}
 				<DropdownMenuGroup>
 					<TooltipWrapper
-						side={isAssistant ? 'left' : 'right'}
-						sideOffset={8}
+						side={'right'}
 						tooltip={
 							<div className="text-xs flex items-center gap-1">
 								Tip: right-click{' '}
@@ -166,13 +170,34 @@ export const RetryButtonAdvanced = ({
 						}>
 						<DropdownMenuItem
 							className="cursor-pointer"
-							onClick={() => handleRegenerate()}>
+							onClick={() =>
+								handleRegenerate(undefined, undefined, useWebSearch)
+							}>
 							<div className="flex items-center gap-2">
 								<RefreshCcwIcon className="size-4 opacity-60" />
-								Retry Same
+								{useWebSearch === !!message.useWebSearch
+									? 'Retry same'
+									: 'Retry'}
 							</div>
 						</DropdownMenuItem>
 					</TooltipWrapper>
+
+					<DropdownMenuSeparator className="h-[0.5px]" />
+					<DropdownMenuItem
+						onClick={(e) => {
+							e.preventDefault();
+							setUseWebSearch(!useWebSearch);
+						}}
+						className="flex items-center gap-2 cursor-pointer">
+						<GlobeIcon
+							strokeWidth={1.5}
+							className={cn(
+								'size-[15px] m-[0.5px] opacity-60',
+								useWebSearch && 'text-sky-400 opacity-80'
+							)}
+						/>
+						{useWebSearch ? 'Search on' : 'Search off'}
+					</DropdownMenuItem>
 
 					<DropdownMenuSeparator className="h-[0.5px]" />
 
@@ -230,6 +255,7 @@ export const RetryButtonAdvanced = ({
 													modelsData[modelId].effortControl;
 												const isIncompatible =
 													!modelsCompatibility[modelId].isCompatible;
+												const isSameModel = modelId === currentModelId;
 
 												if (hasEffortControl) {
 													// Model with reasoning - show submenu for reasoning levels
@@ -238,7 +264,7 @@ export const RetryButtonAdvanced = ({
 															<DropdownMenuSubTrigger
 																className={cn(
 																	'cursor-pointer',
-																	modelId === currentModelId && 'bg-muted',
+																	isSameModel && 'bg-muted',
 																	isIncompatible &&
 																		'opacity-50 cursor-not-allowed'
 																)}
@@ -289,6 +315,7 @@ export const RetryButtonAdvanced = ({
 														<DropdownMenuItem
 															className={cn(
 																'cursor-pointer',
+																isSameModel && 'bg-muted',
 																isIncompatible &&
 																	'opacity-50 cursor-not-allowed'
 															)}

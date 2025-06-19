@@ -29,8 +29,8 @@ export type ModelProperty = {
 	id: ModelId;
 	/** Whether the model has vision (image input) capabilities. */
 	vision?: boolean;
-	/** Whether the model can perform web searches. */
-	webSearch?: boolean;
+	// /** Whether the model can perform web searches. */
+	// webSearch?: boolean;
 	/** Whether the model supports file docs. */
 	docs?: boolean;
 	/** Whether the model has enhanced reasoning capabilities. */
@@ -55,7 +55,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		name: 'Gemini 2.5 Flash',
 		id: 'google/gemini-2.5-flash-preview-05-20' as const,
 		vision: true,
-		webSearch: true,
+		// webSearch: true,
 		docs: true,
 	},
 	'google/gemini-2.5-flash-preview-05-20:thinking': {
@@ -63,7 +63,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		name: 'Gemini 2.5 Flash (Thinking)',
 		id: 'google/gemini-2.5-flash-preview-05-20:thinking' as const,
 		vision: true,
-		webSearch: true,
+		// webSearch: true,
 		docs: true,
 		reasoning: true,
 		effortControl: true,
@@ -74,7 +74,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		name: 'Gemini 2.5 Pro',
 		id: 'google/gemini-2.5-pro-preview-05-06' as const,
 		vision: true,
-		webSearch: true,
+		// webSearch: true,
 		docs: true,
 		reasoning: true,
 		effortControl: true,
@@ -111,7 +111,7 @@ export const modelsData: Record<ModelId, ModelProperty> = {
 		name: 'Gemini 2.0 Flash',
 		id: 'google/gemini-2.0-flash-001' as const,
 		vision: true,
-		webSearch: true,
+		// webSearch: true,
 		docs: true,
 	},
 	'google/gemini-2.0-flash-lite-001': {

@@ -5,7 +5,13 @@ import { canReason, cap, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Markdown } from '@/components/ui/markdown';
 import { Message } from '@/components/ui/message';
-import { CheckIcon, CopyIcon, SplitIcon } from 'lucide-react';
+import {
+	BrainIcon,
+	CheckIcon,
+	CopyIcon,
+	GlobeIcon,
+	SplitIcon,
+} from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
 import { useRegenerate } from '@/hooks/use-messages';
 import { Message as ChatMessage, ReasoningEffort } from '@/lib/types';
@@ -65,7 +71,8 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 
 	const handleRegenerate = async (
 		model?: ModelId,
-		reasoningEffort?: ReasoningEffort
+		reasoningEffort?: ReasoningEffort,
+		useWebSearch?: boolean
 	) => {
 		try {
 			await regenerate({
@@ -73,6 +80,7 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 				threadId: message.threadId,
 				model: model ?? (message.model as ModelId),
 				reasoningEffort: reasoningEffort ?? message.reasoningEffort,
+				useWebSearch: useWebSearch ?? message.useWebSearch,
 			});
 		} catch (error) {
 			toast.error('Failed to regenerate message');
@@ -116,7 +124,7 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 					<div className="mt-4">
 						<Markdown
 							id={message._id}
-							className="max-w-full prose dark:prose-invert flex-1">
+							className="w-full prose dark:prose-invert flex-1">
 							{content}
 						</Markdown>
 					</div>
@@ -163,16 +171,35 @@ export function AssistantMessage({ message, index }: AssistantMessageProps) {
 							)}
 						</Button>
 
-						<div className="flex gap-1 text-xs ml-2">
+						<div className="flex gap-2 text-xs ml-2 items-center">
 							<div className="text-neutral-500">
 								{modelsData[message.model as ModelId].name}
 							</div>
 							{message.reasoningEffort &&
 								canReason(message.model as ModelId) && (
-									<div className="text-neutral-500">
-										({cap(message.reasoningEffort)})
-									</div>
+									<>
+										<span className="text-neutral-500">•</span>
+										<div className="text-neutral-500 flex items-center gap-1">
+											<BrainIcon
+												className="size-3"
+												strokeWidth={1.5}
+											/>
+											{cap(message.reasoningEffort)}
+										</div>
+									</>
 								)}
+							{message.useWebSearch && (
+								<>
+									<span className="text-neutral-500">•</span>
+									<div className="text-neutral-500 flex items-center gap-1">
+										<GlobeIcon
+											className="size-3"
+											strokeWidth={1.5}
+										/>
+										Web search
+									</div>
+								</>
+							)}
 						</div>
 					</div>
 				)}
