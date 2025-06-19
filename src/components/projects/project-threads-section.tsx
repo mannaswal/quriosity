@@ -1,7 +1,7 @@
 import { useProjectThreads } from '@/hooks/use-projects';
 import { Id } from 'convex/_generated/dataModel';
 import { groupThreadsByStatusAndRecency } from '@/lib/utils';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Thread } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,10 +32,15 @@ interface ThreadItemProps {
 }
 
 function ThreadItem({ thread }: ThreadItemProps) {
+	const [isEditing, setIsEditing] = useState(false);
+	const [editingTitle, setEditingTitle] = useState<string>('');
+
 	const pinThread = usePinThread();
 	const archiveThread = useArchiveThread();
 	const deleteThread = useDeleteThread();
 	const renameThread = useRenameThread();
+
+	const threadId = thread._id;
 
 	const handlePinThread = async () => {
 		await pinThread({ threadId: thread._id, pinned: !thread.pinned });
@@ -49,6 +54,69 @@ function ThreadItem({ thread }: ThreadItemProps) {
 		await deleteThread(thread._id);
 	};
 
+	const handleRenameOnClick = () => {
+		console.log('handleRenameOnClick');
+		setEditingTitle(thread.title);
+		setIsEditing(true);
+
+		setTimeout(() => {
+			const input = document.getElementById(`thread-title-${threadId}`);
+			if (input) {
+				(input as HTMLInputElement).focus();
+			}
+		}, 10);
+	};
+
+	/**
+	 * Cancel editing and revert to original title
+	 */
+	const cancelEditing = () => {
+		setIsEditing(false);
+		setEditingTitle('');
+	};
+
+	/**
+	 * Save the edited title
+	 */
+	const saveTitle = async () => {
+		if (!isEditing) return;
+
+		const trimmedTitle = editingTitle.trim();
+
+		// If title is empty after trimming, revert to original
+		if (!trimmedTitle) {
+			cancelEditing();
+			return;
+		}
+
+		// If title hasn't changed, just cancel editing
+		if (trimmedTitle === thread.title) {
+			cancelEditing();
+			return;
+		}
+
+		try {
+			await renameThread({ threadId, newTitle: trimmedTitle });
+			cancelEditing();
+		} catch (error) {
+			// Revert to original title on error
+			cancelEditing();
+		}
+	};
+
+	/**
+	 * Handle key press in input field
+	 */
+	const handleKeyPress = (e: React.KeyboardEvent) => {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			saveTitle();
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			cancelEditing();
+		}
+	};
+
 	return (
 		<div className="group relative">
 			<ThreadContextMenu
@@ -56,18 +124,57 @@ function ThreadItem({ thread }: ThreadItemProps) {
 				handlePinThread={handlePinThread}
 				handleDeleteThread={handleDeleteThread}
 				handleArchiveThread={handleArchiveThread}
-				handleRenameOnClick={() => {}}>
-				<Card className="hover:shadow-sm transition-shadow cursor-pointer p-0 relative group/thread-item">
-					<Link href={`/chat/${thread._id}`}>
-						<CardContent className="p-3 pr-1.5">
-							<div className="flex items-center justify-between ">
+				handleRenameOnClick={handleRenameOnClick}>
+				<Card className="hover:shadow-sm transition-shadow p-0 relative group/thread-item relative">
+					{isEditing ? (
+						<CardContent className="p-3 pr-1.5 cursor-default">
+							<div className="flex items-center justify-between">
 								<div className="flex-1 min-w-0">
-									<h4 className="font-medium truncate">{thread.title}</h4>
+									<input
+										type="text"
+										id={`thread-title-${thread._id}`}
+										value={editingTitle}
+										onChange={(e) => setEditingTitle(e.target.value)}
+										onBlur={saveTitle}
+										onKeyDown={handleKeyPress}
+										className="bg-transparent border-none outline-none font-medium w-full min-w-0 focus:ring-0 focus:outline-none cursor-text"
+										onClick={(e) => {
+											e.preventDefault();
+											e.stopPropagation();
+										}}
+									/>
 								</div>
 							</div>
 						</CardContent>
-					</Link>
-					<div className="flex items-center group-hover/thread-item:opacity-100 opacity-0 transition-opacity absolute right-1.5 top-0 translate-y-1/2 -mt-3 z-5">
+					) : (
+						<Link
+							href={`/chat/${thread._id}`}
+							className="cursor-pointer">
+							<CardContent className="p-3 pr-1.5">
+								<div className="flex items-center justify-between">
+									<div className="flex-1 min-w-0">
+										<h4 className="font-medium truncate opacity-0">
+											{thread.title}
+										</h4>
+									</div>
+								</div>
+							</CardContent>
+						</Link>
+					)}
+					{!isEditing && (
+						<div className="flex items-center justify-between absolute inset-0 left-3">
+							<div className="flex-1 min-w-0">
+								<span
+									className="font-medium truncate"
+									onDoubleClick={handleRenameOnClick}>
+									{thread.title}
+								</span>
+							</div>
+						</div>
+					)}
+					<div
+						data-state={isEditing ? 'editing' : 'not-editing'}
+						className="flex items-center focus-within:opacity-100 group-hover/thread-item:opacity-100 opacity-0 transition-opacity absolute right-1.5 top-0 translate-y-1/2 -mt-3 z-5 data-[state=editing]:hidden">
 						<Button
 							variant="ghost"
 							size="icon"
