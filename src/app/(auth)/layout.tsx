@@ -20,9 +20,7 @@ export default async function AuthLayout({
 	const token = await getAuthToken();
 
 	// If no valid token, redirect to auth page (this shouldn't happen due to middleware, but safety check)
-	if (!token) {
-		redirect('/auth');
-	}
+	if (!token) redirect('/auth');
 
 	// Get user data for the sidebar
 	const [user, serverThreads, serverProjects] = await Promise.all([

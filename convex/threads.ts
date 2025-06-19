@@ -560,3 +560,157 @@ export const updateThreadProject = mutation({
 		return { success: true };
 	},
 });
+
+/**
+ * Toggle a thread's public sharing status
+ * Generates or revokes a shareId based on the public status
+ */
+export const toggleThreadPublic = mutation({
+	args: {
+		threadId: v.id('threads'),
+		isPublic: v.boolean(),
+	},
+	handler: async (ctx, args) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('Not authenticated');
+
+		// Verify thread ownership
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread) throw new Error('Thread not found');
+		if (thread.userId !== user._id) throw new Error('Unauthorized');
+
+		// Generate shareId if making public, clear if making private
+		const shareId = args.isPublic ? crypto.randomUUID() : undefined;
+
+		await ctx.db.patch(args.threadId, {
+			isPublic: args.isPublic,
+			shareId: shareId,
+		});
+
+		return { success: true, shareId };
+	},
+});
+
+/**
+ * Revoke thread sharing by making it private
+ */
+export const revokeThreadShare = mutation({
+	args: {
+		threadId: v.id('threads'),
+	},
+	handler: async (ctx, args) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('Not authenticated');
+
+		// Verify thread ownership
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread) throw new Error('Thread not found');
+		if (thread.userId !== user._id) throw new Error('Unauthorized');
+
+		await ctx.db.patch(args.threadId, {
+			isPublic: false,
+			shareId: undefined,
+		});
+
+		return { success: true };
+	},
+});
+
+/**
+ * Get public thread by shareId (no authentication required)
+ * Returns sanitized thread data for sharing
+ */
+export const getPublicThreadByShareId = query({
+	args: { shareId: v.string() },
+	handler: async (ctx, args) => {
+		const thread = await ctx.db
+			.query('threads')
+			.withIndex('by_share_id', (q) => q.eq('shareId', args.shareId))
+			.filter((q) => q.eq(q.field('isPublic'), true))
+			.unique();
+
+		if (!thread) return null;
+
+		// Return sanitized thread data
+		return {
+			_id: thread._id,
+			_creationTime: thread._creationTime,
+			title: thread.title,
+			shareId: thread.shareId!,
+			model: thread.model,
+			reasoningEffort: thread.reasoningEffort,
+			status: thread.status,
+		};
+	},
+});
+
+/**
+ * Get messages for a public thread (no authentication required)
+ * Returns sanitized message data with converted attachments
+ */
+export const getPublicThreadMessages = query({
+	args: { shareId: v.string() },
+	handler: async (ctx, args) => {
+		// First verify the thread exists and is public
+		const thread = await ctx.db
+			.query('threads')
+			.withIndex('by_share_id', (q) => q.eq('shareId', args.shareId))
+			.filter((q) => q.eq(q.field('isPublic'), true))
+			.unique();
+
+		if (!thread) return null;
+
+		// Get all messages for the thread
+		const messages = await ctx.db
+			.query('messages')
+			.withIndex('by_thread', (q) => q.eq('threadId', thread._id))
+			.order('asc')
+			.collect();
+
+		// Convert messages with attachment IDs to public format with attachment data
+		const publicMessages = await Promise.all(
+			messages.map(async (message) => {
+				let attachments: Array<{
+					filename: string;
+					url: string;
+					mimeType: string;
+					type: 'text' | 'image' | 'pdf';
+				}> = [];
+
+				// Convert attachment IDs to attachment data
+				if (message.attachmentIds && message.attachmentIds.length > 0) {
+					const attachmentDocs = await Promise.all(
+						message.attachmentIds.map((id) => ctx.db.get(id))
+					);
+
+					attachments = attachmentDocs
+						.filter((doc) => doc !== null)
+						.map((attachment) => ({
+							filename: attachment.filename,
+							url: attachment.url,
+							mimeType: attachment.mimeType,
+							type: attachment.type,
+						}));
+				}
+
+				// Return sanitized message data
+				return {
+					_id: message._id,
+					_creationTime: message._creationTime,
+					threadId: message.threadId,
+					content: message.content,
+					reasoning: message.reasoning,
+					role: message.role,
+					status: message.status,
+					stopReason: message.stopReason,
+					model: message.model,
+					reasoningEffort: message.reasoningEffort,
+					useWebSearch: message.useWebSearch,
+					attachments,
+				};
+			})
+		);
+
+		return publicMessages;
+	},
+});

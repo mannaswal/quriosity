@@ -46,3 +46,36 @@ export type TempAttachment =
 			uploadThingKey: string; // For deletion if needed (mandatory)
 			textContent?: string; // For text files
 	  };
+
+// Public/Shared thread and message types (sanitized for sharing)
+export type PublicAttachment = {
+	filename: string;
+	url: string;
+	mimeType: string;
+	type: AttachmentType;
+};
+
+export type PublicThread = {
+	_id: ThreadId;
+	_creationTime: number;
+	title: string;
+	shareId: string;
+	model: string;
+	reasoningEffort?: ReasoningEffort;
+	status: 'pending' | 'streaming' | 'done' | 'error';
+};
+
+export type PublicMessage = {
+	_id: MessageId;
+	_creationTime: number;
+	threadId: ThreadId;
+	content: string;
+	reasoning?: string;
+	role: 'user' | 'assistant' | 'system';
+	status: 'pending' | 'streaming' | 'done' | 'error' | 'reasoning';
+	stopReason?: 'completed' | 'stopped' | 'error';
+	model: string;
+	reasoningEffort?: ReasoningEffort;
+	useWebSearch?: boolean;
+	attachments: PublicAttachment[]; // Converted from attachment IDs
+};

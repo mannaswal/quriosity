@@ -37,17 +37,19 @@ export function TooltipWrapper({
 				asChild>
 				<div>{children}</div>
 			</TooltipTrigger>
-			<TooltipContent
-				className={cn(
-					'mx-1 flex items-center gap-x-1 [&_kbd]:first:ml-1',
-					className
-				)}
-				align={align}
-				side={side}
-				sideOffset={sideOffset}
-				alignOffset={alignOffset}>
-				{tooltip}
-			</TooltipContent>
+			{tooltip && (
+				<TooltipContent
+					className={cn(
+						'mx-1 flex items-center gap-x-1 [&_kbd]:first:ml-1',
+						className
+					)}
+					align={align}
+					side={side}
+					sideOffset={sideOffset}
+					alignOffset={alignOffset}>
+					{tooltip}
+				</TooltipContent>
+			)}
 		</Tooltip>
 	);
 }

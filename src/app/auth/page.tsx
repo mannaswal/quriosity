@@ -4,7 +4,7 @@ import { useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import LoginPrompt from '@/components/home/login-prompt';
-import { Loader } from '@/components/ui/loader';
+import { Loading } from '@/components/layout/loading';
 
 function AuthPageContent() {
 	const { isLoaded, isSignedIn } = useUser();
@@ -23,14 +23,7 @@ function AuthPageContent() {
 
 	// Show loading while Clerk is loading
 	if (!isLoaded) {
-		return (
-			<div className="flex items-center justify-center min-h-screen">
-				<div className="text-center gap-2 flex items-center">
-					<Loader size="lg" />
-					<div className="text-muted-foreground">Loading...</div>
-				</div>
-			</div>
-		);
+		return <Loading />;
 	}
 
 	// Show login prompt if not signed in
@@ -39,27 +32,12 @@ function AuthPageContent() {
 	}
 
 	// Show loading while redirecting (user is signed in)
-	return (
-		<div className="flex items-center justify-center min-h-screen">
-			<div className="text-center gap-2 flex items-center">
-				<Loader size="lg" />
-				<div className="text-muted-foreground">Redirecting...</div>
-			</div>
-		</div>
-	);
+	return <Loading message="Redirecting" />;
 }
 
 export default function AuthPage() {
 	return (
-		<Suspense
-			fallback={
-				<div className="flex items-center justify-center min-h-screen">
-					<div className="text-center gap-2 flex items-center">
-						<Loader size="lg" />
-						<div className="text-muted-foreground">Loading...</div>
-					</div>
-				</div>
-			}>
+		<Suspense fallback={<Loading />}>
 			<AuthPageContent />
 		</Suspense>
 	);

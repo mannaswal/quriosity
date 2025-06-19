@@ -20,11 +20,15 @@ import {
 	TrashIcon,
 	FolderInputIcon,
 	FolderOutputIcon,
+	ShareIcon,
 } from 'lucide-react';
 import { useProjects } from '@/hooks/use-projects';
 import { useUpdateThreadProject } from '@/hooks/use-threads';
 import { Id } from 'convex/_generated/dataModel';
 import { TooltipWrapper } from '../ui/tooltip-wrapper';
+import { ShareThreadDialog } from './share-thread-dialog';
+import { Button } from '../ui/button';
+import { useState } from 'react';
 
 export const ThreadContextMenu = ({
 	children,
@@ -43,6 +47,7 @@ export const ThreadContextMenu = ({
 }) => {
 	const projects = useProjects();
 	const updateThreadProject = useUpdateThreadProject();
+	const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
 	const handleAddToProject = async (projectId: Id<'projects'>) => {
 		await updateThreadProject({ threadId: thread._id, projectId });
@@ -54,6 +59,8 @@ export const ThreadContextMenu = ({
 
 	const availableProjects =
 		projects?.filter((p) => p._id !== thread.projectId) || [];
+
+	const threadProject = projects?.find((p) => p._id === thread.projectId);
 
 	return (
 		<ContextMenu>
@@ -67,6 +74,11 @@ export const ThreadContextMenu = ({
 					<TextCursorIcon className="size-3.5 text-muted-foreground" />
 					Rename
 				</ContextMenuItem>
+				<ContextMenuItem onSelect={() => setShareDialogOpen(true)}>
+					<ShareIcon className="size-3.5 text-muted-foreground" />
+					{thread.isPublic ? 'Manage sharing' : 'Share chat'}
+				</ContextMenuItem>
+
 				<ContextMenuItem onClick={handleArchiveThread}>
 					{thread.archived ? (
 						<ArchiveRestore className="size-3.5" />
@@ -79,17 +91,28 @@ export const ThreadContextMenu = ({
 
 				{/* Project Management */}
 				{thread.projectId ? (
-					<ContextMenuItem onClick={handleRemoveFromProject}>
-						<FolderOutputIcon className="size-3.5" />
-						Remove from project
-					</ContextMenuItem>
+					<TooltipWrapper
+						side="right"
+						sideOffset={4}
+						tooltip={
+							threadProject ? `Remove from ${threadProject.name}` : undefined
+						}>
+						<ContextMenuItem onClick={handleRemoveFromProject}>
+							<FolderOutputIcon className="size-3.5" />
+							Remove from project
+						</ContextMenuItem>
+					</TooltipWrapper>
 				) : (
 					<ContextMenuSub>
 						<TooltipWrapper
 							delayDuration={200}
 							side="right"
 							disabled={availableProjects.length > 0}
-							tooltip="You don't have any projects yet">
+							tooltip={
+								!availableProjects.length
+									? "You don't have any projects yet"
+									: undefined
+							}>
 							<ContextMenuSubTrigger
 								className="min-w-40 space-x-2 data-[disabled]:text-muted-foreground data-[disabled]:[&_svg]:last:hidden"
 								disabled={availableProjects.length === 0}>
@@ -97,7 +120,9 @@ export const ThreadContextMenu = ({
 								Add to project
 							</ContextMenuSubTrigger>
 						</TooltipWrapper>
-						<ContextMenuSubContent>
+						<ContextMenuSubContent
+							sideOffset={8}
+							alignOffset={-4}>
 							{availableProjects.map((project) => (
 								<ContextMenuItem
 									key={project._id}
@@ -118,6 +143,11 @@ export const ThreadContextMenu = ({
 					Delete
 				</ContextMenuItem>
 			</ContextMenuContent>
+			<ShareThreadDialog
+				thread={thread}
+				open={shareDialogOpen}
+				onOpenChange={setShareDialogOpen}
+			/>
 		</ContextMenu>
 	);
 };

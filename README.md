@@ -13,14 +13,13 @@ Made for the T3 Chat Cloneathon
 
 ## Bonus Features
 
-- [ ] Bring Your Own Key
-- [ ] Chat Sharing
 - [ ] Temporary chats
+- [ ] Bring Your Own Key
 - [ ] Memory
-- [ ] Summarise and start a new thread
-- [ ] Web Search
-
+- [x] Web Search
+- [x] Chat Sharing
 - [-] Image and file previews
+
 - [x] Attachment Support
 - [x] Syntax Highlighting
 - [x] Resumable Streams
@@ -31,6 +30,7 @@ Made for the T3 Chat Cloneathon
 - [x] Attachments on paste
 - [x] Archive
 - [x] Projects
+- [ ] Summarise and start a new thread
 - [ ] Add HEIC/HEIF support
 - [ ] Cancel uploads mid-upload
 - [ ] Image Generation Support

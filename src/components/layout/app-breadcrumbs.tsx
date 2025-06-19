@@ -11,16 +11,21 @@ import {
 	ChevronLeftIcon,
 	ChevronRightIcon,
 	PlusIcon,
+	ShareIcon,
+	UsersIcon,
 } from 'lucide-react';
 import { useProjects } from '@/hooks/use-projects';
+import { useThread } from '@/hooks/use-threads';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SidebarTrigger, useSidebar } from '../ui/sidebar';
-import { ProjectId } from '@/lib/types';
+import { ProjectId, Thread } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { TooltipWrapper } from '../ui/tooltip-wrapper';
 import { Kbd } from '../ui/kbd';
+import { ShareThreadDialog } from '../threads/share-thread-dialog';
+import { useState } from 'react';
 
 const getRouteData = (
 	pathname: string
@@ -50,7 +55,7 @@ export function AppBreadcrumbs() {
 	return (
 		<nav
 			className={cn(
-				'flex items-center space-x-2 text-sm text-muted-foreground h-16 absolute top-0 left-0 px-6 transition-all duration-75',
+				'w-full flex items-center space-x-2 text-sm text-muted-foreground h-16 absolute top-0 left-0 pl-6 pr-3 transition-all duration-75',
 				!open && 'pl-24'
 			)}>
 			<div
@@ -70,30 +75,31 @@ export function AppBreadcrumbs() {
 						className={cn('transition-colors', open && 'text-foreground')}
 					/>
 				</TooltipWrapper>
-				<TooltipWrapper
-					tooltip={
-						<>
-							New chat
-							<Kbd>⌘</Kbd>
-							<Kbd>shift</Kbd>
-							<Kbd>O</Kbd>
-						</>
-					}>
-					<Button
-						variant="ghost"
-						size="icon"
-						className="size-7 rounded-md z-30"
-						asChild>
-						<Link
-							href="/"
-							className={cn(
-								'transition-opacity duration-100',
-								open ? 'opacity-0' : 'opacity-100'
-							)}>
-							<PlusIcon className="size-4" />
-						</Link>
-					</Button>
-				</TooltipWrapper>
+				<div
+					className={cn(
+						'z-30 absolute top-0 left-7 transition-all duration-200 ease-out',
+						open && 'text-foreground left-48'
+					)}>
+					<TooltipWrapper
+						tooltip={
+							<>
+								New chat
+								<Kbd>⌘</Kbd>
+								<Kbd>shift</Kbd>
+								<Kbd>O</Kbd>
+							</>
+						}>
+						<Button
+							variant="ghost"
+							size="icon"
+							className={cn('size-7 rounded-md')}
+							asChild>
+							<Link href="/">
+								<PlusIcon className="size-4" />
+							</Link>
+						</Button>
+					</TooltipWrapper>
+				</div>
 			</div>
 			{route === 'projects' && (
 				<>
@@ -105,6 +111,7 @@ export function AppBreadcrumbs() {
 					<ProjectBreadcrumb projectId={routeData?.[1]} />
 				</>
 			)}
+			{route === 'chat' && <ManageSharingButton />}
 		</nav>
 	);
 }
@@ -139,5 +146,30 @@ const ProjectBreadcrumb = ({
 				</DropdownMenuContent>
 			</DropdownMenu>
 		</>
+	);
+};
+
+const ManageSharingButton = () => {
+	const thread = useThread();
+	const [shareDialogOpen, setShareDialogOpen] = useState(false);
+
+	if (!thread || !thread.isPublic) return null;
+
+	return (
+		<div className="ml-auto z-30">
+			<TooltipWrapper tooltip="Manage sharing">
+				<Button
+					variant="ghost"
+					size="icon"
+					onClick={() => setShareDialogOpen(true)}>
+					<UsersIcon className="size-4 text-foreground" />
+				</Button>
+			</TooltipWrapper>
+			<ShareThreadDialog
+				thread={thread}
+				open={shareDialogOpen}
+				onOpenChange={setShareDialogOpen}
+			/>
+		</div>
 	);
 };

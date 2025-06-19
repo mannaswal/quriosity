@@ -31,7 +31,6 @@ function ChatContainerRoot({
 			initial="instant"
 			role="log"
 			id="chat-container"
-			// damping={0}
 			{...props}>
 			{children}
 		</StickToBottom>

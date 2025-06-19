@@ -388,3 +388,126 @@ export function useUpdateThreadProject() {
 		}
 	};
 }
+
+/**
+ * Hook for toggling thread public status with optimistic updates
+ */
+export function useToggleThreadPublic() {
+	const toggleMutation = useConvexMutation(
+		api.threads.toggleThreadPublic
+	).withOptimisticUpdate((localStore, args) => {
+		const { threadId, isPublic } = args;
+
+		// Update the specific thread
+		const currentThread = localStore.getQuery(api.threads.getThreadById, {
+			threadId,
+		});
+		if (currentThread) {
+			localStore.setQuery(
+				api.threads.getThreadById,
+				{ threadId },
+				{
+					...currentThread,
+					isPublic,
+					// Note: shareId will be updated when the mutation completes
+				}
+			);
+		}
+
+		// Update threads list if it exists
+		const threadsList = localStore.getQuery(api.threads.getUserThreads, {});
+		if (threadsList) {
+			const updatedList = threadsList.map((thread) =>
+				thread._id === threadId ? { ...thread, isPublic } : thread
+			);
+			localStore.setQuery(api.threads.getUserThreads, {}, updatedList);
+		}
+	});
+
+	return async (args: { threadId: Id<'threads'>; isPublic: boolean }) => {
+		try {
+			const result = await toggleMutation(args);
+			const actionText = args.isPublic ? 'shared publicly' : 'made private';
+			toast.success(`Thread ${actionText} successfully!`, {
+				description: args.isPublic
+					? 'Share link generated. Anyone with the link can view this chat.'
+					: 'Share link revoked. Chat is now private.',
+				duration: 4000,
+			});
+			return result;
+		} catch (error) {
+			toast.error('Failed to update thread sharing');
+			throw error;
+		}
+	};
+}
+
+/**
+ * Hook for revoking thread sharing
+ */
+export function useRevokeThreadShare() {
+	const revokeMutation = useConvexMutation(
+		api.threads.revokeThreadShare
+	).withOptimisticUpdate((localStore, args) => {
+		const { threadId } = args;
+
+		// Update the specific thread
+		const currentThread = localStore.getQuery(api.threads.getThreadById, {
+			threadId,
+		});
+		if (currentThread) {
+			localStore.setQuery(
+				api.threads.getThreadById,
+				{ threadId },
+				{
+					...currentThread,
+					isPublic: false,
+					shareId: undefined,
+				}
+			);
+		}
+
+		// Update threads list if it exists
+		const threadsList = localStore.getQuery(api.threads.getUserThreads, {});
+		if (threadsList) {
+			const updatedList = threadsList.map((thread) =>
+				thread._id === threadId
+					? { ...thread, isPublic: false, shareId: undefined }
+					: thread
+			);
+			localStore.setQuery(api.threads.getUserThreads, {}, updatedList);
+		}
+	});
+
+	return async (threadId: Id<'threads'>) => {
+		try {
+			await revokeMutation({ threadId });
+			toast.success('Thread sharing revoked successfully!', {
+				description: 'Share link is no longer active.',
+			});
+		} catch (error) {
+			toast.error('Failed to revoke thread sharing');
+			throw error;
+		}
+	};
+}
+
+/**
+ * Hook to get public thread data by shareId (no auth required)
+ */
+export function usePublicThread(shareId: string | undefined) {
+	return useConvexQuery(
+		api.threads.getPublicThreadByShareId,
+		shareId ? { shareId } : 'skip'
+	);
+}
+
+/**
+ * Hook to get public thread messages by shareId (no auth required)
+ */
+export function usePublicThreadMessages(shareId: string | undefined) {
+	return useConvexQuery(
+		api.threads.getPublicThreadMessages,
+		shareId ? { shareId } : 'skip'
+	);
+}

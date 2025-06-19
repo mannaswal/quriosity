@@ -95,7 +95,10 @@ function ReasoningTrigger({
 
 	return (
 		<button
-			className={cn('flex cursor-pointer items-center gap-2', className)}
+			className={cn(
+				'flex cursor-pointer items-center gap-2 rounded-xl',
+				className
+			)}
 			onClick={() => onOpenChange(!isOpen)}
 			{...props}>
 			<span className="text-primary">{children}</span>

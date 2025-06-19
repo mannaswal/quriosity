@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import { Button } from '../ui/button';
-import { PinIcon, PinOffIcon } from 'lucide-react';
+import { PinIcon, PinOffIcon, Users2Icon, UsersIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Loader } from '../ui/loader';
 import { Id } from 'convex/_generated/dataModel';
@@ -126,7 +126,7 @@ export const SidebarThreadItem = ({
 				handleRenameOnClick={handleRenameOnClick}>
 				<div className="flex items-center w-full group/menu-item">
 					<SidebarMenuButton
-						className="flex-1 min-w-0 cursor-pointer group-hover/menu-item:bg-sidebar-accent focus:bg-sidebar-accent focus-visible:bg-sidebar-accent data-[active=true]:font-normal group-focus-within/menu-item:bg-sidebar-accent group-focus-visible/menu-item:bg-sidebar-accent"
+						className="flex-1 min-w-0 cursor-pointer group-hover/menu-item:bg-sidebar-accent focus:bg-sidebar-accent focus-visible:bg-sidebar-accent data-[active=true]:font-normal group-focus-within/menu-item:bg-sidebar-accent group-focus-visible/menu-item:bg-sidebar-accent gap-1.5"
 						asChild
 						isActive={thread._id === activeThreadId}>
 						{isEditing ? (
@@ -149,7 +149,16 @@ export const SidebarThreadItem = ({
 								className="text-sm hover:text-foreground transition-colors flex-1 min-w-0">
 								<>
 									{thread.parentMessageId && (
-										<SplitIcon className="size-3.5 shrink-0 text-muted-foreground rotate-180" />
+										<SplitIcon
+											strokeWidth={1.5}
+											className="size-3.5! shrink-0 text-muted-foreground rotate-180"
+										/>
+									)}
+									{thread.isPublic && (
+										<UsersIcon
+											strokeWidth={1.5}
+											className="size-3.5! shrink-0 text-muted-foreground"
+										/>
 									)}
 									<span
 										onContextMenu={() => {}}

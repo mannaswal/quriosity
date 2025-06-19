@@ -104,7 +104,7 @@ export function ProjectSelector() {
 					<TooltipWrapper
 						disabled={!!projects?.length}
 						tooltip={
-							projects?.length ? (
+							!projects?.length ? (
 								"You don't have any projects yet"
 							) : (
 								<div>

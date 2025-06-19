@@ -122,7 +122,7 @@ export function AppSidebar({
 					</h1>
 				</Link>
 				{/* <SidebarTrigger className="absolute top-4.5 left-4.5" /> */}
-				<div className="w-full space-y-2">
+				{/* <div className="w-full space-y-2">
 					<Button
 						variant="ghost"
 						className="w-full dark:bg-input/90 hover:dark:bg-input"
@@ -130,12 +130,14 @@ export function AppSidebar({
 						asChild>
 						<Link href="/">New chat</Link>
 					</Button>
-				</div>
+				</div> */}
 				<div className="h-6 absolute bottom-0 left-0 translate-y-full w-full bg-gradient-to-b from-[#141414] to-transparent z-50 pointer-events-none" />
 			</SidebarHeader>
 
 			<SidebarContent className="h-full gap-0 scrollbar-hide relative">
-				{!threads || threads.length === 0 ? (
+				{!threads ||
+				threads.length === 0 ||
+				threads.length === groupedThreads.archived.length ? (
 					<SidebarGroup>
 						<SidebarGroupContent>
 							<SidebarMenu>
@@ -194,42 +196,42 @@ export function AppSidebar({
 								</SidebarGroup>
 							);
 						})}
-						{groupedThreads.archived.length > 0 && (
-							<Disclosure className="group/collapsible sticky -bottom-px left-0 right-0 bg-[#141414] z-10 pb-px mt-auto">
-								<div className="h-6 absolute top-0 left-0 -translate-y-full w-full bg-gradient-to-t from-[#141414] to-transparent z-20 pointer-events-none" />
-								<SidebarGroup className="pt-1 pb-0">
-									<DisclosureTrigger>
-										<SidebarGroupLabel asChild>
-											<Button
-												size="sm"
-												variant="ghost"
-												className="w-full text-xs justify-start text-sidebar-foreground/70">
-												Archived
-												<Badge
-													variant="secondary"
-													className="ml-auto text-[10px] text-muted-foreground py-px">
-													{groupedThreads.archived.length}
-												</Badge>
-											</Button>
-										</SidebarGroupLabel>
-									</DisclosureTrigger>
-									<DisclosureContent>
-										<SidebarGroupContent className="scrollbar-hide">
-											<SidebarMenu>
-												{groupedThreads.archived?.map((thread) => (
-													<SidebarThreadItem
-														key={thread._id}
-														thread={thread}
-														activeThreadId={threadId}
-													/>
-												))}
-											</SidebarMenu>
-										</SidebarGroupContent>
-									</DisclosureContent>
-								</SidebarGroup>
-							</Disclosure>
-						)}
 					</>
+				)}
+				{groupedThreads.archived.length > 0 && (
+					<Disclosure className="group/collapsible sticky -bottom-px left-0 right-0 bg-[#141414] z-10 pb-px mt-auto">
+						<div className="h-6 absolute top-0 left-0 -translate-y-full w-full bg-gradient-to-t from-[#141414] to-transparent z-20 pointer-events-none" />
+						<SidebarGroup className="pt-1 pb-0">
+							<DisclosureTrigger>
+								<SidebarGroupLabel asChild>
+									<Button
+										size="sm"
+										variant="ghost"
+										className="w-full text-xs justify-start text-sidebar-foreground/70">
+										Archived
+										<Badge
+											variant="secondary"
+											className="ml-auto text-[10px] text-muted-foreground py-px">
+											{groupedThreads.archived.length}
+										</Badge>
+									</Button>
+								</SidebarGroupLabel>
+							</DisclosureTrigger>
+							<DisclosureContent>
+								<SidebarGroupContent className="scrollbar-hide">
+									<SidebarMenu>
+										{groupedThreads.archived?.map((thread) => (
+											<SidebarThreadItem
+												key={thread._id}
+												thread={thread}
+												activeThreadId={threadId}
+											/>
+										))}
+									</SidebarMenu>
+								</SidebarGroupContent>
+							</DisclosureContent>
+						</SidebarGroup>
+					</Disclosure>
 				)}
 			</SidebarContent>
 			<SidebarFooter>
@@ -258,7 +260,10 @@ export function AppSidebar({
 					<DropdownMenuContent
 						side="right"
 						className="min-w-48">
-						<SignOutButton>
+						<SignOutButton
+							signOutOptions={{
+								redirectUrl: '/auth',
+							}}>
 							<Button
 								variant="ghost"
 								className="w-full justify-start"

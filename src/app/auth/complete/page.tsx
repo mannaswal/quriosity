@@ -8,6 +8,7 @@ import { api } from 'convex/_generated/api';
 import { Loader } from '@/components/ui/loader';
 import LoginPrompt from '@/components/home/login-prompt';
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/layout/loading';
 
 /**
  * Auth completion page for first-time users (sign-ups) that handles:
@@ -94,27 +95,12 @@ function AuthCompletePageContent() {
 	}
 
 	// Show loading state
-	return (
-		<div className="flex items-center justify-center min-h-screen">
-			<div className="text-center gap-2 flex items-center">
-				<Loader size="lg" />
-				<div className="text-muted-foreground">Setting up your account...</div>
-			</div>
-		</div>
-	);
+	return <Loading message="Setting up your account..." />;
 }
 
 export default function AuthCompletePage() {
 	return (
-		<Suspense
-			fallback={
-				<div className="flex items-center justify-center min-h-screen">
-					<div className="text-center gap-2 flex items-center">
-						<Loader size="lg" />
-						<div className="text-muted-foreground">Loading...</div>
-					</div>
-				</div>
-			}>
+		<Suspense fallback={<Loading />}>
 			<AuthCompletePageContent />
 		</Suspense>
 	);
