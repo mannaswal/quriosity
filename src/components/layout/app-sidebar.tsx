@@ -52,6 +52,7 @@ import { useRouter } from 'next/navigation';
 import { useConvexAuth, useQuery } from 'convex/react';
 import { api } from 'convex/_generated/api';
 import { Input } from '../ui/input';
+import { TooltipWrapper } from '../ui/tooltip-wrapper';
 
 const funnelDisplay = Funnel_Display({
 	subsets: ['latin'],
@@ -142,12 +143,23 @@ export function AppSidebar({
 					</h1>
 				</Link>
 				<div className="relative w-full">
-					<Input
-						placeholder="Search chats"
-						className="w-full border-none"
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-					/>
+					<TooltipWrapper
+						side="bottom"
+						tooltip={
+							isSearching || isSearching || searchQuery
+								? undefined
+								: threads?.length
+								? 'Search chats by messages'
+								: "You don't have any chats yet"
+						}>
+						<Input
+							placeholder="Search chats"
+							className="w-full border-none"
+							disabled={!threads?.length}
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+						/>
+					</TooltipWrapper>
 					<Button
 						variant="ghost"
 						size="sm"
