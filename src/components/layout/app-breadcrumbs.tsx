@@ -10,6 +10,7 @@ import {
 	ChevronDownIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
+	FolderIcon,
 	PlusIcon,
 	ShareIcon,
 	UsersIcon,
@@ -56,11 +57,11 @@ export function AppBreadcrumbs() {
 		<nav
 			className={cn(
 				'w-full flex items-center space-x-2 text-sm text-muted-foreground h-16 absolute top-0 left-0 pl-6 pr-3 transition-all duration-75',
-				!open && 'pl-24'
+				!open && 'pl-32'
 			)}>
 			<div
 				className={cn(
-					'fixed top-4.5 left-4.5 transition-all duration-100 flex items-center z-30 w-16',
+					'fixed top-4.5 left-4.5 transition-all duration-100 flex items-center z-30 w-24',
 					!open && route === 'projects' && 'border-r border-border'
 				)}>
 				<TooltipWrapper
@@ -96,6 +97,22 @@ export function AppBreadcrumbs() {
 							asChild>
 							<Link href="/">
 								<PlusIcon className="size-4" />
+							</Link>
+						</Button>
+					</TooltipWrapper>
+				</div>
+				<div className="z-10 absolute top-0 left-14 transition-all duration-100">
+					<TooltipWrapper tooltip="Projects">
+						<Button
+							variant="ghost"
+							size="icon"
+							className={cn(
+								'size-7 rounded-md z-10 transition-all duration-100',
+								open && 'opacity-0'
+							)}
+							asChild>
+							<Link href="/projects">
+								<FolderIcon className="size-4" />
 							</Link>
 						</Button>
 					</TooltipWrapper>
