@@ -13,13 +13,13 @@ Made for the T3 Chat Cloneathon
 
 ## Bonus Features
 
-- [ ] Search chats
 - [ ] Memory
 - [ ] Bring Your Own Key
 - [ ] Temporary chats
 - [ ] Drag and drop attachments
 - [ ] Cmd + K search
 - [ ] @commands
+- [x] Search chats
 - [x] Web Search
 - [x] Chat Sharing
 - [-] Image and file previews

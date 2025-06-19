@@ -16,6 +16,7 @@ import {
 	ReasoningEffort,
 	ThreadStatus,
 } from './schema';
+import { ConvexError } from 'convex/values';
 
 const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY,
@@ -48,6 +49,62 @@ export const getUserThreads = query({
 			.withIndex('by_user_id', (q) => q.eq('userId', user._id))
 			.order('desc')
 			.collect();
+	},
+});
+
+/**
+ * Search messages and return relevant threads with match highlights
+ * Uses full-text search on message content to find relevant conversations
+ */
+export const searchThreadsByMessages = query({
+	args: {
+		searchQuery: v.string(),
+		limit: v.optional(v.number()),
+	},
+	handler: async (ctx, { searchQuery, limit = 50 }) => {
+		const user = await getUser(ctx);
+		if (!user) throw new ConvexError('Unauthorized');
+
+		// Validate search query
+		if (searchQuery.trim().length < 2) {
+			return [];
+		}
+
+		// Search messages by content, filtered by current user
+		const matchingMessages = await ctx.db
+			.query('messages')
+			.withSearchIndex('search_content', (q) =>
+				q.search('content', searchQuery).eq('userId', user._id)
+			)
+			.take(limit);
+
+		// Get unique thread IDs from matching messages
+		const threadIds = [...new Set(matchingMessages.map((msg) => msg.threadId))];
+
+		// Fetch the threads
+		const threads = await Promise.all(threadIds.map((id) => ctx.db.get(id)));
+
+		// Filter out null threads and add search metadata
+		const threadsWithMatches = threads
+			.filter((thread): thread is NonNullable<typeof thread> => thread !== null)
+			.map((thread) => {
+				const threadMessages = matchingMessages.filter(
+					(msg) => msg.threadId === thread._id
+				);
+				return {
+					...thread,
+					matchingMessages: threadMessages.slice(0, 3), // Include first 3 matching messages
+					totalMatches: threadMessages.length,
+				};
+			});
+
+		// Sort by relevance (total matches) and then by creation time
+		return threadsWithMatches.sort((a, b) => {
+			if (a.totalMatches !== b.totalMatches) {
+				return b.totalMatches - a.totalMatches;
+			}
+			return b._creationTime - a._creationTime;
+		});
 	},
 });
 

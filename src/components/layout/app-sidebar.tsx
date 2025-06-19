@@ -20,10 +20,18 @@ import Link from 'next/link';
 
 import { useEffect, useMemo } from 'react';
 import { SidebarThreadItem } from '../threads/sidebar-thread-item';
+import { useThreadSearch } from '@/hooks/use-thread-search';
+import { SearchResults } from '../threads/search-results';
 
 import { Funnel_Display } from 'next/font/google';
 import { cn, groupThreadsByStatusAndRecency } from '@/lib/utils';
-import { FolderIcon, LogOutIcon } from 'lucide-react';
+import {
+	ArchiveIcon,
+	FolderIcon,
+	LogOutIcon,
+	SearchIcon,
+	X,
+} from 'lucide-react';
 import {
 	Disclosure,
 	DisclosureContent,
@@ -43,6 +51,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { useRouter } from 'next/navigation';
 import { useConvexAuth, useQuery } from 'convex/react';
 import { api } from 'convex/_generated/api';
+import { Input } from '../ui/input';
 
 const funnelDisplay = Funnel_Display({
 	subsets: ['latin'],
@@ -75,6 +84,17 @@ export function AppSidebar({
 		api.projects.getUserProjects,
 		isAuthenticated ? {} : 'skip'
 	);
+
+	// Search functionality
+	const {
+		searchQuery,
+		setSearchQuery,
+		isSearchActive,
+		searchResults,
+		isSearching,
+		hasSearched,
+		clearSearch,
+	} = useThreadSearch();
 
 	const threads = clientThreads ?? serverThreads;
 	const projects = clientProjects ?? serverProjects;
@@ -121,23 +141,58 @@ export function AppSidebar({
 						Quriosity
 					</h1>
 				</Link>
-				{/* <SidebarTrigger className="absolute top-4.5 left-4.5" /> */}
-				{/* <div className="w-full space-y-2">
+				<div className="relative w-full">
+					<Input
+						placeholder="Search chats"
+						className="w-full border-none"
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+					/>
 					<Button
 						variant="ghost"
-						className="w-full dark:bg-input/90 hover:dark:bg-input"
-						size="lg"
-						asChild>
-						<Link href="/">New chat</Link>
+						size="sm"
+						disabled={!isSearchActive}
+						className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 p-0 hover:dark:bg-accent"
+						onClick={clearSearch}>
+						{isSearchActive ? (
+							<X className="h-3 w-3" />
+						) : (
+							<SearchIcon className="h-3 w-3" />
+						)}
 					</Button>
-				</div> */}
+				</div>
 				<div className="h-6 absolute bottom-0 left-0 translate-y-full w-full bg-gradient-to-b from-[#141414] to-transparent z-50 pointer-events-none" />
 			</SidebarHeader>
 
 			<SidebarContent className="h-full gap-0 scrollbar-hide relative">
-				{!threads ||
-				threads.length === 0 ||
-				threads.length === groupedThreads.archived.length ? (
+				{isSearchActive ? (
+					// Show search results when search is active
+					isSearching ? (
+						<SidebarGroup>
+							<SidebarGroupContent>
+								<div className="text-sm text-muted-foreground text-center pt-6">
+									Searching...
+								</div>
+							</SidebarGroupContent>
+						</SidebarGroup>
+					) : hasSearched ? (
+						<SearchResults
+							searchResults={searchResults || []}
+							searchQuery={searchQuery}
+							activeThreadId={threadId}
+						/>
+					) : (
+						<SidebarGroup>
+							<SidebarGroupContent>
+								<div className="text-sm text-muted-foreground text-center pt-6">
+									Type to search conversations...
+								</div>
+							</SidebarGroupContent>
+						</SidebarGroup>
+					)
+				) : !threads ||
+				  threads.length === 0 ||
+				  threads.length === groupedThreads.archived.length ? (
 					<SidebarGroup>
 						<SidebarGroupContent>
 							<SidebarMenu>
@@ -149,7 +204,7 @@ export function AppSidebar({
 					</SidebarGroup>
 				) : (
 					<>
-						{projects && projects.length > 0 && (
+						{projects && projects.length > 0 && !isSearchActive && (
 							<SidebarGroup>
 								<Button
 									variant="ghost"
@@ -208,6 +263,10 @@ export function AppSidebar({
 										size="sm"
 										variant="ghost"
 										className="w-full text-xs justify-start text-sidebar-foreground/70">
+										<ArchiveIcon
+											className="size-3!"
+											strokeWidth={1}
+										/>
 										Archived
 										<Badge
 											variant="secondary"
@@ -249,7 +308,7 @@ export function AppSidebar({
 										'A'}
 								</AvatarFallback>
 							</Avatar>
-							<span className="ml-2">
+							<span className="ml-2 font-medium font-theme">
 								{user?.fullName ??
 									userData?.name ??
 									userData?.email ??

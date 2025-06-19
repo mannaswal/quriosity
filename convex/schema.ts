@@ -107,7 +107,11 @@ export default defineSchema({
 	})
 		.index('by_user_id', ['userId'])
 		.index('by_thread', ['threadId'])
-		.index('by_thread_and_status', ['threadId', 'status']),
+		.index('by_thread_and_status', ['threadId', 'status'])
+		.searchIndex('search_content', {
+			searchField: 'content',
+			filterFields: ['userId', 'threadId'],
+		}),
 });
 
 export const DefaultUserMessage = {
