@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { redirect, useRouter, useSearchParams } from 'next/navigation';
 import { useConvexAuth, useMutation } from 'convex/react';
 import { useUser } from '@clerk/nextjs';
 import { api } from 'convex/_generated/api';
@@ -21,7 +21,6 @@ import { Loading } from '@/components/layout/loading';
  */
 function AuthCompletePageContent() {
 	const router = useRouter();
-	const searchParams = useSearchParams();
 	const { isLoading: isConvexLoading, isAuthenticated } = useConvexAuth();
 	const { isLoaded: isClerkLoaded, user } = useUser();
 	const [isProcessing, setIsProcessing] = useState(true);
@@ -82,7 +81,7 @@ function AuthCompletePageContent() {
 
 	// Show login prompt if not authenticated
 	if (!isProcessing && !user) {
-		return <LoginPrompt />;
+		redirect('/auth');
 	}
 
 	// Show error state
@@ -98,7 +97,7 @@ function AuthCompletePageContent() {
 	}
 
 	// Show loading state
-	return <Loading message="Setting up your account..." />;
+	return <Loading />;
 }
 
 export default function AuthCompletePage() {

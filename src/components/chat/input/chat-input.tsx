@@ -1,6 +1,7 @@
 'use client';
 
 import { SendIcon, StopCircleIcon, GlobeIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import {
 	PromptInput,
 	PromptInputAction,
@@ -33,6 +34,8 @@ import { ModelId } from '@/lib/models';
 import { TooltipWrapper } from '@/components/ui/tooltip-wrapper';
 import { useThreads } from '@/hooks/use-threads';
 import { useWebSearch, useUpdateWebSearch } from '@/hooks/use-user';
+import { useApiKey } from '@/hooks/use-api-key';
+import { ApiKeyModal } from '@/components/auth/api-key-modal';
 
 export function ChatInput({
 	thread,
@@ -41,6 +44,8 @@ export function ChatInput({
 	thread: Thread | undefined;
 	user: User | undefined;
 }) {
+	const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+
 	const modelId = useTempModel();
 	const textInput = useTempInputText();
 	const useWebSearch = useTempUseWebSearch();
@@ -58,10 +63,15 @@ export function ChatInput({
 
 	const sendMessage = useSendMessage();
 	const stopStream = useStopStream();
+	const { hasApiKey, isLoading: isLoadingApiKey } = useApiKey();
 
 	const isProcessing =
 		thread?.status === 'streaming' || thread?.status === 'pending';
-	const disabled = !textInput.trim() || isProcessing || !allAttachmentsUploaded;
+	const disabled =
+		!textInput.trim() ||
+		isProcessing ||
+		!allAttachmentsUploaded ||
+		isLoadingApiKey;
 
 	const handleStop = async () => {
 		stopStream(thread?._id).catch((error) => {
@@ -69,10 +79,22 @@ export function ChatInput({
 		});
 	};
 
+	useEffect(() => {
+		if (!isLoadingApiKey && !hasApiKey) {
+			setShowApiKeyModal(true);
+		}
+	}, [isLoadingApiKey, hasApiKey]);
+
 	const handleSendMessage = async () => {
 		if (disabled) {
 			if (!allAttachmentsUploaded)
 				toast.error('Attachments are still uploading');
+			return;
+		}
+
+		// Check for API key before sending message
+		if (!hasApiKey) {
+			setShowApiKeyModal(true);
 			return;
 		}
 
@@ -95,78 +117,91 @@ export function ChatInput({
 	};
 
 	return (
-		<div className="w-full absolute left-1/2 -translate-x-1/2 max-w-3xl z-50 bottom-2 px-2">
-			<InputAttachmentList />
-			<PromptInput
-				onSubmit={handleSendMessage}
-				onValueChange={setInputText}
-				value={textInput}>
-				<PromptInputTextarea
-					autoFocus
-					spellCheck={false}
-					data-ms-editor="false"
-					placeholder={'Type here...'}
-					className="md:text-base"
-				/>
-				<PromptInputActions className="w-full flex items-center justify-between pt-2">
-					<div className="flex items-center gap-0">
-						<ModelSelectorAdvanced modelId={modelId} />
-						{hasEffortControl(modelId) && (
+		<>
+			<div className="w-full absolute left-1/2 -translate-x-1/2 max-w-3xl z-50 bottom-2 px-2">
+				<InputAttachmentList />
+				<PromptInput
+					onSubmit={handleSendMessage}
+					onValueChange={setInputText}
+					value={textInput}>
+					<PromptInputTextarea
+						autoFocus
+						spellCheck={false}
+						data-ms-editor="false"
+						placeholder={
+							isLoadingApiKey
+								? 'Loading...'
+								: !hasApiKey
+								? 'Add your OpenRouter API key to start chatting...'
+								: 'Type here...'
+						}
+						className="md:text-base"
+					/>
+					<PromptInputActions className="w-full flex items-center justify-between pt-2">
+						<div className="flex items-center gap-0">
+							<ModelSelectorAdvanced modelId={modelId} />
+							{hasEffortControl(modelId) && (
+								<PromptInputAction
+									delayDuration={300}
+									tooltip="Reasoning">
+									<ReasoningSelector />
+								</PromptInputAction>
+							)}
 							<PromptInputAction
 								delayDuration={300}
-								tooltip="Reasoning">
-								<ReasoningSelector />
+								tooltip="Attach files">
+								<AttachmentManager modelId={modelId} />
 							</PromptInputAction>
-						)}
-						<PromptInputAction
+							<PromptInputAction
+								delayDuration={300}
+								tooltip="Web search">
+								<WebSearchToggle />
+							</PromptInputAction>
+							<PromptInputAction
+								delayDuration={300}
+								tooltip="Project">
+								<ProjectSelector />
+							</PromptInputAction>
+						</div>
+						<TooltipWrapper
 							delayDuration={300}
-							tooltip="Attach files">
-							<AttachmentManager modelId={modelId} />
-						</PromptInputAction>
-						<PromptInputAction
-							delayDuration={300}
-							tooltip="Web search">
-							<WebSearchToggle />
-						</PromptInputAction>
-						<PromptInputAction
-							delayDuration={300}
-							tooltip="Project">
-							<ProjectSelector />
-						</PromptInputAction>
-					</div>
-					<TooltipWrapper
-						delayDuration={300}
-						tooltip={
-							isProcessing
-								? 'Stop'
-								: disabled
-								? !allAttachmentsUploaded
-									? 'Attachments are still uploading'
-									: "Can't send empty message"
-								: 'Send'
-						}>
-						{isProcessing ? (
-							<Button
-								onClick={handleStop}
-								variant="ghost"
-								size="icon"
-								className="rounded-lg">
-								<StopCircleIcon className="size-4" />
-							</Button>
-						) : (
-							<Button
-								disabled={disabled}
-								onClick={handleSendMessage}
-								variant="ghost"
-								size="icon"
-								className="rounded-lg">
-								<SendIcon className="size-4" />
-							</Button>
-						)}
-					</TooltipWrapper>
-				</PromptInputActions>
-			</PromptInput>
-		</div>
+							tooltip={
+								isProcessing
+									? 'Stop'
+									: disabled
+									? !allAttachmentsUploaded
+										? 'Attachments are still uploading'
+										: "Can't send empty message"
+									: 'Send'
+							}>
+							{isProcessing ? (
+								<Button
+									onClick={handleStop}
+									variant="ghost"
+									size="icon"
+									className="rounded-lg">
+									<StopCircleIcon className="size-4" />
+								</Button>
+							) : (
+								<Button
+									disabled={disabled}
+									onClick={handleSendMessage}
+									variant="ghost"
+									size="icon"
+									className="rounded-lg">
+									<SendIcon className="size-4" />
+								</Button>
+							)}
+						</TooltipWrapper>
+					</PromptInputActions>
+				</PromptInput>
+			</div>
+
+			<ApiKeyModal
+				open={showApiKeyModal}
+				onOpenChange={setShowApiKeyModal}
+			/>
+		</>
 	);
 }
 

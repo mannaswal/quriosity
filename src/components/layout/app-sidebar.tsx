@@ -157,6 +157,9 @@ export function AppSidebar({
 						}>
 						<Input
 							placeholder="Search chats"
+							id="search-chats"
+							autoComplete="off"
+							aria-autocomplete="none"
 							className="w-full border-none"
 							disabled={!threads?.length}
 							value={searchQuery}
@@ -341,11 +344,12 @@ export function AppSidebar({
 						className="min-w-48">
 						<SignOutButton
 							signOutOptions={{
-								redirectUrl: '/auth/complete',
+								redirectUrl: '/auth',
 							}}>
 							<Button
 								onClick={() => {
 									clearAll();
+									router.push('/auth');
 								}}
 								variant="ghost"
 								className="w-full justify-start"

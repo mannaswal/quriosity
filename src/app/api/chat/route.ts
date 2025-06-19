@@ -9,14 +9,6 @@ import { getCoreMessages, cleanModelId, getReasoning } from '@/server/utils';
 
 export const maxDuration = 500;
 
-if (!process.env.OPENROUTER_API_KEY) {
-	throw new Error('Missing OPENROUTER_API_KEY');
-}
-
-const openrouter = createOpenRouter({
-	apiKey: process.env.OPENROUTER_API_KEY,
-});
-
 /**
  * Main chat endpoint for streaming AI responses
  * Handles initial stream requests from the client who sent the message
@@ -61,6 +53,19 @@ export async function POST(request: NextRequest) {
 		) {
 			return new NextResponse('Missing required fields', { status: 400 });
 		}
+
+		// 3. Get user's OpenRouter API key
+		const user = await convexClient.query(api.users.getCurrentUser);
+		if (!user?.openRouterApiKey) {
+			return new NextResponse('OpenRouter API key not configured', {
+				status: 400,
+			});
+		}
+
+		// Create OpenRouter instance with user's API key
+		const openrouter = createOpenRouter({
+			apiKey: user.openRouterApiKey,
+		});
 
 		// 4. Create our own AbortController to properly stop AI token generation
 		const abortController = new AbortController();

@@ -102,3 +102,35 @@ export const updateUseWebSearch = mutation({
 		});
 	},
 });
+
+/**
+ * Update the user's OpenRouter API key.
+ */
+export const updateOpenRouterApiKey = mutation({
+	args: {
+		apiKey: v.string(),
+	},
+	handler: async (ctx, { apiKey }) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('User not found.');
+
+		return await ctx.db.patch(user._id, {
+			openRouterApiKey: apiKey,
+		});
+	},
+});
+
+/**
+ * Remove the user's OpenRouter API key.
+ */
+export const removeOpenRouterApiKey = mutation({
+	args: {},
+	handler: async (ctx) => {
+		const user = await getUser(ctx);
+		if (!user) throw new Error('User not found.');
+
+		return await ctx.db.patch(user._id, {
+			openRouterApiKey: undefined,
+		});
+	},
+});
