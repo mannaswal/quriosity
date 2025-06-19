@@ -125,7 +125,7 @@ function ThreadItem({ thread }: ThreadItemProps) {
 				handleDeleteThread={handleDeleteThread}
 				handleArchiveThread={handleArchiveThread}
 				handleRenameOnClick={handleRenameOnClick}>
-				<Card className="hover:shadow-sm transition-shadow p-0 relative group/thread-item relative">
+				<Card className="hover:shadow-sm transition-shadow p-0 relative group/thread-item">
 					{isEditing ? (
 						<CardContent className="p-3 pr-1.5 cursor-default">
 							<div className="flex items-center justify-between">

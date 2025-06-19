@@ -37,11 +37,6 @@ export default clerkMiddleware(async (auth, req) => {
 				// console.log('Middleware - No valid auth, redirecting to auth');
 				const authUrl = new URL('/auth', req.url);
 
-				// Preserve the intended destination
-				authUrl.searchParams.set(
-					'redirectTo',
-					req.nextUrl.pathname + req.nextUrl.search
-				);
 				return NextResponse.redirect(authUrl);
 			}
 
@@ -50,10 +45,6 @@ export default clerkMiddleware(async (auth, req) => {
 			// console.error('Middleware - Auth error:', error);
 			// If auth fails, redirect to login
 			const authUrl = new URL('/auth', req.url);
-			authUrl.searchParams.set(
-				'redirectTo',
-				req.nextUrl.pathname + req.nextUrl.search
-			);
 			return NextResponse.redirect(authUrl);
 		}
 	}

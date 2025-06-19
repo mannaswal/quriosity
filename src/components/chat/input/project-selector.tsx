@@ -102,16 +102,22 @@ export function ProjectSelector() {
 					</TooltipWrapper>
 				) : (
 					<TooltipWrapper
+						disabled={!!projects?.length}
 						tooltip={
-							<div>
-								<span>No project assigned</span>
-								<br />
-								<span className="text-xs text-muted-foreground mt-0.5">
-									Click to add to a project
-								</span>
-							</div>
+							projects?.length ? (
+								"You don't have any projects yet"
+							) : (
+								<div>
+									<span>No project assigned</span>
+									<br />
+									<span className="text-xs text-muted-foreground mt-0.5">
+										Click to add to a project
+									</span>
+								</div>
+							)
 						}>
 						<Button
+							disabled={projects?.length === 0}
 							variant="ghost"
 							size="default"
 							className={cn(
@@ -190,8 +196,8 @@ export function ProjectSelector() {
 					asChild>
 					<SelectTrigger hideChevron>
 						<FolderIcon
-							className="size-4 shrink-0 -ml-0.5 text-foreground"
-							strokeWidth={1.2}
+							className="size-4.5 shrink-0 -ml-0.5 text-foreground"
+							strokeWidth={1}
 						/>
 						<span className="text-sm max-w-24 truncate">
 							{selectedProject.name}
@@ -209,9 +215,9 @@ export function ProjectSelector() {
 						)}
 						asChild>
 						<SelectTrigger hideChevron>
-							<FolderIcon
-								className="size-4 shrink-0 text-foreground"
-								strokeWidth={1.2}
+							<FolderInputIcon
+								className="size-4.5 shrink-0 text-foreground"
+								strokeWidth={1}
 							/>
 						</SelectTrigger>
 					</Button>

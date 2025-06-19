@@ -7,6 +7,7 @@ import { useUser } from '@clerk/nextjs';
 import { api } from 'convex/_generated/api';
 import { Loader } from '@/components/ui/loader';
 import LoginPrompt from '@/components/home/login-prompt';
+import { Button } from '@/components/ui/button';
 
 /**
  * Auth completion page for first-time users (sign-ups) that handles:
@@ -55,12 +56,9 @@ function AuthCompletePageContent() {
 				await storeUser();
 				console.log('New user stored successfully');
 
-				// Get redirect destination
-				const redirectTo = searchParams.get('redirectTo') || '/';
-
-				// Redirect to destination
-				console.log('Auth completed, redirecting to:', redirectTo);
-				router.replace(redirectTo);
+				// Redirect to home page
+				console.log('Auth completed, redirecting to home');
+				router.replace('/');
 			} catch (err) {
 				console.error('Auth completion error:', err);
 				setError('Failed to complete authentication. Please try again.');
@@ -76,7 +74,6 @@ function AuthCompletePageContent() {
 		user,
 		storeUser,
 		router,
-		searchParams,
 	]);
 
 	// Show login prompt if not authenticated
@@ -88,13 +85,9 @@ function AuthCompletePageContent() {
 	if (error) {
 		return (
 			<div className="flex items-center justify-center min-h-screen">
-				<div className="text-center gap-2 flex items-center">
-					<div className="text-red-500">{error}</div>
-					<button
-						onClick={() => window.location.reload()}
-						className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-						Try Again
-					</button>
+				<div className="text-center gap-2 flex flex-col items-center">
+					<div className="text-rose-500">{error}</div>
+					<Button onClick={() => window.location.reload()}>Try Again</Button>
 				</div>
 			</div>
 		);

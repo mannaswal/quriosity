@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import LoginPrompt from '@/components/home/login-prompt';
 import { Loader } from '@/components/ui/loader';
@@ -9,7 +9,6 @@ import { Loader } from '@/components/ui/loader';
 function AuthPageContent() {
 	const { isLoaded, isSignedIn } = useUser();
 	const router = useRouter();
-	const searchParams = useSearchParams();
 
 	useEffect(() => {
 		// Wait for Clerk to load
@@ -17,14 +16,10 @@ function AuthPageContent() {
 
 		// If user is already signed in, redirect them
 		if (isSignedIn) {
-			const redirectTo = searchParams.get('redirectTo') || '/';
-			console.log(
-				'Auth page - User already signed in, redirecting to:',
-				redirectTo
-			);
-			router.replace(redirectTo);
+			console.log('Auth page - User already signed in, redirecting to home');
+			router.replace('/');
 		}
-	}, [isLoaded, isSignedIn, router, searchParams]);
+	}, [isLoaded, isSignedIn, router]);
 
 	// Show loading while Clerk is loading
 	if (!isLoaded) {

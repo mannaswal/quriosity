@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Markdown } from '@/components/ui/markdown';
 import { Message } from '@/components/ui/message';
-import { CheckIcon, CopyIcon, PencilIcon } from 'lucide-react';
+import { CheckIcon, CopyIcon, PencilIcon, SquarePenIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { RetryButtonAdvanced } from '../input/retry-button-advanced';
 import { MessageAttachmentList } from '../input/attachment-list';
@@ -111,13 +111,19 @@ export function UserMessage({ message }: UserMessageProps) {
 						? 'opacity-100'
 						: 'opacity-0 peer-hover:opacity-100 hover:opacity-100'
 				}`}>
+				<RetryButtonAdvanced
+					handleRegenerate={handleRegenerate}
+					onOpenChange={setIsRetryMenuOpen}
+					message={message}
+				/>
 				<Button
 					onClick={() => setIsEditing((prev) => !prev)}
 					variant="ghost"
 					size="icon"
 					className="size-8">
-					<PencilIcon className="size-4" />
+					<SquarePenIcon className="size-4" />
 				</Button>
+
 				<Button
 					variant="ghost"
 					size="icon"
@@ -129,11 +135,6 @@ export function UserMessage({ message }: UserMessageProps) {
 						<CopyIcon className="w-4 h-4" />
 					)}
 				</Button>
-				<RetryButtonAdvanced
-					handleRegenerate={handleRegenerate}
-					onOpenChange={setIsRetryMenuOpen}
-					message={message}
-				/>
 			</div>
 		</div>
 	);

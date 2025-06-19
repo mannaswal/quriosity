@@ -5,7 +5,6 @@ import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
 import { Funnel_Display } from 'next/font/google';
 import { ArrowRightIcon } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 
 const funnelDisplay = Funnel_Display({
@@ -14,16 +13,11 @@ const funnelDisplay = Funnel_Display({
 });
 
 function LoginPromptContent() {
-	const searchParams = useSearchParams();
-	const redirectTo = searchParams.get('redirectTo') || '/';
-
-	// For sign-in (returning users): go directly to intended destination
-	const signInRedirectUrl = redirectTo;
+	// For sign-in (returning users): go directly to home page
+	const signInRedirectUrl = '/auth';
 
 	// For sign-up (first-time users): go to auth completion to store user in DB
-	const signUpRedirectUrl = `/auth/complete?redirectTo=${encodeURIComponent(
-		redirectTo
-	)}`;
+	const signUpRedirectUrl = '/auth/complete';
 
 	return (
 		<main className="w-full h-dvh flex flex-col items-center justify-center">
