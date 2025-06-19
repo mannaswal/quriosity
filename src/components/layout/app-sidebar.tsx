@@ -176,7 +176,7 @@ export function AppSidebar({
 						)}
 					</Button>
 				</div>
-				<div className="h-6 absolute bottom-0 left-0 translate-y-full w-full bg-gradient-to-b from-[#141414] to-transparent z-50 pointer-events-none" />
+				<div className="h-3 absolute bottom-0 left-0 translate-y-full w-full bg-gradient-to-b from-[#141414] to-transparent z-50 pointer-events-none" />
 			</SidebarHeader>
 
 			<SidebarContent className="h-full gap-0 scrollbar-hide relative">

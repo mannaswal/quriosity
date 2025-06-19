@@ -17,54 +17,17 @@ import {
 	getRedirectDelay,
 } from '@/lib/error-handling';
 import { useRouter } from 'next/navigation';
-import React from 'react';
 
 /**
  * Hook to get all user projects
  */
 export function useProjects() {
 	const { isAuthenticated } = useConvexAuth();
-	const router = useRouter();
-	const [hasHandledError, setHasHandledError] = React.useState(false);
 
-	const result = useConvexQuery(
+	return useConvexQuery(
 		api.projects.getUserProjects,
 		isAuthenticated ? {} : 'skip'
 	);
-
-	// Handle query errors with comprehensive error handling
-	React.useEffect(() => {
-		// Reset error state on authentication changes
-		if (!isAuthenticated) {
-			setHasHandledError(false);
-			return;
-		}
-
-		// Handle error states
-		if (result === null && !hasHandledError) {
-			// Query returned null - could be authorization error or no projects
-			// This is normal for new users with no projects, so don't treat as error
-			return;
-		}
-
-		// Handle authentication edge cases
-		if (!isAuthenticated && result !== undefined && !hasHandledError) {
-			console.warn('[useProjects] Received data when not authenticated');
-			const errorMessage = getToastErrorMessage(
-				'not-authenticated',
-				'project',
-				'load projects'
-			);
-			toast.error(errorMessage);
-
-			setTimeout(() => {
-				router.push('/auth');
-			}, getRedirectDelay('not-authenticated'));
-			setHasHandledError(true);
-		}
-	}, [isAuthenticated, result, hasHandledError, router]);
-
-	return result;
 }
 
 /**
@@ -72,64 +35,11 @@ export function useProjects() {
  */
 export function useProject(projectId: Id<'projects'> | undefined) {
 	const { isAuthenticated } = useConvexAuth();
-	const router = useRouter();
-	const [hasHandledError, setHasHandledError] = React.useState(false);
 
-	const result = useConvexQuery(
+	return useConvexQuery(
 		api.projects.getProjectById,
 		projectId && isAuthenticated ? { projectId } : 'skip'
 	);
-
-	// Handle query errors with comprehensive error handling
-	React.useEffect(() => {
-		// Reset error state when projectId changes
-		setHasHandledError(false);
-	}, [projectId]);
-
-	React.useEffect(() => {
-		if (!projectId || !isAuthenticated) {
-			setHasHandledError(false);
-			return;
-		}
-
-		// Handle authentication edge cases
-		if (!isAuthenticated && result !== undefined && !hasHandledError) {
-			console.warn('[useProject] Received data when not authenticated');
-			const errorMessage = getToastErrorMessage(
-				'not-authenticated',
-				'project',
-				'load project'
-			);
-			toast.error(errorMessage);
-
-			setTimeout(() => {
-				router.push('/auth');
-			}, getRedirectDelay('not-authenticated'));
-			setHasHandledError(true);
-			return;
-		}
-
-		// Handle project not found or unauthorized access
-		if (projectId && isAuthenticated && result === null && !hasHandledError) {
-			console.warn(
-				'[useProject] Project not found or unauthorized:',
-				projectId
-			);
-			const errorMessage = getToastErrorMessage(
-				'unauthorized',
-				'project',
-				'access project'
-			);
-			toast.error(errorMessage);
-
-			setTimeout(() => {
-				router.push('/projects');
-			}, getRedirectDelay('unauthorized'));
-			setHasHandledError(true);
-		}
-	}, [isAuthenticated, result, projectId, hasHandledError, router]);
-
-	return result;
 }
 
 /**
@@ -137,64 +47,11 @@ export function useProject(projectId: Id<'projects'> | undefined) {
  */
 export function useProjectData(projectId: Id<'projects'> | undefined) {
 	const { isAuthenticated } = useConvexAuth();
-	const router = useRouter();
-	const [hasHandledError, setHasHandledError] = React.useState(false);
 
-	const result = useConvexQuery(
+	return useConvexQuery(
 		api.projects.getProjectDataById,
 		projectId && isAuthenticated ? { projectId } : 'skip'
 	);
-
-	// Handle query errors with comprehensive error handling
-	React.useEffect(() => {
-		// Reset error state when projectId changes
-		setHasHandledError(false);
-	}, [projectId]);
-
-	React.useEffect(() => {
-		if (!projectId || !isAuthenticated) {
-			setHasHandledError(false);
-			return;
-		}
-
-		// Handle authentication edge cases
-		if (!isAuthenticated && result !== undefined && !hasHandledError) {
-			console.warn('[useProjectData] Received data when not authenticated');
-			const errorMessage = getToastErrorMessage(
-				'not-authenticated',
-				'project',
-				'load project data'
-			);
-			toast.error(errorMessage);
-
-			setTimeout(() => {
-				router.push('/auth');
-			}, getRedirectDelay('not-authenticated'));
-			setHasHandledError(true);
-			return;
-		}
-
-		// Handle project data not found or unauthorized access
-		if (projectId && isAuthenticated && result === null && !hasHandledError) {
-			console.warn(
-				'[useProjectData] Project data not found or unauthorized:',
-				projectId
-			);
-			const errorMessage = getToastErrorMessage(
-				'unauthorized',
-				'project',
-				'access project data'
-			);
-			toast.error(errorMessage);
-
-			setTimeout(() => {
-				router.push('/projects');
-			}, getRedirectDelay('unauthorized'));
-			setHasHandledError(true);
-		}
-	}, [isAuthenticated, result, projectId, hasHandledError, router]);
-
-	return result;
 }
 
 /**
@@ -202,66 +59,13 @@ export function useProjectData(projectId: Id<'projects'> | undefined) {
  */
 export function useProjectDataByThreadId(threadId: Id<'threads'> | undefined) {
 	const { isAuthenticated } = useConvexAuth();
-	const router = useRouter();
-	const [hasHandledError, setHasHandledError] = React.useState(false);
 
-	const result = useConvexQuery(
-		api.projects.getProjectDataByThreadId,
-		threadId && isAuthenticated ? { threadId } : 'skip'
+	return (
+		useConvexQuery(
+			api.projects.getProjectDataByThreadId,
+			threadId && isAuthenticated ? { threadId } : 'skip'
+		) ?? undefined
 	);
-
-	// Handle query errors with comprehensive error handling
-	React.useEffect(() => {
-		// Reset error state when threadId changes
-		setHasHandledError(false);
-	}, [threadId]);
-
-	React.useEffect(() => {
-		if (!threadId || !isAuthenticated) {
-			setHasHandledError(false);
-			return;
-		}
-
-		// Handle authentication edge cases
-		if (!isAuthenticated && result !== undefined && !hasHandledError) {
-			console.warn(
-				'[useProjectDataByThreadId] Received data when not authenticated'
-			);
-			const errorMessage = getToastErrorMessage(
-				'not-authenticated',
-				'project',
-				'load project data'
-			);
-			toast.error(errorMessage);
-
-			setTimeout(() => {
-				router.push('/auth');
-			}, getRedirectDelay('not-authenticated'));
-			setHasHandledError(true);
-			return;
-		}
-
-		// Handle thread not found or unauthorized access
-		if (threadId && isAuthenticated && result === null && !hasHandledError) {
-			console.warn(
-				'[useProjectDataByThreadId] Thread not found or unauthorized:',
-				threadId
-			);
-			const errorMessage = getToastErrorMessage(
-				'unauthorized',
-				'thread',
-				'access thread project data'
-			);
-			toast.error(errorMessage);
-
-			setTimeout(() => {
-				router.push('/');
-			}, getRedirectDelay('unauthorized'));
-			setHasHandledError(true);
-		}
-	}, [isAuthenticated, result, threadId, hasHandledError, router]);
-
-	return result ?? undefined;
 }
 
 /**
@@ -269,64 +73,13 @@ export function useProjectDataByThreadId(threadId: Id<'threads'> | undefined) {
  */
 export function useProjectThreads(projectId: Id<'projects'> | undefined) {
 	const { isAuthenticated } = useConvexAuth();
-	const router = useRouter();
-	const [hasHandledError, setHasHandledError] = React.useState(false);
 
-	const result = useConvexQuery(
-		api.projects.getProjectThreads,
-		projectId && isAuthenticated ? { projectId } : 'skip'
+	return (
+		useConvexQuery(
+			api.projects.getProjectThreads,
+			projectId && isAuthenticated ? { projectId } : 'skip'
+		) ?? undefined
 	);
-
-	// Handle query errors with comprehensive error handling
-	React.useEffect(() => {
-		// Reset error state when projectId changes
-		setHasHandledError(false);
-	}, [projectId]);
-
-	React.useEffect(() => {
-		if (!projectId || !isAuthenticated) {
-			setHasHandledError(false);
-			return;
-		}
-
-		// Handle authentication edge cases
-		if (!isAuthenticated && result !== undefined && !hasHandledError) {
-			console.warn('[useProjectThreads] Received data when not authenticated');
-			const errorMessage = getToastErrorMessage(
-				'not-authenticated',
-				'project',
-				'load project threads'
-			);
-			toast.error(errorMessage);
-
-			setTimeout(() => {
-				router.push('/auth');
-			}, getRedirectDelay('not-authenticated'));
-			setHasHandledError(true);
-			return;
-		}
-
-		// Handle project not found or unauthorized access
-		if (projectId && isAuthenticated && result === null && !hasHandledError) {
-			console.warn(
-				'[useProjectThreads] Project not found or unauthorized:',
-				projectId
-			);
-			const errorMessage = getToastErrorMessage(
-				'unauthorized',
-				'project',
-				'access project threads'
-			);
-			toast.error(errorMessage);
-
-			setTimeout(() => {
-				router.push('/projects');
-			}, getRedirectDelay('unauthorized'));
-			setHasHandledError(true);
-		}
-	}, [isAuthenticated, result, projectId, hasHandledError, router]);
-
-	return result ?? undefined;
 }
 
 /**
@@ -480,6 +233,7 @@ export function useDeleteProject() {
 
 	return async (projectId: Id<'projects'>) => {
 		try {
+			router.push('/projects');
 			await deleteMutation({ projectId });
 			toast.success('Project deleted successfully!');
 		} catch (error) {

@@ -60,7 +60,7 @@ export function AppBreadcrumbs() {
 			)}>
 			<div
 				className={cn(
-					'fixed top-4.5 left-4.5 transition-all duration-100 flex items-center pr-1.5 z-30',
+					'fixed top-4.5 left-4.5 transition-all duration-100 flex items-center z-30 w-16',
 					!open && route === 'projects' && 'border-r border-border'
 				)}>
 				<TooltipWrapper
