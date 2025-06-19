@@ -40,8 +40,8 @@ function getModelCapabilities(modelId?: ModelId) {
 		acceptStrings.push('text/*');
 	}
 	if (canUseImages) {
-		acceptedTypes.push('PNG', 'JPEG', 'GIF', 'WebP', 'HEIC');
-		acceptStrings.push('image/*');
+		acceptedTypes.push('PNG', 'JPEG', 'GIF', 'WebP');
+		acceptStrings.push('image/png', 'image/jpeg', 'image/gif', 'image/webp');
 	}
 	if (canUseDocs) {
 		acceptedTypes.push('PDF');
@@ -129,8 +129,17 @@ export function AttachmentManager({
 	const isFileTypeCompatible = (file: File): boolean => {
 		const { canUseImages, canUseDocs, canUseText } = capabilities;
 
+		// Specific allowed image types (no HEIC/HEIF)
+		const allowedImageTypes = [
+			'image/png',
+			'image/jpeg',
+			'image/jpg', // Some browsers report jpg as jpg instead of jpeg
+			'image/gif',
+			'image/webp',
+		];
+
 		if (file.type.includes('text') && canUseText) return true;
-		if (file.type.includes('image') && canUseImages) return true;
+		if (allowedImageTypes.includes(file.type) && canUseImages) return true;
 		if (file.type === 'application/pdf' && canUseDocs) return true;
 
 		return false;
