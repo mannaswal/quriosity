@@ -11,10 +11,13 @@ import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/layout/loading';
 
 /**
- * Auth completion page for first-time users (sign-ups) that handles:
- * - Storing new user in database
- * - Redirecting to intended destination
- * Note: Returning users (sign-ins) skip this page and go directly to their destination
+ * Auth completion page that handles user document creation/verification:
+ * - For new users: Creates user document in database
+ * - For existing users: Verifies user document exists (no-op if already exists)
+ * - Redirects to home page (/) after successful completion
+ *
+ * Note: ALL users now go through this page via Clerk redirect settings
+ * to ensure user documents always exist before accessing the main app
  */
 function AuthCompletePageContent() {
 	const router = useRouter();
@@ -52,10 +55,10 @@ function AuthCompletePageContent() {
 					return;
 				}
 
-				// Store new user in database (this page is only for sign-ups)
-				console.log('Storing new user in database...');
+				// Store user in database (creates new user or verifies existing user)
+				console.log('Ensuring user document exists in database...');
 				await storeUser();
-				console.log('New user stored successfully');
+				console.log('User document verified/created successfully');
 
 				// Redirect to home page
 				console.log('Auth completed, redirecting to home');

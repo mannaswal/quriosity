@@ -27,10 +27,20 @@ export function categorizeConvexError(error: Error): ConvexErrorType {
 	// Authentication errors
 	if (
 		message.includes('not authenticated') ||
-		message.includes('user not authenticated') ||
-		message.includes('user not found')
+		message.includes('user not authenticated')
 	) {
 		return 'not-authenticated';
+	}
+
+	// User document creation issues - these should now be extremely rare
+	// since all users will go through /auth/complete first
+	if (
+		message.includes('user not found') ||
+		message.includes('user document not found') ||
+		message.includes('no user document')
+	) {
+		// Treat as unauthorized since this shouldn't happen with proper auth flow
+		return 'unauthorized';
 	}
 
 	// Authorization errors
@@ -212,16 +222,16 @@ export function getErrorMessage(
 			return 'Please check your input and try again.';
 
 		case 'network-error':
-			return 'There was a problem connecting to the server. Please check your internet connection and try again.';
+			return 'Please check your internet connection and try again.';
 
 		case 'unknown':
 		default:
-			return 'An unexpected error occurred. Please try again later.';
+			return 'An unexpected error occurred. Please try again.';
 	}
 }
 
 /**
- * Gets toast-appropriate error messages for mutations
+ * Get toast-friendly error messages (shorter, more actionable)
  */
 export function getToastErrorMessage(
 	errorType: ConvexErrorType,
@@ -237,57 +247,63 @@ export function getToastErrorMessage(
 		case 'unauthorized':
 			switch (context) {
 				case 'project':
-					return `You don't have access to this project`;
+					return `You don't have permission to${actionText} this project`;
 				case 'thread':
-					return `You don't have access to this conversation`;
+					return `You don't have permission to${actionText} this conversation`;
+				case 'message':
+					return `You don't have permission to${actionText} this message`;
+				case 'attachment':
+					return `You don't have permission to${actionText} this file`;
 				default:
-					return `Access denied`;
+					return `You don't have permission to${actionText}`;
 			}
 
 		case 'not-found':
 			switch (context) {
 				case 'project':
-					return `Project not found`;
+					return 'Project not found';
 				case 'thread':
-					return `Conversation no longer exists`;
+					return 'Conversation not found';
+				case 'message':
+					return 'Message not found';
+				case 'attachment':
+					return 'File not found';
 				default:
-					return `Resource not found`;
+					return 'Resource not found';
 			}
 
 		case 'validation-error':
-			return `Invalid input${actionText}`;
+			return action ? `Invalid ${action} input` : 'Please check your input';
 
 		case 'network-error':
-			return `Connection error. Please try again.`;
+			return action
+				? `Failed to ${action} - check your connection`
+				: 'Connection error';
 
 		case 'unknown':
 		default:
-			return `Failed to${actionText}. Please try again.`;
+			return action ? `Failed to ${action}` : 'Something went wrong';
 	}
 }
 
 /**
- * Determines if an error should trigger a redirect
+ * Determines if an error should trigger an automatic redirect
  */
 export function shouldRedirectOnError(errorType: ConvexErrorType): boolean {
-	return (
-		errorType === 'not-authenticated' ||
-		errorType === 'unauthorized' ||
-		errorType === 'not-found'
-	);
+	return ['not-authenticated', 'unauthorized', 'not-found'].includes(errorType);
 }
 
 /**
- * Gets the redirect delay in milliseconds based on error type
+ * Gets the delay (in milliseconds) before redirecting for different error types
  */
 export function getRedirectDelay(errorType: ConvexErrorType): number {
 	switch (errorType) {
 		case 'not-authenticated':
-			return 1500; // Faster redirect for auth issues
+			return 1000; // Quick redirect for auth issues
 		case 'unauthorized':
 		case 'not-found':
-			return 2500; // Give user time to read the message
+			return 3000; // Give user time to read the message
 		default:
-			return 0;
+			return 2000;
 	}
 }

@@ -41,7 +41,7 @@ export function ProjectAttachmentsGrid({
 
 	if (project.attachments.length === 0) {
 		return (
-			<div className="text-center py-8 border-2 border-dashed border-muted rounded-lg">
+			<div className="text-center py-12 border-[0.5px] border-muted rounded-lg">
 				<div className="max-w-sm mx-auto">
 					<FileIcon
 						className="size-12 mx-auto text-muted-foreground/50 mb-3"

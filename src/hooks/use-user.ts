@@ -9,6 +9,8 @@ import {
 	useTempUseWebSearch,
 } from '@/stores/use-temp-data-store';
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import {
 	categorizeConvexError,
@@ -17,13 +19,36 @@ import {
 
 /**
  * Hook to get the current user's data.
+ * Enhanced to handle the case where user is authenticated through Clerk
+ * but doesn't have a user document yet - automatically redirects to /auth/complete
  */
 export function useCurrentUser() {
 	const { isAuthenticated } = useConvexAuth();
-	return useConvexQuery(
+	const { isSignedIn, isLoaded: clerkLoaded } = useUser();
+	const router = useRouter();
+
+	const user = useConvexQuery(
 		api.users.getCurrentUser,
 		isAuthenticated ? {} : 'skip'
 	);
+
+	useEffect(() => {
+		// Only check when all loading states are complete
+		if (!clerkLoaded || !isAuthenticated) return;
+
+		// Critical scenario: User is signed in through Clerk AND authenticated through Convex
+		// but the user query returned null (no user document exists)
+		if (isSignedIn && isAuthenticated && user === null) {
+			console.log(
+				'🔄 User authenticated but no user document found. Redirecting to /auth/complete...'
+			);
+
+			// Silent redirect - no toast needed since this should be seamless
+			router.replace('/auth/complete');
+		}
+	}, [isSignedIn, isAuthenticated, user, clerkLoaded, router]);
+
+	return user;
 }
 
 /**
