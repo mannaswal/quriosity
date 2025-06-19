@@ -14,7 +14,7 @@ export default function Home() {
 		// If Clerk has loaded and user is not signed in, redirect to auth
 		if (isLoaded && !isSignedIn) {
 			console.log('Home page - User not signed in, redirecting to auth');
-			router.replace('/auth');
+			router.replace('/auth/complete');
 		}
 	}, [isLoaded, isSignedIn, router]);
 

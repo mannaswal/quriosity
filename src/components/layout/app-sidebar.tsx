@@ -53,6 +53,7 @@ import { useConvexAuth, useQuery } from 'convex/react';
 import { api } from 'convex/_generated/api';
 import { Input } from '../ui/input';
 import { TooltipWrapper } from '../ui/tooltip-wrapper';
+import { useTempActions } from '@/stores/use-temp-data-store';
 
 const funnelDisplay = Funnel_Display({
 	subsets: ['latin'],
@@ -99,6 +100,8 @@ export function AppSidebar({
 
 	const threads = clientThreads ?? serverThreads;
 	const projects = clientProjects ?? serverProjects;
+
+	const { clearAll } = useTempActions();
 
 	useEffect(() => {
 		const handleKeyDown = (event: KeyboardEvent) => {
@@ -338,9 +341,12 @@ export function AppSidebar({
 						className="min-w-48">
 						<SignOutButton
 							signOutOptions={{
-								redirectUrl: '/auth',
+								redirectUrl: '/auth/complete',
 							}}>
 							<Button
+								onClick={() => {
+									clearAll();
+								}}
 								variant="ghost"
 								className="w-full justify-start"
 								asChild>

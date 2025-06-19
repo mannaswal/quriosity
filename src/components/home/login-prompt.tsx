@@ -14,7 +14,7 @@ const funnelDisplay = Funnel_Display({
 
 function LoginPromptContent() {
 	// For sign-in (returning users): go directly to home page
-	const signInRedirectUrl = '/auth';
+	const signInRedirectUrl = '/auth/complete';
 
 	// For sign-up (first-time users): go to auth completion to store user in DB
 	const signUpRedirectUrl = '/auth/complete';

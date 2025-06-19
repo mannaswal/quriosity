@@ -8,7 +8,7 @@ import {
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { toast } from 'sonner';
-import { useParams, useRouter } from 'next/navigation';
+import { redirect, useParams, useRouter } from 'next/navigation';
 import {
 	useStreamingMessage,
 	useStreamingStoreActions,
@@ -60,10 +60,18 @@ export function useThread() {
 	const threadId = useThreadId();
 	const { isAuthenticated } = useConvexAuth();
 
-	return useConvexQuery(
-		api.threads.getThreadById,
-		threadId && isAuthenticated ? { threadId } : 'skip'
-	);
+	return async () => {
+		try {
+			return await useConvexQuery(
+				api.threads.getThreadById,
+				threadId && isAuthenticated ? { threadId } : 'skip'
+			);
+		} catch (error) {
+			console.error('Error fetching thread:', error);
+			toast.error("Couldn't load thread");
+			redirect('/');
+		}
+	};
 }
 
 /**

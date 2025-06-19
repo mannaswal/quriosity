@@ -35,7 +35,7 @@ export default clerkMiddleware(async (auth, req) => {
 			// If user is not authenticated, redirect to auth page
 			if (!userId || !sessionId) {
 				// console.log('Middleware - No valid auth, redirecting to auth');
-				const authUrl = new URL('/auth', req.url);
+				const authUrl = new URL('/auth/complete', req.url);
 
 				return NextResponse.redirect(authUrl);
 			}
@@ -44,7 +44,7 @@ export default clerkMiddleware(async (auth, req) => {
 		} catch (error) {
 			// console.error('Middleware - Auth error:', error);
 			// If auth fails, redirect to login
-			const authUrl = new URL('/auth', req.url);
+			const authUrl = new URL('/auth/complete', req.url);
 			return NextResponse.redirect(authUrl);
 		}
 	}

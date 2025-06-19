@@ -45,6 +45,7 @@ type TempDataActions = {
 	clearAttachments: () => void;
 	setSelectedProjectId: (projectId: Id<'projects'> | undefined) => void;
 	setUseWebSearch: (useWebSearch: boolean) => void;
+	clearAll: () => void;
 };
 
 type TempDataStore = TempDataState & {
@@ -134,6 +135,15 @@ const useTempDataStore = create<TempDataStore>()(
 				},
 				clearAttachments: () => set({ attachments: [] }),
 				setUseWebSearch: (useWebSearch: boolean) => set({ useWebSearch }),
+				clearAll: () =>
+					set({
+						inputText: '',
+						model: DEFAULT_MODEL,
+						reasoningEffort: undefined,
+						attachments: [],
+						selectedProjectId: undefined,
+						useWebSearch: false,
+					}),
 			},
 		}),
 		{

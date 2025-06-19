@@ -22,7 +22,7 @@ import {
 	useStreamingMessage,
 } from '@/stores/use-streaming-store';
 import { useStopStream, useThread, useThreadId } from './use-threads';
-import { useRouter } from 'next/navigation';
+import { redirect, useRouter } from 'next/navigation';
 import { useModel, useReasoningEffort } from './use-model';
 import { ModelId } from '@/lib/models';
 import { processDataStream } from 'ai';
@@ -46,13 +46,19 @@ export function useMessages(): Message[] {
 	const threadId = useThreadId();
 	const { isAuthenticated } = useConvexAuth();
 
-	const dbMessages =
-		useQuery(
-			api.messages.getMessagesByThread,
-			threadId && isAuthenticated ? { threadId } : 'skip'
-		) ?? [];
+	try {
+		const dbMessages =
+			useQuery(
+				api.messages.getMessagesByThread,
+				threadId && isAuthenticated ? { threadId } : 'skip'
+			) ?? [];
 
-	return dbMessages;
+		return dbMessages;
+	} catch (error) {
+		console.error('Error fetching messages:', error);
+		toast.error("Couldn't load messages");
+		redirect('/');
+	}
 }
 
 /**

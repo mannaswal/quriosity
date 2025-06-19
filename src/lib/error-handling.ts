@@ -90,7 +90,7 @@ export function getErrorRedirectPath(
 ): string | null {
 	switch (errorType) {
 		case 'not-authenticated':
-			return '/auth';
+			return '/auth/complete';
 
 		case 'unauthorized':
 			// Redirect to appropriate parent route
