@@ -164,7 +164,7 @@ function ThreadItem({ thread }: ThreadItemProps) {
 						</Link>
 					)}
 					{!isEditing && (
-						<div className="flex items-center justify-between absolute inset-0 left-3">
+						<div className="flex items-center justify-between absolute top-1/2 left-3 -translate-y-1/2">
 							<div className="w-fit whitespace-nowrap truncate">
 								<span
 									className="font-medium truncate"
