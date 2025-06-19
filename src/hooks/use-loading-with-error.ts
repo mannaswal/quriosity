@@ -11,7 +11,7 @@ import {
 interface LoadingState {
 	isLoading: boolean;
 	error: Error | null;
-	data: any;
+	data: unknown | null;
 	isRetrying: boolean;
 	retryCount: number;
 }
@@ -24,7 +24,7 @@ interface UseLoadingWithErrorOptions {
 	successMessage?: string;
 	minLoadingTime?: number;
 	maxLoadingTime?: number;
-	onSuccess?: (data: any) => void;
+	onSuccess?: (data: unknown) => void;
 	onError?: (error: Error) => void;
 }
 
@@ -56,37 +56,6 @@ export function useLoadingWithError<T>(options: UseLoadingWithErrorOptions) {
 	const loadingStartTime = useRef<number | undefined>(undefined);
 	const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 	const toastId = useRef<string | number | undefined>(undefined);
-
-	const startLoading = useCallback(
-		(retrying = false) => {
-			loadingStartTime.current = Date.now();
-
-			setState((prev) => ({
-				...prev,
-				isLoading: true,
-				error: null,
-				isRetrying: retrying,
-				retryCount: retrying ? prev.retryCount + 1 : 0,
-			}));
-
-			// Show loading toast if enabled
-			if (showLoadingToast && loadingMessage) {
-				const message = retrying
-					? `Retrying ${loadingMessage}... (attempt ${state.retryCount + 1})`
-					: loadingMessage;
-
-				toastId.current = toast.loading(message);
-			}
-
-			// Set maximum loading timeout
-			if (maxLoadingTime > 0) {
-				timeoutRef.current = setTimeout(() => {
-					completeLoading(null, new Error('Operation timed out'));
-				}, maxLoadingTime);
-			}
-		},
-		[showLoadingToast, loadingMessage, state.retryCount, maxLoadingTime]
-	);
 
 	const completeLoading = useCallback(
 		async (data: T | null, error: Error | null) => {
@@ -138,6 +107,43 @@ export function useLoadingWithError<T>(options: UseLoadingWithErrorOptions) {
 		[minLoadingTime, successMessage, context, action, onSuccess, onError]
 	);
 
+	const startLoading = useCallback(
+		(retrying = false) => {
+			loadingStartTime.current = Date.now();
+
+			setState((prev) => ({
+				...prev,
+				isLoading: true,
+				error: null,
+				isRetrying: retrying,
+				retryCount: retrying ? prev.retryCount + 1 : 0,
+			}));
+
+			// Show loading toast if enabled
+			if (showLoadingToast && loadingMessage) {
+				const message = retrying
+					? `Retrying ${loadingMessage}... (attempt ${state.retryCount + 1})`
+					: loadingMessage;
+
+				toastId.current = toast.loading(message);
+			}
+
+			// Set maximum loading timeout
+			if (maxLoadingTime > 0) {
+				timeoutRef.current = setTimeout(() => {
+					completeLoading(null, new Error('Operation timed out'));
+				}, maxLoadingTime);
+			}
+		},
+		[
+			showLoadingToast,
+			loadingMessage,
+			state.retryCount,
+			maxLoadingTime,
+			completeLoading,
+		]
+	);
+
 	const reset = useCallback(() => {
 		if (timeoutRef.current) {
 			clearTimeout(timeoutRef.current);
@@ -179,7 +185,7 @@ export function useLoadingWithError<T>(options: UseLoadingWithErrorOptions) {
 /**
  * Wrapper that combines async operation with loading state management
  */
-export function useAsyncWithLoading<T extends any[], R>(
+export function useAsyncWithLoading<T extends unknown[], R>(
 	asyncFn: (...args: T) => Promise<R>,
 	options: UseLoadingWithErrorOptions
 ) {
@@ -240,7 +246,7 @@ export function useMultipleLoadingStates() {
 	}, []);
 
 	const completeLoading = useCallback(
-		(key: string, data: any = null, error: Error | null = null) => {
+		(key: string, data: unknown | null = null, error: Error | null = null) => {
 			setStates((prev) => ({
 				...prev,
 				[key]: {

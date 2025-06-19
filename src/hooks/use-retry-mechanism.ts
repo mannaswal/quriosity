@@ -27,7 +27,7 @@ interface UseRetryMechanismOptions extends RetryOptions {
  * Hook for implementing retry mechanism with exponential backoff
  * Useful for network operations and temporary failures
  */
-export function useRetryMechanism<T extends any[], R>(
+export function useRetryMechanism<T extends unknown[], R>(
 	operation: (...args: T) => Promise<R>,
 	options: UseRetryMechanismOptions
 ) {
@@ -184,7 +184,7 @@ export function useRetryMechanism<T extends any[], R>(
 /**
  * Wrapper for Convex mutations with built-in retry mechanism
  */
-export function useRetryableMutation<T extends any[], R>(
+export function useRetryableMutation<T extends unknown[], R>(
 	mutation: (...args: T) => Promise<R>,
 	options: UseRetryMechanismOptions
 ) {

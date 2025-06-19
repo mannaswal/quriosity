@@ -61,7 +61,7 @@ export const ShareThreadDialog = ({
 				console.error('Failed to toggle thread public status:', error);
 			}
 		},
-		[toggleThreadPublic, thread._id]
+		[toggleThreadPublic, thread._id, setIsOpen]
 	);
 
 	const handleCopyLink = useCallback(async () => {

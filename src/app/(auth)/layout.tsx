@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 import { fetchQuery } from 'convex/nextjs';
 import { AppBreadcrumbs } from '@/components/layout/app-breadcrumbs';
 import { redirect } from 'next/navigation';
+import { Project, Thread, User } from '@/lib/types';
 
 export default async function AuthLayout({
 	children,
@@ -24,9 +25,9 @@ export default async function AuthLayout({
 
 	// Get user data for the sidebar
 	// Handle the case where user might not have a user document yet
-	let user: any = null;
-	let serverThreads: any[] = [];
-	let serverProjects: any[] = [];
+	let user: User | undefined = undefined;
+	let serverThreads: Thread[] = [];
+	let serverProjects: Project[] = [];
 
 	try {
 		const results = await Promise.all([
@@ -35,7 +36,7 @@ export default async function AuthLayout({
 			fetchQuery(api.projects.getUserProjects, {}, { token }),
 		]);
 
-		user = results[0];
+		user = results[0] ?? undefined;
 		serverThreads = results[1];
 		serverProjects = results[2];
 	} catch (error) {
@@ -45,7 +46,7 @@ export default async function AuthLayout({
 		);
 		// If fetching fails (likely because user doc doesn't exist), use empty defaults
 		// The client-side useCurrentUser hook will handle the redirect to /auth/complete
-		user = null;
+		user = undefined;
 		serverThreads = [];
 		serverProjects = [];
 	}
@@ -63,7 +64,7 @@ export default async function AuthLayout({
 	return (
 		<SidebarProvider defaultOpen={defaultOpen}>
 			<AppSidebar
-				userData={user ?? undefined}
+				userData={user}
 				serverThreads={serverThreads ?? []}
 				serverProjects={serverProjects ?? []}
 			/>

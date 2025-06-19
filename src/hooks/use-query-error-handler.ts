@@ -42,12 +42,14 @@ export function useQueryErrorHandler<T>(
 	const [hasHandledError, setHasHandledError] = useState(false);
 	const errorRef = useRef<Error | null>(null);
 
+	const queryResultString = JSON.stringify(queryResult);
+
 	useEffect(() => {
 		// Reset retry count when query changes
 		setRetryCount(0);
 		setHasHandledError(false);
 		errorRef.current = null;
-	}, [JSON.stringify(queryResult)]);
+	}, [queryResultString]);
 
 	useEffect(() => {
 		if (error && !hasHandledError && error !== errorRef.current) {
@@ -124,7 +126,7 @@ export function useQueryErrorHandler<T>(
 export function useConvexQueryWithErrorHandler<T>(
 	queryFn: () => T | undefined,
 	options: UseQueryErrorHandlerOptions & {
-		deps?: any[];
+		deps?: unknown[];
 	}
 ) {
 	const [error, setError] = useState<Error | null>(null);
@@ -141,7 +143,7 @@ export function useConvexQueryWithErrorHandler<T>(
 		} catch (err) {
 			setError(err as Error);
 		}
-	}, deps);
+	}, [...deps, queryFn]);
 
 	return {
 		data,
