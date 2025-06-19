@@ -34,11 +34,9 @@ const ChatContainer = memo(function ChatContainer({
 
 	return (
 		<div className="flex h-screen flex-col overflow-hidden justify-end relative">
-			<ChatContainerRoot className="flex-1 px-px">
+			<ChatContainerRoot className="flex-1">
 				<ChatContainerContent
-					className={cn(
-						'px-6 max-w-3xl mx-auto pt-14 pb-40 space-y-4 group scroll-m-2'
-					)}>
+					className={cn('px-6 max-w-3xl mx-auto pt-14 pb-40 space-y-4 group')}>
 					{messages.map((message, index) => {
 						return (
 							<MessageItem
@@ -59,7 +57,7 @@ const ChatContainer = memo(function ChatContainer({
 					thread={thread ?? undefined}
 					user={user ?? undefined}
 				/>
-				<div className="h-2 bg-background absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-3xl" />
+				<div className="h-2 bg-background absolute bottom-0 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[calc(48rem-32px)] z-50" />
 			</ChatContainerRoot>
 		</div>
 	);

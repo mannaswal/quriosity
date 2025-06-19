@@ -121,7 +121,7 @@ export function AppSidebar({
 						Quriosity
 					</h1>
 				</Link>
-				<SidebarTrigger className="absolute top-4.5 left-4.5" />
+				{/* <SidebarTrigger className="absolute top-4.5 left-4.5" /> */}
 				<div className="w-full space-y-2">
 					<Button
 						variant="ghost"
@@ -237,8 +237,8 @@ export function AppSidebar({
 					<DropdownMenuTrigger asChild>
 						<Button
 							variant="ghost"
-							className="w-full justify-start h-12">
-							<Avatar>
+							className="w-full justify-start h-12 pl-2.5">
+							<Avatar className="size-7">
 								<AvatarImage src={user?.imageUrl} />
 								<AvatarFallback>
 									{user?.fullName?.charAt(0) ??

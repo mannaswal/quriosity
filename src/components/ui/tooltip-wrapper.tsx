@@ -3,6 +3,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 export function TooltipWrapper({
 	children,
@@ -11,8 +12,9 @@ export function TooltipWrapper({
 	delayDuration,
 	align = 'center',
 	side = 'top',
-	sideOffset = 0,
+	sideOffset = 4,
 	alignOffset = 0,
+	className,
 }: {
 	children: React.ReactNode;
 	tooltip: React.ReactNode | string;
@@ -22,6 +24,7 @@ export function TooltipWrapper({
 	side?: 'top' | 'right' | 'bottom' | 'left';
 	sideOffset?: number;
 	alignOffset?: number;
+	className?: string;
 }) {
 	return (
 		<Tooltip
@@ -31,6 +34,10 @@ export function TooltipWrapper({
 				<div>{children}</div>
 			</TooltipTrigger>
 			<TooltipContent
+				className={cn(
+					'mx-1 flex items-center gap-x-1 [&_kbd]:first:ml-1',
+					className
+				)}
 				align={align}
 				side={side}
 				sideOffset={sideOffset}

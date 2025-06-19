@@ -19,6 +19,8 @@ import { SidebarTrigger, useSidebar } from '../ui/sidebar';
 import { ProjectId } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
+import { TooltipWrapper } from '../ui/tooltip-wrapper';
+import { Kbd } from '../ui/kbd';
 
 const getRouteData = (
 	pathname: string
@@ -53,19 +55,44 @@ export function AppBreadcrumbs() {
 			)}>
 			<div
 				className={cn(
-					'z-10 fixed top-4.5 left-4.5 transition-all duration-100 flex items-center pr-1.5',
-					open ? 'opacity-0' : 'opacity-100',
+					'fixed top-4.5 left-4.5 transition-all duration-100 flex items-center pr-1.5 z-30',
 					!open && route === 'projects' && 'border-r border-border'
 				)}>
-				<SidebarTrigger />
-				<Link href="/">
-					<Button
-						variant="ghost"
-						size="icon"
-						className="size-7 rounded-md">
-						<PlusIcon className="size-4" />
-					</Button>
-				</Link>
+				<TooltipWrapper
+					tooltip={
+						<>
+							Toggle sidebar
+							<Kbd>⌘</Kbd>
+							<Kbd>B</Kbd>
+						</>
+					}>
+					<SidebarTrigger
+						className={cn('transition-colors', open && 'text-foreground')}
+					/>
+				</TooltipWrapper>
+				<TooltipWrapper
+					tooltip={
+						<>
+							New chat
+							<Kbd>⌘</Kbd>
+							<Kbd>shift</Kbd>
+							<Kbd>O</Kbd>
+						</>
+					}>
+					<Link
+						href="/"
+						className={cn(
+							'transition-opacity duration-100',
+							open ? 'opacity-0' : 'opacity-100'
+						)}>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-7 rounded-md z-30">
+							<PlusIcon className="size-4" />
+						</Button>
+					</Link>
+				</TooltipWrapper>
 			</div>
 			{route === 'projects' && (
 				<>

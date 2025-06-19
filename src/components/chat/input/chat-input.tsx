@@ -94,7 +94,7 @@ export function ChatInput({
 	};
 
 	return (
-		<div className="w-full absolute left-1/2 -translate-x-[calc(50%)] max-w-3xl z-50 bottom-2 px-2">
+		<div className="w-full absolute left-1/2 -translate-x-1/2 max-w-3xl z-50 bottom-2 px-2">
 			<InputAttachmentList />
 			<PromptInput
 				onSubmit={handleSendMessage}

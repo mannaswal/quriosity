@@ -30,6 +30,7 @@ function ChatContainerRoot({
 			resize="smooth"
 			initial="instant"
 			role="log"
+			id="chat-container"
 			// damping={0}
 			{...props}>
 			{children}
@@ -52,7 +53,7 @@ function ChatContainerContent({
 	return (
 		<StickToBottom.Content
 			className={cn(
-				'flex w-full flex-col transition-opacity duration-200',
+				'flex w-full flex-col transition-opacity duration-200 ',
 				isReady ? 'opacity-100' : 'opacity-0',
 				className
 			)}
