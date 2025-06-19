@@ -7,23 +7,17 @@ Made for the T3 Chat Cloneathon
 - [x] Chat with Various LLMs
 - [x] Authentication & Sync
 - [x] Browser Friendly
-- [-] Easy to Try
+- [x] Easy to Try
 
 ---
 
 ## Bonus Features
 
-- [ ] Bring Your Own Key
-- [ ] Memory
-- [ ] Temporary chats
-- [ ] Drag and drop attachments
-- [ ] Cmd + K search
-- [ ] @commands
+- [x] Bring Your Own Key
 - [x] Search chats
 - [x] Web Search
 - [x] Chat Sharing
 - [-] Image and file previews
-
 - [x] Attachment Support
 - [x] Syntax Highlighting
 - [x] Resumable Streams
@@ -34,9 +28,13 @@ Made for the T3 Chat Cloneathon
 - [x] Attachments on paste
 - [x] Archive
 - [x] Projects
-- [ ] Summarise and start a new thread
-- [ ] Add HEIC/HEIF support
-- [ ] Cancel uploads mid-upload
-- [ ] Image Generation Support
 
+- [ ] Image Generation Support
+- [ ] Drag and drop attachments
+- [ ] Cancel uploads mid-upload
+- [ ] Memory
+- [ ] Temporary chats
+- [ ] Cmd + K search
+- [ ] @commands
+- [ ] Summarise and start a new thread
 - [ ] Experts
