@@ -26,8 +26,8 @@ export const hasEffortControl = (model: ModelId | undefined) =>
 export const hasVision = (model: ModelId | undefined) =>
 	(model && modelsData[model]?.vision) ?? false;
 
-export const hasWebSearch = (model: ModelId | undefined) =>
-	(model && modelsData[model]?.webSearch) ?? false;
+// export const hasWebSearch = (model: ModelId | undefined) =>
+// 	(model && modelsData[model]?.webSearch) ?? false;
 
 export const hasDocs = (model: ModelId | undefined) =>
 	(model && modelsData[model]?.docs) ?? false;
