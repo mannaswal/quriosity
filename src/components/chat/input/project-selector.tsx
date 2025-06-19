@@ -33,17 +33,6 @@ export function ProjectSelector() {
 	const updateThreadProject = useUpdateThreadProject();
 	const pathname = usePathname();
 
-	// Auto-select project when on project page
-	useEffect(() => {
-		if (pathname.startsWith('/projects/')) {
-			const projectIdFromPath = pathname.split('/projects/')[1];
-			if (projectIdFromPath)
-				setSelectedProjectId(projectIdFromPath as Id<'projects'>);
-		} else {
-			setSelectedProjectId(undefined);
-		}
-	}, [pathname, setSelectedProjectId]);
-
 	// Determine if we're in existing thread mode
 	const isExistingThread = thread || pathname.startsWith('/chat/');
 

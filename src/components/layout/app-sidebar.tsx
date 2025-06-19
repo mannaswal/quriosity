@@ -216,24 +216,29 @@ export function AppSidebar({
 					</SidebarGroup>
 				) : (
 					<>
-						{projects && projects.length > 0 && !isSearchActive && (
-							<SidebarGroup>
-								<Button
-									variant="ghost"
-									size={'sm'}
-									className="w-full justify-start px-0"
-									asChild>
-									<Link href="/projects">
-										<SidebarGroupLabel>Projects</SidebarGroupLabel>
-									</Link>
-								</Button>
+						<SidebarGroup>
+							<Button
+								variant="ghost"
+								size={'sm'}
+								className="w-full justify-start px-0"
+								asChild>
+								<Link href="/projects">
+									<SidebarGroupLabel className="gap-1.5">
+										<FolderIcon
+											className="size-3!"
+											strokeWidth={1}
+										/>
+										Projects
+									</SidebarGroupLabel>
+								</Link>
+							</Button>
+							{projects && projects.length > 0 && !isSearchActive && (
 								<SidebarGroupContent>
 									<SidebarMenu>
 										{projects.slice(0, 5).map((project) => (
 											<SidebarMenuItem key={project._id}>
 												<SidebarMenuButton asChild>
 													<Link href={`/projects/${project._id}`}>
-														<FolderIcon className="size-3.5!" />
 														{project.name}
 													</Link>
 												</SidebarMenuButton>
@@ -241,8 +246,8 @@ export function AppSidebar({
 										))}
 									</SidebarMenu>
 								</SidebarGroupContent>
-							</SidebarGroup>
-						)}
+							)}
+						</SidebarGroup>
 						{sidebarGroups.map((group) => {
 							if (group.threads.length === 0 || group.name === 'Archived')
 								return null;

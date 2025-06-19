@@ -19,9 +19,11 @@ import {
 	PinOffIcon,
 	ArchiveRestore,
 	XIcon,
+	PlusIcon,
 } from 'lucide-react';
 import { DeleteThreadButton } from '../threads/delete-thread-button';
 import { ThreadContextMenu } from '../threads/thread-context-menu';
+import { useTempActions } from '@/stores/use-temp-data-store';
 
 interface ProjectThreadsSectionProps {
 	projectId: Id<'projects'>;
@@ -125,7 +127,7 @@ function ThreadItem({ thread }: ThreadItemProps) {
 				handleDeleteThread={handleDeleteThread}
 				handleArchiveThread={handleArchiveThread}
 				handleRenameOnClick={handleRenameOnClick}>
-				<Card className="hover:shadow-sm transition-shadow p-0 relative group/thread-item">
+				<Card className="hover:shadow-sm transition-shadow p-0 relative group/thread-item overflow-hidden">
 					{isEditing ? (
 						<CardContent className="p-3 pr-1.5 cursor-default">
 							<div className="flex items-center justify-between">
@@ -163,7 +165,7 @@ function ThreadItem({ thread }: ThreadItemProps) {
 					)}
 					{!isEditing && (
 						<div className="flex items-center justify-between absolute inset-0 left-3">
-							<div className="flex-1 min-w-0">
+							<div className="w-fit whitespace-nowrap truncate">
 								<span
 									className="font-medium truncate"
 									onDoubleClick={handleRenameOnClick}>
@@ -174,7 +176,7 @@ function ThreadItem({ thread }: ThreadItemProps) {
 					)}
 					<div
 						data-state={isEditing ? 'editing' : 'not-editing'}
-						className="flex items-center focus-within:opacity-100 group-hover/thread-item:opacity-100 opacity-0 transition-opacity absolute right-1.5 top-0 translate-y-1/2 -mt-3 z-5 data-[state=editing]:hidden">
+						className="flex items-center focus-within:opacity-100 group-hover/thread-item:opacity-100 opacity-0 transition-opacity absolute right-0 top-1/2 -translate-y-1/2 z-5 data-[state=editing]:hidden focus-within:bg-card hover:bg-card rounded-lg h-full px-1.5">
 						<Button
 							variant="ghost"
 							size="icon"
@@ -250,6 +252,7 @@ export function ProjectThreadsSection({
 	projectId,
 }: ProjectThreadsSectionProps) {
 	const threads = useProjectThreads(projectId);
+	const { setSelectedProjectId } = useTempActions();
 
 	const groupedThreads = useMemo(() => {
 		return groupThreadsByStatusAndRecency(threads);
@@ -259,8 +262,18 @@ export function ProjectThreadsSection({
 
 	if (!threads.length) {
 		return (
-			<div className="text-center py-8 text-muted-foreground">
+			<div className="text-center py-8 text-muted-foreground flex flex-col items-center gap-3">
 				No chats in this project yet
+				<Button
+					className="w-fit"
+					asChild>
+					<Link
+						href="/"
+						onClick={() => setSelectedProjectId(projectId)}>
+						<PlusIcon className="size-4" />
+						Start a new chat
+					</Link>
+				</Button>
 			</div>
 		);
 	}

@@ -22,9 +22,9 @@ export default function ProjectsPage() {
 					</p>
 				</div>
 				<ProjectCreateDialog>
-					<Button>
-						Create Project
+					<Button variant={'secondary'}>
 						<PlusIcon className="size-4" />
+						Create Project
 					</Button>
 				</ProjectCreateDialog>
 			</div>
@@ -48,7 +48,7 @@ const ProjectsPageContent = ({
 				</div>
 				<ProjectCreateDialog>
 					<Button>
-						<PlusIcon className="size-4 mr-2" />
+						<PlusIcon className="size-4" />
 						Create your first project
 					</Button>
 				</ProjectCreateDialog>

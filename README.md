@@ -13,8 +13,8 @@ Made for the T3 Chat Cloneathon
 
 ## Bonus Features
 
-- [ ] Memory
 - [ ] Bring Your Own Key
+- [ ] Memory
 - [ ] Temporary chats
 - [ ] Drag and drop attachments
 - [ ] Cmd + K search

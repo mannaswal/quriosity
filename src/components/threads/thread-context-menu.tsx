@@ -29,6 +29,7 @@ import { TooltipWrapper } from '../ui/tooltip-wrapper';
 import { ShareThreadDialog } from './share-thread-dialog';
 import { Button } from '../ui/button';
 import { useState } from 'react';
+import { DeleteThreadButton } from './delete-thread-button';
 
 export const ThreadContextMenu = ({
 	children,
@@ -65,7 +66,7 @@ export const ThreadContextMenu = ({
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-			<ContextMenuContent>
+			<ContextMenuContent collisionPadding={16}>
 				<ContextMenuItem onClick={handlePinThread}>
 					<PinIcon className="size-3.5" />
 					{thread.pinned ? 'Unpin' : 'Pin'}
@@ -136,12 +137,11 @@ export const ThreadContextMenu = ({
 				)}
 
 				<ContextMenuSeparator />
-				<ContextMenuItem
-					onClick={handleDeleteThread}
-					className="text-destructive focus:text-destructive">
-					<TrashIcon className="size-3.5" />
-					Delete
-				</ContextMenuItem>
+				<DeleteThreadButton
+					thread={thread}
+					handleDeleteThread={handleDeleteThread}
+					inside="context-menu"
+				/>
 			</ContextMenuContent>
 			<ShareThreadDialog
 				thread={thread}

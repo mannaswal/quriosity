@@ -12,6 +12,12 @@ import { ConvexErrorBoundary } from '@/components/error/convex-error-boundary';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { Loading } from '@/components/layout/loading';
+import { Button } from '@/components/ui/button';
+import { PlusIcon } from 'lucide-react';
+import { TooltipWrapper } from '@/components/ui/tooltip-wrapper';
+import { useTempActions } from '@/stores/use-temp-data-store';
+import Link from 'next/link';
 
 export default function ProjectDetailPage() {
 	const params = useParams();
@@ -29,14 +35,8 @@ export default function ProjectDetailPage() {
 
 	// Show loading state while project data is being fetched
 	if (projectData === undefined) {
-		return (
-			<div className="w-full flex flex-col">
-				<div className="animate-pulse space-y-4">
-					<div className="h-8 bg-muted rounded w-1/3"></div>
-					<div className="h-4 bg-muted rounded w-2/3"></div>
-				</div>
-			</div>
-		);
+		// return <Loading message="Loading project..." />;
+		return null;
 	}
 
 	// Don't render if project data is null (will redirect)
@@ -46,7 +46,7 @@ export default function ProjectDetailPage() {
 
 	return (
 		<ConvexErrorBoundary context="project">
-			<div className="w-full flex flex-col">
+			<div className="w-full flex flex-col fade-in animate-in">
 				{/* <ProjectBreadcrumbs currentProjectId={projectId} /> */}
 				<ProjectHeader projectId={projectId} />
 				<ProjectDetailPageContent
@@ -66,10 +66,30 @@ const ProjectDetailPageContent = ({
 	projectData: ProjectWithAttachments | undefined;
 }) => {
 	const isLoading = projectData === undefined;
+	const { setSelectedProjectId } = useTempActions();
+
 	return (
 		<section className="w-full grid grid-cols-1 md:grid-cols-2 gap-8">
 			<div className="">
-				<h2 className="text-xl font-semibold mb-4">Chats</h2>
+				<div className="flex items-center justify-between mb-4">
+					<h2 className="text-xl font-semibold">Chats</h2>
+					<TooltipWrapper
+						side="bottom"
+						tooltip="Start a new chat with this project">
+						<Button
+							variant={'outline'}
+							size={'icon'}
+							className="size-8"
+							onClick={() => {
+								setSelectedProjectId(projectId);
+							}}
+							asChild>
+							<Link href="/">
+								<PlusIcon className="size-4" />
+							</Link>
+						</Button>
+					</TooltipWrapper>
+				</div>
 				<ProjectThreadsSection projectId={projectId} />
 			</div>
 			<section className="space-y-8">
